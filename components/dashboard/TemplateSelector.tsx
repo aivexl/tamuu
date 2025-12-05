@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import NextImage from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTemplateStore } from '@/lib/template-store';
 import { useInvitationStore } from '@/lib/store';
@@ -70,14 +71,16 @@ export function TemplateSelector({ isOpen, onClose }: TemplateSelectorProps) {
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => setSelectedId(template.id)}
                                         className={`relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-200 ${selectedId === template.id
-                                                ? 'border-purple-500 ring-4 ring-purple-500/20'
-                                                : 'border-gray-200 hover:border-gray-300'
+                                            ? 'border-purple-500 ring-4 ring-purple-500/20'
+                                            : 'border-gray-200 hover:border-gray-300'
                                             }`}
                                     >
-                                        <img
+                                        <NextImage
                                             src={template.thumbnail}
                                             alt={template.name}
-                                            className="w-full aspect-[3/4] object-cover"
+                                            fill
+                                            className="object-cover"
+                                            unoptimized
                                         />
                                         {/* Overlay */}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />

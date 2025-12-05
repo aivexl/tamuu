@@ -108,7 +108,7 @@ export const ALL_ICONS = Object.values(ICON_CATEGORIES).flat();
 
 // Get icon component by name
 export const getIconComponent = (iconName: string): LucideIcon | null => {
-    const icons = LucideIcons as Record<string, LucideIcon>;
+    const icons = LucideIcons as unknown as Record<string, LucideIcon>;
     return icons[iconName] || null;
 };
 

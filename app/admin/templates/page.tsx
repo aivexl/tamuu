@@ -2,20 +2,27 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useTemplateStore } from '@/lib/template-store';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Plus, Edit, Trash2, Eye } from 'lucide-react';
 
 export default function AdminTemplatesPage() {
+    const router = useRouter();
     const templates = useTemplateStore((state) => state.templates);
     const deleteTemplate = useTemplateStore((state) => state.deleteTemplate);
     const addTemplate = useTemplateStore((state) => state.addTemplate);
+    const fetchTemplates = useTemplateStore((state) => state.fetchTemplates);
 
-    const handleCreateTemplate = () => {
+    React.useEffect(() => {
+        fetchTemplates();
+    }, [fetchTemplates]);
+
+    const handleCreateTemplate = async () => {
         const newId = `t${Date.now()}`;
-        addTemplate({
-            id: newId,
+        const createdId = await addTemplate({
             name: `New Template ${templates.length + 1}`,
             thumbnail: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=400',
             sections: {},
@@ -32,9 +39,11 @@ export default function AdminTemplatesPage() {
                 },
                 fontFamily: 'Inter',
             },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
         });
+
+        if (createdId) {
+            router.push(`/admin/templates/${createdId}`);
+        }
     };
 
     return (
@@ -62,10 +71,11 @@ export default function AdminTemplatesPage() {
                         <Card key={template.id} className="overflow-hidden group hover:shadow-xl transition-shadow duration-300">
                             {/* Thumbnail */}
                             <div className="relative aspect-[4/3] bg-slate-100">
-                                <img
+                                <Image
                                     src={template.thumbnail}
                                     alt={template.name}
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    className="object-cover"
                                 />
                                 {/* Overlay on hover */}
                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">

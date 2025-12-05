@@ -1,5 +1,6 @@
 // Section types - both predefined and custom
 export type PredefinedSectionType = 'opening' | 'quotes' | 'couple' | 'event' | 'maps' | 'rsvp' | 'thanks';
+export const PREDEFINED_SECTION_TYPES: PredefinedSectionType[] = ['opening', 'quotes', 'couple', 'event', 'maps', 'rsvp', 'thanks'];
 export type SectionType = PredefinedSectionType | string;
 
 export interface InvitationSection {
@@ -208,7 +209,6 @@ export interface IconStyle {
     iconColor: string;
     iconSize: number;
 }
-
 // Countdown element properties
 export type CountdownStyle = 'elegant' | 'minimal' | 'flip' | 'circle' | 'card' | 'neon';
 
@@ -223,6 +223,10 @@ export interface CountdownConfig {
     textColor: string;
     accentColor: string;
     labelColor: string;
+    dayLabelColor?: string;
+    hourLabelColor?: string;
+    minuteLabelColor?: string;
+    secondLabelColor?: string;
     showLabels: boolean;
     labels: {
         days: string;

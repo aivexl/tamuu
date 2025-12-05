@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import NextImage from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useTemplateStore } from '@/lib/template-store';
 import { SectionType, AnimationType, TemplateElement, TextStyle, ElementType, CountdownConfig, RSVPFormConfig, GuestWishesConfig, IconStyle } from '@/lib/types';
@@ -57,6 +58,8 @@ export default function TemplateEditorPage() {
     const templateId = params.id as string;
     const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const wasDraggedRef = useRef(false);
+    const wasSelectedRef = useRef(false);
 
     const templates = useTemplateStore((state) => state.templates);
     const updateTemplate = useTemplateStore((state) => state.updateTemplate);
@@ -106,6 +109,7 @@ export default function TemplateEditorPage() {
     const [resizing, setResizing] = useState<{ elementId: string; sectionType: SectionType; handle: ResizeHandle; startX: number; startY: number; startPos: { x: number; y: number }; startSize: { width: number; height: number } } | null>(null);
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [visibleSections, setVisibleSections] = useState<Set<SectionType>>(new Set(SECTION_TYPES));
 
 
     useEffect(() => {
@@ -113,6 +117,17 @@ export default function TemplateEditorPage() {
             setTemplateName(template.name);
         }
     }, [template]);
+
+    // Listen for fullscreen change events
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement) {
+                setIsFullscreen(false);
+            }
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
 
     // Keyboard shortcuts for copy/paste/delete
     useEffect(() => {
@@ -371,9 +386,9 @@ export default function TemplateEditorPage() {
     };
 
     // Track if element was dragged to prevent deselect on drag end
-    const wasDraggedRef = useRef(false);
+    // Moved to top
     // Track if element was already selected when mousedown started
-    const wasSelectedRef = useRef(false);
+    // Moved to top
 
     // MouseDown: select element, prepare for drag
     const handleMouseDown = (e: React.MouseEvent, elementId: string, sectionType: SectionType) => {
@@ -623,15 +638,7 @@ export default function TemplateEditorPage() {
     };
 
     // Listen for fullscreen change events
-    useEffect(() => {
-        const handleFullscreenChange = () => {
-            if (!document.fullscreenElement) {
-                setIsFullscreen(false);
-            }
-        };
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    }, []);
+    // Moved to top
 
     // Toggle visibility for a section
     const toggleSectionVisibility = (sectionType: SectionType) => {
@@ -648,7 +655,7 @@ export default function TemplateEditorPage() {
     };
 
     // Animation CSS keyframes
-    const getAnimationStyle = (el: TemplateElement, isPreview: boolean) => {
+    const getAnimationStyle = (el: TemplateElement, isPreview: boolean, isVisible?: boolean) => {
         if (!isPreview || el.animation === 'none') return {};
 
         const speed = el.animationSpeed || 500;
@@ -782,11 +789,12 @@ export default function TemplateEditorPage() {
                                                 style={{ transform: getElementTransform(el) }}
                                             >
                                                 {el.type === 'image' && el.imageUrl && (
-                                                    <img
+                                                    <NextImage
                                                         src={el.imageUrl}
                                                         alt={el.name}
-                                                        className="w-full h-full object-cover"
-                                                        style={{ imageRendering: 'high-quality' }}
+                                                        fill
+                                                        className="object-cover"
+                                                        unoptimized
                                                     />
                                                 )}
                                                 {el.type === 'text' && el.textStyle && (
@@ -1018,10 +1026,12 @@ export default function TemplateEditorPage() {
                         </h2>
                         <div className="relative rounded-lg overflow-hidden bg-slate-700 aspect-[4/3]">
                             {template.thumbnail ? (
-                                <img
+                                <NextImage
                                     src={template.thumbnail}
                                     alt="Thumbnail"
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    className="object-cover"
+                                    unoptimized
                                 />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-slate-500">
@@ -1365,19 +1375,28 @@ export default function TemplateEditorPage() {
 
                                                 <div className="mb-3">
                                                     <Label className="text-slate-300 text-xs">Icon</Label>
-                                                    <select
-                                                        value={selectedElement.iconStyle.iconName}
-                                                        onChange={(e) => handleElementChange('iconStyle', { ...selectedElement.iconStyle, iconName: e.target.value })}
-                                                        className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-10"
-                                                    >
+                                                    <div className="mt-1 space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                                                         {Object.entries(ICON_CATEGORIES).map(([category, icons]) => (
-                                                            <optgroup key={category} label={category}>
-                                                                {icons.map((icon) => (
-                                                                    <option key={icon} value={icon}>{icon}</option>
-                                                                ))}
-                                                            </optgroup>
+                                                            <div key={category}>
+                                                                <h5 className="text-[10px] font-semibold text-slate-500 uppercase mb-2 sticky top-0 bg-slate-800 py-1">{category}</h5>
+                                                                <div className="grid grid-cols-5 gap-2">
+                                                                    {icons.map((icon) => (
+                                                                        <button
+                                                                            key={icon}
+                                                                            onClick={() => handleElementChange('iconStyle', { ...selectedElement.iconStyle!, iconName: icon })}
+                                                                            className={`aspect-square rounded flex items-center justify-center transition-all ${selectedElement.iconStyle?.iconName === icon
+                                                                                ? 'bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-1 ring-offset-slate-800'
+                                                                                : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-white'
+                                                                                }`}
+                                                                            title={icon}
+                                                                        >
+                                                                            <DynamicIcon name={icon} size={20} />
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
                                                         ))}
-                                                    </select>
+                                                    </div>
                                                 </div>
 
                                                 <div className="mb-3">
@@ -1816,7 +1835,7 @@ export default function TemplateEditorPage() {
                                                 )}
 
                                                 {el.type === 'image' && el.imageUrl && (
-                                                    <img src={el.imageUrl} alt={el.name} className="w-full h-full object-cover pointer-events-none" draggable={false} />
+                                                    <NextImage src={el.imageUrl} alt={el.name} fill className="object-cover pointer-events-none" draggable={false} unoptimized />
                                                 )}
                                                 {el.type === 'image' && !el.imageUrl && (
                                                     <div className="w-full h-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs pointer-events-none">

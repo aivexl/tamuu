@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Template, SectionType, SectionDesign, ThemeConfig, TemplateElement } from './types';
+import { Template, SectionType, SectionDesign, ThemeConfig, TemplateElement, PREDEFINED_SECTION_TYPES, AnimationType } from './types';
 import * as SupabaseService from './supabase-templates';
 
 // Mock initial templates (fallback)
@@ -27,7 +27,7 @@ interface TemplateStore {
 
     // Actions
     fetchTemplates: () => Promise<void>;
-    addTemplate: (template: Omit<Template, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+    addTemplate: (template: Omit<Template, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string | null>;
     updateTemplate: (id: string, updates: Partial<Template>) => Promise<void>;
     deleteTemplate: (id: string) => Promise<void>;
     setActiveTemplate: (id: string | null) => void;
@@ -76,31 +76,44 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
     },
 
     addTemplate: async (templateData) => {
-        // Optimistic update (temporary ID)
-        const tempId = `temp-${Date.now()}`;
-        const newTemplate: Template = {
+        // Populate default sections if empty
+        const sections = templateData.sections && Object.keys(templateData.sections).length > 0
+            ? templateData.sections
+            : PREDEFINED_SECTION_TYPES.reduce((acc, type) => ({
+                ...acc,
+                [type]: { animation: 'fade-in' as AnimationType, elements: [], isVisible: true, pageTitle: type }
+            }), {} as Record<string, SectionDesign>);
+
+        const sectionOrder = templateData.sectionOrder && templateData.sectionOrder.length > 0
+            ? templateData.sectionOrder
+            : PREDEFINED_SECTION_TYPES;
+
+        const finalTemplateData = {
             ...templateData,
-            id: tempId,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            sections,
+            sectionOrder
         };
 
-        set((state) => ({ templates: [newTemplate, ...state.templates] }));
+        set({ isLoading: true });
 
         try {
-            const created = await SupabaseService.createTemplate(templateData);
+            const created = await SupabaseService.createTemplate(finalTemplateData);
             if (created) {
                 set((state) => ({
-                    templates: state.templates.map(t => t.id === tempId ? created : t)
+                    templates: [created, ...state.templates],
+                    isLoading: false
                 }));
+                return created.id;
+            } else {
+                throw new Error('Failed to create template');
             }
         } catch (error: any) {
             console.error('Failed to create template:', error);
             if (typeof error === 'object' && error !== null) {
                 console.error('Error details:', JSON.stringify(error, null, 2));
             }
-            // Revert
-            set((state) => ({ templates: state.templates.filter(t => t.id !== tempId) }));
+            set({ error: error.message, isLoading: false });
+            return null;
         }
     },
 
@@ -237,12 +250,15 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             }),
         }));
 
-        try {
-            await SupabaseService.updateElement(elementId, updates);
-        } catch (error) {
-            console.error('Failed to update element:', error);
-            if (typeof error === 'object' && error !== null) {
-                console.error('Error details:', JSON.stringify(error, null, 2));
+        // Only update in DB if it's not a temporary element
+        if (!elementId.startsWith('el-')) {
+            try {
+                await SupabaseService.updateElement(elementId, updates);
+            } catch (error) {
+                console.error('Failed to update element:', error);
+                if (typeof error === 'object' && error !== null) {
+                    console.error('Error details:', JSON.stringify(error, null, 2));
+                }
             }
         }
     },
@@ -268,12 +284,15 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             selectedElementId: null,
         }));
 
-        try {
-            await SupabaseService.deleteElement(elementId);
-        } catch (error) {
-            console.error('Failed to delete element:', error);
-            if (typeof error === 'object' && error !== null) {
-                console.error('Error details:', JSON.stringify(error, null, 2));
+        // Only delete from DB if it's not a temporary element
+        if (!elementId.startsWith('el-')) {
+            try {
+                await SupabaseService.deleteElement(elementId);
+            } catch (error) {
+                console.error('Failed to delete element:', error);
+                if (typeof error === 'object' && error !== null) {
+                    console.error('Error details:', JSON.stringify(error, null, 2));
+                }
             }
         }
     },

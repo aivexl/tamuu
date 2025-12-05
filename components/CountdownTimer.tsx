@@ -42,7 +42,7 @@ const ElegantCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }
                     {String(timeLeft.days).padStart(2, '0')}
                 </div>
                 {config.showLabels && (
-                    <div className="text-xs mt-2 uppercase tracking-wider" style={{ color: config.labelColor }}>
+                    <div className="text-xs mt-2 uppercase tracking-wider" style={{ color: config.dayLabelColor || config.labelColor }}>
                         {config.labels.days}
                     </div>
                 )}
@@ -57,7 +57,7 @@ const ElegantCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }
                     {String(timeLeft.hours).padStart(2, '0')}
                 </div>
                 {config.showLabels && (
-                    <div className="text-xs mt-2 uppercase tracking-wider" style={{ color: config.labelColor }}>
+                    <div className="text-xs mt-2 uppercase tracking-wider" style={{ color: config.hourLabelColor || config.labelColor }}>
                         {config.labels.hours}
                     </div>
                 )}
@@ -72,7 +72,7 @@ const ElegantCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }
                     {String(timeLeft.minutes).padStart(2, '0')}
                 </div>
                 {config.showLabels && (
-                    <div className="text-xs mt-2 uppercase tracking-wider" style={{ color: config.labelColor }}>
+                    <div className="text-xs mt-2 uppercase tracking-wider" style={{ color: config.minuteLabelColor || config.labelColor }}>
                         {config.labels.minutes}
                     </div>
                 )}
@@ -87,7 +87,7 @@ const ElegantCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }
                     {String(timeLeft.seconds).padStart(2, '0')}
                 </div>
                 {config.showLabels && (
-                    <div className="text-xs mt-2 uppercase tracking-wider" style={{ color: config.labelColor }}>
+                    <div className="text-xs mt-2 uppercase tracking-wider" style={{ color: config.secondLabelColor || config.labelColor }}>
                         {config.labels.seconds}
                     </div>
                 )}
@@ -104,7 +104,7 @@ const MinimalCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }
                 <span className="text-3xl font-bold" style={{ color: config.accentColor }}>
                     {String(timeLeft.days).padStart(2, '0')}
                 </span>
-                {config.showLabels && <span className="text-sm" style={{ color: config.labelColor }}>{config.labels.days}</span>}
+                {config.showLabels && <span className="text-sm" style={{ color: config.dayLabelColor || config.labelColor }}>{config.labels.days}</span>}
                 <span className="text-2xl mx-1">:</span>
             </>
         )}
@@ -113,7 +113,7 @@ const MinimalCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }
                 <span className="text-3xl font-bold" style={{ color: config.accentColor }}>
                     {String(timeLeft.hours).padStart(2, '0')}
                 </span>
-                {config.showLabels && <span className="text-sm" style={{ color: config.labelColor }}>{config.labels.hours}</span>}
+                {config.showLabels && <span className="text-sm" style={{ color: config.hourLabelColor || config.labelColor }}>{config.labels.hours}</span>}
                 <span className="text-2xl mx-1">:</span>
             </>
         )}
@@ -122,7 +122,7 @@ const MinimalCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }
                 <span className="text-3xl font-bold" style={{ color: config.accentColor }}>
                     {String(timeLeft.minutes).padStart(2, '0')}
                 </span>
-                {config.showLabels && <span className="text-sm" style={{ color: config.labelColor }}>{config.labels.minutes}</span>}
+                {config.showLabels && <span className="text-sm" style={{ color: config.minuteLabelColor || config.labelColor }}>{config.labels.minutes}</span>}
                 {config.showSeconds && <span className="text-2xl mx-1">:</span>}
             </>
         )}
@@ -131,7 +131,7 @@ const MinimalCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }
                 <span className="text-3xl font-bold" style={{ color: config.accentColor }}>
                     {String(timeLeft.seconds).padStart(2, '0')}
                 </span>
-                {config.showLabels && <span className="text-sm" style={{ color: config.labelColor }}>{config.labels.seconds}</span>}
+                {config.showLabels && <span className="text-sm" style={{ color: config.secondLabelColor || config.labelColor }}>{config.labels.seconds}</span>}
             </>
         )}
     </div>
@@ -155,7 +155,7 @@ const FlipCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }> =
                     <div className="absolute inset-x-0 top-1/2 h-px bg-black/30"></div>
                 </div>
                 {config.showLabels && (
-                    <div className="text-xs mt-2 uppercase" style={{ color: config.labelColor }}>
+                    <div className="text-xs mt-2 uppercase" style={{ color: config.dayLabelColor || config.labelColor }}>
                         {config.labels.days}
                     </div>
                 )}
@@ -176,7 +176,7 @@ const FlipCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }> =
                     <div className="absolute inset-x-0 top-1/2 h-px bg-black/30"></div>
                 </div>
                 {config.showLabels && (
-                    <div className="text-xs mt-2 uppercase" style={{ color: config.labelColor }}>
+                    <div className="text-xs mt-2 uppercase" style={{ color: config.hourLabelColor || config.labelColor }}>
                         {config.labels.hours}
                     </div>
                 )}
@@ -197,7 +197,7 @@ const FlipCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }> =
                     <div className="absolute inset-x-0 top-1/2 h-px bg-black/30"></div>
                 </div>
                 {config.showLabels && (
-                    <div className="text-xs mt-2 uppercase" style={{ color: config.labelColor }}>
+                    <div className="text-xs mt-2 uppercase" style={{ color: config.minuteLabelColor || config.labelColor }}>
                         {config.labels.minutes}
                     </div>
                 )}
@@ -218,7 +218,7 @@ const FlipCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }> =
                     <div className="absolute inset-x-0 top-1/2 h-px bg-black/30"></div>
                 </div>
                 {config.showLabels && (
-                    <div className="text-xs mt-2 uppercase" style={{ color: config.labelColor }}>
+                    <div className="text-xs mt-2 uppercase" style={{ color: config.secondLabelColor || config.labelColor }}>
                         {config.labels.seconds}
                     </div>
                 )}
@@ -253,7 +253,7 @@ const CircleCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }>
                             {timeLeft.days}
                         </span>
                         {config.showLabels && (
-                            <span className="text-[10px] uppercase" style={{ color: config.labelColor }}>
+                            <span className="text-[10px] uppercase" style={{ color: config.dayLabelColor || config.labelColor }}>
                                 {config.labels.days}
                             </span>
                         )}
@@ -276,7 +276,7 @@ const CircleCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }>
                             {String(timeLeft.hours).padStart(2, '0')}
                         </span>
                         {config.showLabels && (
-                            <span className="text-[10px] uppercase" style={{ color: config.labelColor }}>
+                            <span className="text-[10px] uppercase" style={{ color: config.hourLabelColor || config.labelColor }}>
                                 {config.labels.hours}
                             </span>
                         )}
@@ -299,7 +299,7 @@ const CircleCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }>
                             {String(timeLeft.minutes).padStart(2, '0')}
                         </span>
                         {config.showLabels && (
-                            <span className="text-[10px] uppercase" style={{ color: config.labelColor }}>
+                            <span className="text-[10px] uppercase" style={{ color: config.minuteLabelColor || config.labelColor }}>
                                 {config.labels.minutes}
                             </span>
                         )}
@@ -322,7 +322,7 @@ const CircleCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }>
                             {String(timeLeft.seconds).padStart(2, '0')}
                         </span>
                         {config.showLabels && (
-                            <span className="text-[10px] uppercase" style={{ color: config.labelColor }}>
+                            <span className="text-[10px] uppercase" style={{ color: config.secondLabelColor || config.labelColor }}>
                                 {config.labels.seconds}
                             </span>
                         )}
@@ -348,7 +348,7 @@ const CardCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }> =
                     {String(timeLeft.days).padStart(2, '0')}
                 </div>
                 {config.showLabels && (
-                    <div className="text-xs uppercase mt-1" style={{ color: config.labelColor }}>
+                    <div className="text-xs uppercase mt-1" style={{ color: config.dayLabelColor || config.labelColor }}>
                         {config.labels.days}
                     </div>
                 )}
@@ -366,7 +366,7 @@ const CardCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }> =
                     {String(timeLeft.hours).padStart(2, '0')}
                 </div>
                 {config.showLabels && (
-                    <div className="text-xs uppercase mt-1" style={{ color: config.labelColor }}>
+                    <div className="text-xs uppercase mt-1" style={{ color: config.hourLabelColor || config.labelColor }}>
                         {config.labels.hours}
                     </div>
                 )}
@@ -384,7 +384,7 @@ const CardCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }> =
                     {String(timeLeft.minutes).padStart(2, '0')}
                 </div>
                 {config.showLabels && (
-                    <div className="text-xs uppercase mt-1" style={{ color: config.labelColor }}>
+                    <div className="text-xs uppercase mt-1" style={{ color: config.minuteLabelColor || config.labelColor }}>
                         {config.labels.minutes}
                     </div>
                 )}
@@ -402,7 +402,7 @@ const CardCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }> =
                     {String(timeLeft.seconds).padStart(2, '0')}
                 </div>
                 {config.showLabels && (
-                    <div className="text-xs uppercase mt-1" style={{ color: config.labelColor }}>
+                    <div className="text-xs uppercase mt-1" style={{ color: config.secondLabelColor || config.labelColor }}>
                         {config.labels.seconds}
                     </div>
                 )}
@@ -429,8 +429,8 @@ const NeonCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }> =
                     <div
                         className="text-xs uppercase tracking-widest mt-2"
                         style={{
-                            color: config.labelColor,
-                            textShadow: `0 0 5px ${config.labelColor}`,
+                            color: config.dayLabelColor || config.labelColor,
+                            textShadow: `0 0 5px ${config.dayLabelColor || config.labelColor}`,
                         }}
                     >
                         {config.labels.days}
@@ -454,8 +454,8 @@ const NeonCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }> =
                     <div
                         className="text-xs uppercase tracking-widest mt-2"
                         style={{
-                            color: config.labelColor,
-                            textShadow: `0 0 5px ${config.labelColor}`,
+                            color: config.hourLabelColor || config.labelColor,
+                            textShadow: `0 0 5px ${config.hourLabelColor || config.labelColor}`,
                         }}
                     >
                         {config.labels.hours}
@@ -479,8 +479,8 @@ const NeonCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }> =
                     <div
                         className="text-xs uppercase tracking-widest mt-2"
                         style={{
-                            color: config.labelColor,
-                            textShadow: `0 0 5px ${config.labelColor}`,
+                            color: config.minuteLabelColor || config.labelColor,
+                            textShadow: `0 0 5px ${config.minuteLabelColor || config.labelColor}`,
                         }}
                     >
                         {config.labels.minutes}
@@ -505,8 +505,8 @@ const NeonCountdown: React.FC<{ timeLeft: TimeLeft; config: CountdownConfig }> =
                         <div
                             className="text-xs uppercase tracking-widest mt-2"
                             style={{
-                                color: config.labelColor,
-                                textShadow: `0 0 5px ${config.labelColor}`,
+                                color: config.secondLabelColor || config.labelColor,
+                                textShadow: `0 0 5px ${config.secondLabelColor || config.labelColor}`,
                             }}
                         >
                             {config.labels.seconds}
@@ -567,6 +567,10 @@ export const getDefaultCountdownConfig = (): CountdownConfig => ({
     textColor: '#1a1a2e',
     accentColor: '#b8860b',
     labelColor: '#666666',
+    dayLabelColor: '#666666',
+    hourLabelColor: '#666666',
+    minuteLabelColor: '#666666',
+    secondLabelColor: '#666666',
     showLabels: true,
     labels: {
         days: 'Hari',

@@ -1,4 +1,5 @@
 import React from 'react';
+import NextImage from 'next/image';
 import { InvitationSection } from '@/lib/types';
 import { useInvitationStore } from '@/lib/store';
 import { Input } from '@/components/ui/Input';
@@ -73,10 +74,12 @@ export function SectionEditor({ section }: SectionEditorProps) {
                     <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
                         {mapsData.image ? (
                             <div className="relative w-full aspect-video mb-4">
-                                <img
+                                <NextImage
                                     src={mapsData.image}
                                     alt="Location"
-                                    className="w-full h-full object-cover rounded-md"
+                                    fill
+                                    className="object-cover rounded-md"
+                                    unoptimized
                                 />
                                 <Button
                                     variant="destructive"
