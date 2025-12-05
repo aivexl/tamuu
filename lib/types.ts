@@ -207,9 +207,18 @@ export interface TemplateElement {
     size: { width: number; height: number };
     animation: AnimationType;
     animationDelay?: number;
+    animationSpeed?: number; // ms, default 500
+    animationDuration?: number; // ms, default 1000
     zIndex: number;
+    locked?: boolean;
+    // Transform properties
+    flipHorizontal?: boolean;
+    flipVertical?: boolean;
+    rotation?: number; // degrees, 0-360
     // For image elements
     imageUrl?: string;
+    objectFit?: 'cover' | 'contain' | 'fill';
+    cropRect?: { x: number; y: number; width: number; height: number }; // Crop area within image
     // For text elements
     content?: string;
     textStyle?: TextStyle;
@@ -222,6 +231,8 @@ export interface SectionDesign {
     textColor?: string;
     overlayOpacity?: number;
     elements: TemplateElement[];
+    pageTitle?: string; // Custom title for multi-page view
+    isVisible?: boolean; // Section visibility toggle
 }
 
 export interface Template {
@@ -229,6 +240,7 @@ export interface Template {
     name: string;
     thumbnail: string;
     sections: Partial<Record<SectionType, SectionDesign>>;
+    sectionOrder?: SectionType[]; // Order of sections for multi-page view
     globalTheme: ThemeConfig;
     createdAt: string;
     updatedAt: string;

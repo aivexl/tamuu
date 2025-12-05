@@ -108,6 +108,11 @@ interface TemplateStore {
     deleteTemplate: (id: string) => void;
     setActiveTemplate: (id: string | null) => void;
     updateSectionDesign: (templateId: string, sectionType: SectionType, design: Partial<SectionDesign>) => void;
+    reorderSections: (templateId: string, newOrder: SectionType[]) => void;
+
+    // Section copy actions
+    copySectionDesign: (templateId: string, fromSection: SectionType, toSection: SectionType) => void;
+    duplicateElement: (templateId: string, fromSection: SectionType, elementId: string, toSection?: SectionType) => void;
 
     // Element actions
     setSelectedElement: (elementId: string | null) => void;
@@ -159,6 +164,13 @@ export const useTemplateStore = create<TemplateStore>((set) => ({
                     updatedAt: new Date().toISOString(),
                 };
             }),
+        })),
+
+    reorderSections: (templateId, newOrder) =>
+        set((state) => ({
+            templates: state.templates.map((t) =>
+                t.id === templateId ? { ...t, sectionOrder: newOrder, updatedAt: new Date().toISOString() } : t
+            ),
         })),
 
     setSelectedElement: (elementId) => set({ selectedElementId: elementId }),
@@ -324,6 +336,72 @@ export const useTemplateStore = create<TemplateStore>((set) => ({
                             ),
                         },
                     },
+                };
+            }),
+        })),
+
+    copySectionDesign: (templateId, fromSection, toSection) =>
+        set((state) => ({
+            templates: state.templates.map((t) => {
+                if (t.id !== templateId) return t;
+                const sourceDesign = t.sections[fromSection];
+                if (!sourceDesign) return t;
+
+                // Deep copy elements with new IDs
+                const copiedElements = sourceDesign.elements.map((el) => ({
+                    ...el,
+                    id: `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                }));
+
+                return {
+                    ...t,
+                    sections: {
+                        ...t.sections,
+                        [toSection]: {
+                            ...sourceDesign,
+                            elements: copiedElements,
+                        },
+                    },
+                    updatedAt: new Date().toISOString(),
+                };
+            }),
+        })),
+
+    duplicateElement: (templateId, fromSection, elementId, toSection) =>
+        set((state) => ({
+            templates: state.templates.map((t) => {
+                if (t.id !== templateId) return t;
+                const sourceSection = t.sections[fromSection];
+                if (!sourceSection) return t;
+
+                const element = sourceSection.elements.find((el) => el.id === elementId);
+                if (!element) return t;
+
+                const targetSection = toSection || fromSection;
+                const target = t.sections[targetSection] || { animation: 'none', elements: [] };
+                const maxZ = Math.max(0, ...target.elements.map((el) => el.zIndex));
+
+                const duplicatedElement = {
+                    ...element,
+                    id: `el-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    name: `${element.name} (copy)`,
+                    position: {
+                        x: element.position.x + 20,
+                        y: element.position.y + 20,
+                    },
+                    zIndex: maxZ + 1,
+                };
+
+                return {
+                    ...t,
+                    sections: {
+                        ...t.sections,
+                        [targetSection]: {
+                            ...target,
+                            elements: [...target.elements, duplicatedElement],
+                        },
+                    },
+                    updatedAt: new Date().toISOString(),
                 };
             }),
         })),

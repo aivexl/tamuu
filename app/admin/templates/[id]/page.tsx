@@ -14,7 +14,8 @@ import {
     Layers, ChevronUp, ChevronDown, ChevronsUp, ChevronsDown,
     AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
     AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd,
-    Move, GripVertical
+    Move, GripVertical, Copy, Eye, EyeOff, MoreHorizontal, ExternalLink,
+    FlipHorizontal, FlipVertical, RotateCw, Maximize, Minimize, X
 } from 'lucide-react';
 
 const SECTION_TYPES: SectionType[] = ['opening', 'quotes', 'couple', 'event', 'maps', 'rsvp', 'thanks'];
@@ -37,7 +38,7 @@ export default function TemplateEditorPage() {
     const params = useParams();
     const router = useRouter();
     const templateId = params.id as string;
-    const canvasRef = useRef<HTMLDivElement>(null);
+    const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const templates = useTemplateStore((state) => state.templates);
@@ -47,19 +48,40 @@ export default function TemplateEditorPage() {
     const updateElement = useTemplateStore((state) => state.updateElement);
     const deleteElement = useTemplateStore((state) => state.deleteElement);
     const reorderElements = useTemplateStore((state) => state.reorderElements);
+    const copySectionDesign = useTemplateStore((state) => state.copySectionDesign);
+    const duplicateElement = useTemplateStore((state) => state.duplicateElement);
+    const reorderSections = useTemplateStore((state) => state.reorderSections);
     const selectedElementId = useTemplateStore((state) => state.selectedElementId);
     const setSelectedElement = useTemplateStore((state) => state.setSelectedElement);
 
     const template = templates.find((t) => t.id === templateId);
+    const orderedSections = template?.sectionOrder || SECTION_TYPES;
+
+    const moveSectionUp = (index: number) => {
+        if (index <= 0) return;
+        const newOrder = [...orderedSections];
+        [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+        reorderSections(templateId, newOrder);
+    };
+
+    const moveSectionDown = (index: number) => {
+        if (index >= orderedSections.length - 1) return;
+        const newOrder = [...orderedSections];
+        [newOrder[index + 1], newOrder[index]] = [newOrder[index], newOrder[index + 1]];
+        reorderSections(templateId, newOrder);
+    };
 
     const [activeSection, setActiveSection] = useState<SectionType>('opening');
     const [templateName, setTemplateName] = useState('');
     const [previewKey, setPreviewKey] = useState(0);
     const [activeTab, setActiveTab] = useState<'elements' | 'layers'>('elements');
     const [draggingElementId, setDraggingElementId] = useState<string | null>(null);
+    const [draggingSection, setDraggingSection] = useState<SectionType | null>(null);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-    const [resizing, setResizing] = useState<{ elementId: string; handle: ResizeHandle; startX: number; startY: number; startPos: { x: number; y: number }; startSize: { width: number; height: number } } | null>(null);
-    const lastClickRef = useRef<{ id: string; time: number } | null>(null);
+    const [resizing, setResizing] = useState<{ elementId: string; sectionType: SectionType; handle: ResizeHandle; startX: number; startY: number; startPos: { x: number; y: number }; startSize: { width: number; height: number } } | null>(null);
+    const [isPreviewMode, setIsPreviewMode] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
 
     useEffect(() => {
         if (template) {
@@ -137,18 +159,9 @@ export default function TemplateEditorPage() {
         });
     };
 
-    // Image upload handler
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file || !selectedElementId) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const dataUrl = event.target?.result as string;
-            updateElement(templateId, activeSection, selectedElementId, { imageUrl: dataUrl });
-        };
-        reader.readAsDataURL(file);
-        e.target.value = ''; // Reset input
+    // Helper to get elements for a specific section
+    const getSectionElements = (sectionType: SectionType) => {
+        return template.sections[sectionType]?.elements || [];
     };
 
     // Alignment functions
@@ -207,43 +220,106 @@ export default function TemplateEditorPage() {
         updateElement(templateId, activeSection, elementId, { zIndex: minZ - 1 });
     };
 
-    // Drag handlers with double-click detection
-    const handleMouseDown = (e: React.MouseEvent, elementId: string) => {
+    const handleSave = () => {
+        updateTemplate(templateId, { name: templateName });
+        alert('Template saved!');
+    };
+
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file && selectedElementId) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const result = event.target?.result as string;
+
+                // Load image to get dimensions and set proper size
+                const img = new Image();
+                img.onload = () => {
+                    const maxWidth = 300;
+                    const aspectRatio = img.naturalWidth / img.naturalHeight;
+                    const newWidth = Math.min(img.naturalWidth, maxWidth);
+                    const newHeight = newWidth / aspectRatio;
+
+                    updateElement(templateId, activeSection, selectedElementId, {
+                        imageUrl: result,
+                        size: { width: Math.round(newWidth), height: Math.round(newHeight) }
+                    });
+                };
+                img.src = result;
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // Track if element was dragged to prevent deselect on drag end
+    const wasDraggedRef = useRef(false);
+    // Track if element was already selected when mousedown started
+    const wasSelectedRef = useRef(false);
+
+    // MouseDown: select element, prepare for drag
+    const handleMouseDown = (e: React.MouseEvent, elementId: string, sectionType: SectionType) => {
         e.stopPropagation();
-        const el = elements.find((el) => el.id === elementId);
-        if (!el || !canvasRef.current) return;
 
-        const now = Date.now();
-        const lastClick = lastClickRef.current;
-
-        // Check for double-click (same element, within 300ms)
-        if (lastClick && lastClick.id === elementId && now - lastClick.time < 300) {
-            // Double-click detected - deselect
-            setSelectedElement(null);
-            lastClickRef.current = null;
-            return;
+        if (activeSection !== sectionType) {
+            setActiveSection(sectionType);
         }
 
-        // Single click - select and prepare for drag
-        lastClickRef.current = { id: elementId, time: now };
+        const sectionElements = getSectionElements(sectionType);
+        const el = sectionElements.find((el) => el.id === elementId);
+        const canvasEl = sectionRefs.current[sectionType];
 
-        const rect = canvasRef.current.getBoundingClientRect();
+        if (!el || !canvasEl) return;
+
+        // Remember if it was already selected
+        wasSelectedRef.current = selectedElementId === elementId;
+
+        // Always select on mousedown for dragging to work
+        if (!wasSelectedRef.current) {
+            setSelectedElement(elementId);
+        }
+
+        const rect = canvasEl.getBoundingClientRect();
         setDraggingElementId(elementId);
+        setDraggingSection(sectionType);
         setDragOffset({
             x: e.clientX - rect.left - el.position.x,
             y: e.clientY - rect.top - el.position.y,
         });
-        setSelectedElement(elementId);
+        wasDraggedRef.current = false;
+    };
+
+    // Click: toggle selection (deselect if already selected and wasn't dragged)
+    const handleElementClick = (e: React.MouseEvent, elementId: string, sectionType: SectionType) => {
+        e.stopPropagation();
+
+        if (activeSection !== sectionType) {
+            setActiveSection(sectionType);
+        }
+
+        // Deselect only if: was already selected AND wasn't dragged
+        if (wasSelectedRef.current && !wasDraggedRef.current) {
+            setSelectedElement(null);
+        }
+
+        wasDraggedRef.current = false;
+        wasSelectedRef.current = false;
     };
 
     // Resize handlers
-    const handleResizeStart = (e: React.MouseEvent, elementId: string, handle: ResizeHandle) => {
+    const handleResizeStart = (e: React.MouseEvent, elementId: string, sectionType: SectionType, handle: ResizeHandle) => {
         e.stopPropagation();
-        const el = elements.find((el) => el.id === elementId);
+
+        if (activeSection !== sectionType) {
+            setActiveSection(sectionType);
+        }
+
+        const sectionElements = getSectionElements(sectionType);
+        const el = sectionElements.find((el) => el.id === elementId);
         if (!el) return;
 
         setResizing({
             elementId,
+            sectionType,
             handle,
             startX: e.clientX,
             startY: e.clientY,
@@ -254,10 +330,15 @@ export default function TemplateEditorPage() {
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
-        if (resizing && canvasRef.current) {
+        if (resizing) {
+            const canvasEl = sectionRefs.current[resizing.sectionType];
+            if (!canvasEl) return;
+
             const dx = e.clientX - resizing.startX;
             const dy = e.clientY - resizing.startY;
-            const el = elements.find((el) => el.id === resizing.elementId);
+
+            const sectionElements = getSectionElements(resizing.sectionType);
+            const el = sectionElements.find((el) => el.id === resizing.elementId);
             if (!el) return;
 
             let newPos = { ...resizing.startPos };
@@ -300,48 +381,284 @@ export default function TemplateEditorPage() {
                     break;
             }
 
-            updateElement(templateId, activeSection, resizing.elementId, {
+            // Smart boundary detection: auto-stop at canvas edge unless Shift is held
+            if (!e.shiftKey) {
+                // Clamp right edge
+                if (newPos.x + newSize.width > CANVAS_WIDTH) {
+                    newSize.width = CANVAS_WIDTH - newPos.x;
+                }
+                // Clamp bottom edge
+                if (newPos.y + newSize.height > CANVAS_HEIGHT) {
+                    newSize.height = CANVAS_HEIGHT - newPos.y;
+                }
+                // Clamp left edge
+                if (newPos.x < 0) {
+                    const overflow = -newPos.x;
+                    newPos.x = 0;
+                    newSize.width = Math.max(30, newSize.width - overflow);
+                }
+                // Clamp top edge
+                if (newPos.y < 0) {
+                    const overflow = -newPos.y;
+                    newPos.y = 0;
+                    newSize.height = Math.max(30, newSize.height - overflow);
+                }
+            }
+
+            updateElement(templateId, resizing.sectionType, resizing.elementId, {
                 position: { x: Math.round(newPos.x), y: Math.round(newPos.y) },
                 size: { width: Math.round(newSize.width), height: Math.round(newSize.height) },
             });
             return;
         }
 
-        if (!draggingElementId || !canvasRef.current) return;
+        if (!draggingElementId || !draggingSection) return;
 
-        const rect = canvasRef.current.getBoundingClientRect();
+        const canvasEl = sectionRefs.current[draggingSection];
+        if (!canvasEl) return;
+
+        // Mark as dragged to prevent deselect
+        wasDraggedRef.current = true;
+
+        const rect = canvasEl.getBoundingClientRect();
         let x = e.clientX - rect.left - dragOffset.x;
         let y = e.clientY - rect.top - dragOffset.y;
 
-        updateElement(templateId, activeSection, draggingElementId, {
+        // Smart boundary for drag: constrain to canvas unless Shift held
+        if (!e.shiftKey) {
+            const sectionElements = getSectionElements(draggingSection);
+            const el = sectionElements.find((el) => el.id === draggingElementId);
+            if (el) {
+                x = Math.max(0, Math.min(x, CANVAS_WIDTH - el.size.width));
+                y = Math.max(0, Math.min(y, CANVAS_HEIGHT - el.size.height));
+            }
+        }
+
+        updateElement(templateId, draggingSection, draggingElementId, {
             position: { x: Math.round(x), y: Math.round(y) },
         });
     };
 
     const handleMouseUp = () => {
         setDraggingElementId(null);
+        setDraggingSection(null);
         setResizing(null);
     };
 
-    const handleSave = () => {
-        updateTemplate(templateId, { name: templateName });
-        alert('Template saved!');
-    };
-
     // Resize handle component
-    const ResizeHandles = ({ elementId }: { elementId: string }) => {
+    const ResizeHandles = ({ elementId, sectionType }: { elementId: string, sectionType: SectionType }) => {
         const handleStyle = "absolute w-3 h-3 bg-blue-500 border border-white rounded-sm";
         return (
             <>
-                <div className={`${handleStyle} -top-1.5 -left-1.5 cursor-nwse-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, 'nw')} />
-                <div className={`${handleStyle} -top-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, 'n')} />
-                <div className={`${handleStyle} -top-1.5 -right-1.5 cursor-nesw-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, 'ne')} />
-                <div className={`${handleStyle} top-1/2 -translate-y-1/2 -left-1.5 cursor-ew-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, 'w')} />
-                <div className={`${handleStyle} top-1/2 -translate-y-1/2 -right-1.5 cursor-ew-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, 'e')} />
-                <div className={`${handleStyle} -bottom-1.5 -left-1.5 cursor-nesw-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, 'sw')} />
-                <div className={`${handleStyle} -bottom-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, 's')} />
-                <div className={`${handleStyle} -bottom-1.5 -right-1.5 cursor-nwse-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, 'se')} />
+                <div className={`${handleStyle} -top-1.5 -left-1.5 cursor-nwse-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, sectionType, 'nw')} />
+                <div className={`${handleStyle} -top-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, sectionType, 'n')} />
+                <div className={`${handleStyle} -top-1.5 -right-1.5 cursor-nesw-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, sectionType, 'ne')} />
+                <div className={`${handleStyle} top-1/2 -translate-y-1/2 -left-1.5 cursor-ew-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, sectionType, 'w')} />
+                <div className={`${handleStyle} top-1/2 -translate-y-1/2 -right-1.5 cursor-ew-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, sectionType, 'e')} />
+                <div className={`${handleStyle} -bottom-1.5 -left-1.5 cursor-nesw-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, sectionType, 'sw')} />
+                <div className={`${handleStyle} -bottom-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, sectionType, 's')} />
+                <div className={`${handleStyle} -bottom-1.5 -right-1.5 cursor-nwse-resize`} onMouseDown={(e) => handleResizeStart(e, elementId, sectionType, 'se')} />
             </>
+        );
+    };
+
+    // Get CSS transform string for element flip/rotation
+    const getElementTransform = (el: TemplateElement) => {
+        const transforms: string[] = [];
+        if (el.flipHorizontal) transforms.push('scaleX(-1)');
+        if (el.flipVertical) transforms.push('scaleY(-1)');
+        if (el.rotation) transforms.push(`rotate(${el.rotation}deg)`);
+        return transforms.length > 0 ? transforms.join(' ') : undefined;
+    };
+
+    // Handle preview mode
+    const startPreview = () => {
+        setIsPreviewMode(true);
+        setPreviewKey(k => k + 1);
+    };
+
+    const closePreview = () => {
+        setIsPreviewMode(false);
+        setIsFullscreen(false);
+    };
+
+    // Toggle visibility for a section
+    const toggleSectionVisibility = (sectionType: SectionType) => {
+        const section = template.sections[sectionType];
+        const currentVisibility = section?.isVisible !== false;
+        updateSectionDesign(templateId, sectionType, { isVisible: !currentVisibility });
+    };
+
+    // Clear section elements
+    const clearSection = (sectionType: SectionType) => {
+        if (confirm(`Clear all elements in ${sectionType}?`)) {
+            updateSectionDesign(templateId, sectionType, { elements: [] });
+        }
+    };
+
+    // Animation CSS keyframes
+    const getAnimationStyle = (el: TemplateElement, isPreview: boolean) => {
+        if (!isPreview || el.animation === 'none') return {};
+
+        const speed = el.animationSpeed || 500;
+        const duration = el.animationDuration || 1000;
+        const delay = el.animationDelay || 0;
+
+        const animationMap: Record<AnimationType, string> = {
+            'none': '',
+            'fade-in': `fadeIn ${duration}ms ease-out ${delay}ms forwards`,
+            'slide-up': `slideUp ${duration}ms ease-out ${delay}ms forwards`,
+            'slide-down': `slideDown ${duration}ms ease-out ${delay}ms forwards`,
+            'slide-left': `slideLeft ${duration}ms ease-out ${delay}ms forwards`,
+            'slide-right': `slideRight ${duration}ms ease-out ${delay}ms forwards`,
+            'zoom-in': `zoomIn ${duration}ms ease-out ${delay}ms forwards`,
+            'zoom-out': `zoomOut ${duration}ms ease-out ${delay}ms forwards`,
+            'flip-x': `flipX ${duration}ms ease-out ${delay}ms forwards`,
+            'flip-y': `flipY ${duration}ms ease-out ${delay}ms forwards`,
+            'bounce': `bounce ${duration}ms ease-out ${delay}ms forwards`,
+        };
+
+        return {
+            animation: animationMap[el.animation],
+            opacity: 0,
+        };
+    };
+
+    // Preview Modal Component
+    const PreviewModal = () => {
+        if (!isPreviewMode) return null;
+
+        return (
+            <div className={`fixed inset-0 z-50 ${isFullscreen ? 'bg-black' : 'bg-black/90'} flex flex-col`}>
+                {/* Preview Header */}
+                <div className={`flex justify-between items-center p-4 ${isFullscreen ? 'absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/50 to-transparent' : 'bg-slate-900'}`}>
+                    <h2 className="text-white text-lg font-semibold">Preview Mode</h2>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setIsFullscreen(!isFullscreen)}
+                            className="p-2 text-white hover:bg-white/20 rounded-lg transition-colors"
+                            title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                        >
+                            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                        </button>
+                        <button
+                            onClick={closePreview}
+                            className="p-2 text-white hover:bg-white/20 rounded-lg transition-colors"
+                            title="Close Preview"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Preview Content */}
+                <div className={`flex-1 overflow-auto flex ${isFullscreen ? 'flex-col' : 'flex-col items-center py-8 gap-8'}`}>
+                    {orderedSections.map((sectionType) => {
+                        const sectionDesign = template.sections[sectionType] || { animation: 'none' as const, elements: [] };
+                        const sectionElements = sectionDesign.elements || [];
+                        const sortedSectionElements = [...sectionElements].sort((a, b) => a.zIndex - b.zIndex);
+                        const isVisible = sectionDesign.isVisible !== false;
+
+                        if (!isVisible) return null;
+
+                        const isFirstSection = orderedSections.indexOf(sectionType) === 0;
+                        const fullscreenWidth = 500;
+                        const fullscreenHeight = isFirstSection ? 950 : 680;
+
+                        return (
+                            <div
+                                key={sectionType}
+                                className={`relative ${isFullscreen ? 'mx-auto' : 'shrink-0 shadow-2xl'}`}
+                                style={{
+                                    width: isFullscreen ? fullscreenWidth : CANVAS_WIDTH,
+                                    height: isFullscreen ? fullscreenHeight : CANVAS_HEIGHT,
+                                    minHeight: isFullscreen ? fullscreenHeight : CANVAS_HEIGHT,
+                                }}
+                            >
+                                {/* Canvas Background */}
+                                <div
+                                    className="absolute inset-0 overflow-hidden"
+                                    style={{
+                                        backgroundColor: sectionDesign.backgroundColor || '#ffffff',
+                                        backgroundImage: sectionDesign.backgroundUrl ? `url(${sectionDesign.backgroundUrl})` : undefined,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                    }}
+                                >
+                                    {/* Overlay */}
+                                    {sectionDesign.overlayOpacity && sectionDesign.overlayOpacity > 0 && (
+                                        <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${sectionDesign.overlayOpacity})` }} />
+                                    )}
+
+                                    {/* Elements with animations */}
+                                    {sortedSectionElements.map((el) => (
+                                        <div
+                                            key={el.id}
+                                            className="absolute"
+                                            style={{
+                                                left: isFullscreen ? (el.position.x / CANVAS_WIDTH) * fullscreenWidth : el.position.x,
+                                                top: isFullscreen ? (el.position.y / CANVAS_HEIGHT) * fullscreenHeight : el.position.y,
+                                                width: isFullscreen ? (el.size.width / CANVAS_WIDTH) * fullscreenWidth : el.size.width,
+                                                height: isFullscreen ? (el.size.height / CANVAS_HEIGHT) * fullscreenHeight : el.size.height,
+                                                zIndex: el.zIndex,
+                                                ...getAnimationStyle(el, true),
+                                            }}
+                                        >
+                                            {/* Inner wrapper for user transforms (flip/rotation) */}
+                                            <div
+                                                className="w-full h-full"
+                                                style={{ transform: getElementTransform(el) }}
+                                            >
+                                                {el.type === 'image' && el.imageUrl && (
+                                                    <img src={el.imageUrl} alt={el.name} className="w-full h-full object-cover" />
+                                                )}
+                                                {el.type === 'text' && el.textStyle && (
+                                                    <div
+                                                        className="w-full h-full flex items-center"
+                                                        style={{
+                                                            fontFamily: el.textStyle.fontFamily,
+                                                            fontSize: isFullscreen ? (el.textStyle.fontSize / CANVAS_WIDTH) * fullscreenWidth : el.textStyle.fontSize,
+                                                            fontWeight: el.textStyle.fontWeight,
+                                                            fontStyle: el.textStyle.fontStyle,
+                                                            textDecoration: el.textStyle.textDecoration,
+                                                            textAlign: el.textStyle.textAlign,
+                                                            color: el.textStyle.color,
+                                                            justifyContent: el.textStyle.textAlign === 'center' ? 'center' : el.textStyle.textAlign === 'right' ? 'flex-end' : 'flex-start',
+                                                            whiteSpace: 'pre-wrap',
+                                                            lineHeight: 1.2,
+                                                        }}
+                                                    >
+                                                        {el.content}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Animation Keyframes */}
+                <style jsx global>{`
+                    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                    @keyframes slideUp { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+                    @keyframes slideDown { from { opacity: 0; transform: translateY(-50px); } to { opacity: 1; transform: translateY(0); } }
+                    @keyframes slideLeft { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+                    @keyframes slideRight { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
+                    @keyframes zoomIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+                    @keyframes zoomOut { from { opacity: 0; transform: scale(1.5); } to { opacity: 1; transform: scale(1); } }
+                    @keyframes flipX { from { opacity: 0; transform: rotateX(90deg); } to { opacity: 1; transform: rotateX(0); } }
+                    @keyframes flipY { from { opacity: 0; transform: rotateY(90deg); } to { opacity: 1; transform: rotateY(0); } }
+                    @keyframes bounce { 
+                        0% { opacity: 0; transform: translateY(-50px); }
+                        50% { opacity: 1; transform: translateY(10px); }
+                        70% { transform: translateY(-5px); }
+                        100% { opacity: 1; transform: translateY(0); }
+                    }
+                `}</style>
+            </div>
         );
     };
 
@@ -372,7 +689,7 @@ export default function TemplateEditorPage() {
                             />
                         </div>
                         <div className="flex items-center gap-3">
-                            <Button variant="outline" onClick={() => setPreviewKey((k) => k + 1)} className="flex items-center gap-2 text-slate-300 border-slate-600">
+                            <Button variant="outline" onClick={startPreview} className="flex items-center gap-2 text-slate-300 border-slate-600">
                                 <Play size={16} />
                                 Preview
                             </Button>
@@ -386,22 +703,133 @@ export default function TemplateEditorPage() {
             </header>
 
             <div className="flex h-[calc(100vh-57px)]">
-                {/* Left Panel - Sections */}
-                <aside className="w-48 bg-slate-800 border-r border-slate-700 p-3 overflow-y-auto">
-                    <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Sections</h2>
-                    <div className="space-y-1">
-                        {SECTION_TYPES.map((sectionType) => (
-                            <button
-                                key={sectionType}
-                                onClick={() => { setActiveSection(sectionType); setSelectedElement(null); }}
-                                className={`w-full text-left px-3 py-2 rounded-lg capitalize text-sm transition-colors ${activeSection === sectionType
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
-                                    }`}
-                            >
-                                {sectionType}
-                            </button>
-                        ))}
+                {/* Left Panel - Multi-Section Page Preview */}
+                <aside className="w-80 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden">
+                    <div className="p-3 border-b border-slate-700">
+                        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pages</h2>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-3 space-y-4">
+                        {orderedSections.map((sectionType, idx) => {
+                            const sectionDesign = template.sections[sectionType];
+                            const isVisible = sectionDesign?.isVisible !== false;
+                            const pageTitle = sectionDesign?.pageTitle || sectionType;
+
+                            return (
+                                <div key={sectionType} className="group">
+                                    {/* Page Header */}
+                                    <div className={`flex items-center justify-between mb-2 px-1 ${activeSection === sectionType ? 'text-blue-400' : 'text-slate-400'}`}>
+                                        <span className="text-xs font-medium">
+                                            Halaman {idx + 1} - <span className="capitalize text-slate-500">{pageTitle}</span>
+                                        </span>
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => moveSectionUp(idx)}
+                                                className={`p-1 hover:bg-slate-700 rounded ${idx === 0 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-500 hover:text-white'}`}
+                                                title="Move Up"
+                                                disabled={idx === 0}
+                                            >
+                                                <ChevronUp size={12} />
+                                            </button>
+                                            <button
+                                                onClick={() => moveSectionDown(idx)}
+                                                className={`p-1 hover:bg-slate-700 rounded ${idx === orderedSections.length - 1 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-500 hover:text-white'}`}
+                                                title="Move Down"
+                                                disabled={idx === orderedSections.length - 1}
+                                            >
+                                                <ChevronDown size={12} />
+                                            </button>
+                                            <button
+                                                onClick={() => updateSectionDesign(templateId, sectionType, { isVisible: !isVisible })}
+                                                className={`p-1 hover:bg-slate-700 rounded ${isVisible ? 'text-slate-500 hover:text-white' : 'text-red-400'}`}
+                                                title={isVisible ? 'Hide Section' : 'Show Section'}
+                                            >
+                                                {isVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    const targetSection = SECTION_TYPES.find(s => s !== sectionType && window.confirm(`Copy to ${s}?`));
+                                                    if (targetSection) copySectionDesign(templateId, sectionType, targetSection);
+                                                }}
+                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white"
+                                                title="Copy Section"
+                                            >
+                                                <Copy size={12} />
+                                            </button>
+                                            <button
+                                                onClick={() => updateSectionDesign(templateId, sectionType, { elements: [] })}
+                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-red-400"
+                                                title="Clear Section"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Page Preview Card - Click to activate */}
+                                    <div
+                                        onClick={() => { setActiveSection(sectionType); setSelectedElement(null); }}
+                                        className={`relative cursor-pointer rounded-lg overflow-hidden transition-all duration-200 ${activeSection === sectionType
+                                            ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-800'
+                                            : 'hover:ring-2 hover:ring-slate-600'
+                                            } ${!isVisible ? 'opacity-50' : ''}`}
+                                        style={{ aspectRatio: `${CANVAS_WIDTH}/${CANVAS_HEIGHT}` }}
+                                    >
+                                        <div
+                                            className="absolute inset-0 bg-white"
+                                            style={{
+                                                backgroundColor: sectionDesign?.backgroundColor || '#ffffff',
+                                                backgroundImage: sectionDesign?.backgroundUrl ? `url(${sectionDesign.backgroundUrl})` : undefined,
+                                                backgroundSize: 'cover',
+                                                backgroundPosition: 'center',
+                                            }}
+                                        >
+                                            {/* Mini preview of elements - scaled down */}
+                                            <div className="absolute inset-0 overflow-hidden" style={{ transform: 'scale(0.28)', transformOrigin: 'top left' }}>
+                                                {(sectionDesign?.elements || []).map((el) => (
+                                                    <div
+                                                        key={el.id}
+                                                        className="absolute"
+                                                        style={{
+                                                            left: el.position.x,
+                                                            top: el.position.y,
+                                                            width: el.size.width,
+                                                            height: el.size.height,
+                                                            zIndex: el.zIndex,
+                                                        }}
+                                                    >
+                                                        {el.type === 'image' && el.imageUrl && (
+                                                            <img src={el.imageUrl} alt="" className="w-full h-full object-cover" />
+                                                        )}
+                                                        {el.type === 'image' && !el.imageUrl && (
+                                                            <div className="w-full h-full bg-slate-300" />
+                                                        )}
+                                                        {el.type === 'text' && (
+                                                            <div
+                                                                style={{
+                                                                    fontFamily: el.textStyle?.fontFamily,
+                                                                    fontSize: el.textStyle?.fontSize,
+                                                                    fontWeight: el.textStyle?.fontWeight,
+                                                                    color: el.textStyle?.color,
+                                                                }}
+                                                            >
+                                                                {el.content}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Active indicator */}
+                                        {activeSection === sectionType && (
+                                            <div className="absolute bottom-2 right-2 bg-blue-500 text-white text-xs px-2 py-0.5 rounded">
+                                                Editing
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </aside>
 
@@ -562,6 +990,96 @@ export default function TemplateEditorPage() {
                                             </div>
                                         )}
 
+                                        {/* Transform Controls */}
+                                        <div className="mb-3">
+                                            <Label className="text-slate-300 text-xs mb-2 block">Transform</Label>
+                                            <div className="flex gap-1 mb-2">
+                                                <button
+                                                    onClick={() => handleElementChange('flipHorizontal', !selectedElement.flipHorizontal)}
+                                                    className={`flex-1 p-2 rounded text-xs flex items-center justify-center gap-1 ${selectedElement.flipHorizontal ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}
+                                                    title="Flip Horizontal"
+                                                >
+                                                    <FlipHorizontal size={14} /> H
+                                                </button>
+                                                <button
+                                                    onClick={() => handleElementChange('flipVertical', !selectedElement.flipVertical)}
+                                                    className={`flex-1 p-2 rounded text-xs flex items-center justify-center gap-1 ${selectedElement.flipVertical ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}
+                                                    title="Flip Vertical"
+                                                >
+                                                    <FlipVertical size={14} /> V
+                                                </button>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <RotateCw size={14} className="text-slate-400" />
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="360"
+                                                    value={selectedElement.rotation || 0}
+                                                    onChange={(e) => handleElementChange('rotation', parseInt(e.target.value))}
+                                                    className="flex-1"
+                                                />
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    max="360"
+                                                    value={selectedElement.rotation || 0}
+                                                    onChange={(e) => handleElementChange('rotation', parseInt(e.target.value) || 0)}
+                                                    className="w-16 bg-slate-700 border-slate-600 text-white text-sm h-8 text-center"
+                                                />
+                                                <span className="text-slate-400 text-xs">°</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Animation Controls */}
+                                        <div className="mb-3">
+                                            <Label className="text-slate-300 text-xs mb-2 block">Animation</Label>
+                                            <select
+                                                value={selectedElement.animation}
+                                                onChange={(e) => handleElementChange('animation', e.target.value)}
+                                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8 mb-2"
+                                            >
+                                                {ANIMATION_TYPES.map((a) => (
+                                                    <option key={a} value={a}>{a}</option>
+                                                ))}
+                                            </select>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <Label className="text-slate-400 text-xs">Speed (ms)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        min="100"
+                                                        step="100"
+                                                        value={selectedElement.animationSpeed || 500}
+                                                        onChange={(e) => handleElementChange('animationSpeed', parseInt(e.target.value) || 500)}
+                                                        className="bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-slate-400 text-xs">Duration (ms)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        min="100"
+                                                        step="100"
+                                                        value={selectedElement.animationDuration || 1000}
+                                                        onChange={(e) => handleElementChange('animationDuration', parseInt(e.target.value) || 1000)}
+                                                        className="bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="mt-2">
+                                                <Label className="text-slate-400 text-xs">Delay (ms)</Label>
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    step="100"
+                                                    value={selectedElement.animationDelay || 0}
+                                                    onChange={(e) => handleElementChange('animationDelay', parseInt(e.target.value) || 0)}
+                                                    className="bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                />
+                                            </div>
+                                        </div>
+
                                         {/* Text Content & Styles */}
                                         {selectedElement.type === 'text' && selectedElement.textStyle && (
                                             <>
@@ -677,99 +1195,165 @@ export default function TemplateEditorPage() {
                 </div>
 
                 {/* Right Panel - Preview Canvas */}
-                <div className="flex-1 bg-slate-900/50 overflow-hidden flex flex-col relative">
-                    <div className="absolute inset-0 overflow-auto flex items-center justify-center p-10">
-                        <div
-                            className="relative shadow-2xl transition-all duration-300 ease-in-out"
-                            style={{
-                                width: CANVAS_WIDTH,
-                                height: CANVAS_HEIGHT,
-                                minWidth: CANVAS_WIDTH,
-                                minHeight: CANVAS_HEIGHT,
-                            }}
-                        >
-                            {/* Canvas Background & Content */}
-                            <div
-                                ref={canvasRef}
-                                key={previewKey}
-                                className="absolute inset-0 bg-white"
-                                style={{
-                                    backgroundColor: currentDesign.backgroundColor || '#ffffff',
-                                    backgroundImage: currentDesign.backgroundUrl ? `url(${currentDesign.backgroundUrl})` : undefined,
-                                    backgroundSize: 'cover',
-                                    backgroundPosition: 'center',
-                                }}
-                                onMouseMove={handleMouseMove}
-                                onMouseUp={handleMouseUp}
-                                onMouseLeave={handleMouseUp}
-                                onClick={() => setSelectedElement(null)}
-                            >
-                                {/* Overlay */}
-                                {currentDesign.overlayOpacity && currentDesign.overlayOpacity > 0 && (
-                                    <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: `rgba(0,0,0,${currentDesign.overlayOpacity})` }} />
-                                )}
+                <div
+                    className="flex-1 bg-slate-900/50 overflow-hidden flex flex-col relative"
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                >
+                    <div className="absolute inset-0 overflow-auto flex flex-col items-center p-10 gap-8">
+                        {orderedSections.map((sectionType) => {
+                            const sectionDesign = template.sections[sectionType] || { animation: 'none' as const, elements: [] };
+                            const sectionElements = sectionDesign.elements || [];
+                            const sortedSectionElements = [...sectionElements].sort((a, b) => a.zIndex - b.zIndex);
+                            const isVisible = sectionDesign.isVisible !== false;
 
-                                {/* Elements */}
-                                {sortedElements.map((el) => (
-                                    <div
-                                        key={el.id}
-                                        className={`absolute cursor-move group ${selectedElementId === el.id ? 'z-50' : ''}`}
-                                        style={{
-                                            left: el.position.x,
-                                            top: el.position.y,
-                                            width: el.size.width,
-                                            height: el.size.height,
-                                            zIndex: el.zIndex,
-                                        }}
-                                        onMouseDown={(e) => handleMouseDown(e, el.id)}
-                                        onClick={(e) => e.stopPropagation()} // Prevent background click (deselect)
-                                    >
-                                        {/* Selection Ring */}
-                                        {selectedElementId === el.id && (
-                                            <div className="absolute -inset-0.5 border-2 border-blue-500 pointer-events-none z-50" />
-                                        )}
+                            if (!isVisible) return null;
 
-                                        {el.type === 'image' && el.imageUrl && (
-                                            <img src={el.imageUrl} alt={el.name} className="w-full h-full object-cover pointer-events-none" draggable={false} />
-                                        )}
-                                        {el.type === 'image' && !el.imageUrl && (
-                                            <div className="w-full h-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs pointer-events-none">
-                                                <ImageIcon size={24} />
-                                            </div>
-                                        )}
-                                        {el.type === 'text' && el.textStyle && (
-                                            <div
-                                                className="w-full h-full flex items-center pointer-events-none"
-                                                style={{
-                                                    fontFamily: el.textStyle.fontFamily,
-                                                    fontSize: el.textStyle.fontSize,
-                                                    fontWeight: el.textStyle.fontWeight,
-                                                    fontStyle: el.textStyle.fontStyle,
-                                                    textDecoration: el.textStyle.textDecoration,
-                                                    textAlign: el.textStyle.textAlign,
-                                                    color: el.textStyle.color,
-                                                    justifyContent: el.textStyle.textAlign === 'center' ? 'center' : el.textStyle.textAlign === 'right' ? 'flex-end' : 'flex-start',
-                                                    whiteSpace: 'pre-wrap',
-                                                    lineHeight: 1.2,
-                                                }}
+                            return (
+                                <div
+                                    key={sectionType}
+                                    className="relative shadow-2xl transition-all duration-300 ease-in-out shrink-0"
+                                    style={{
+                                        width: CANVAS_WIDTH,
+                                        height: CANVAS_HEIGHT,
+                                    }}
+                                >
+                                    {/* Section Label with Controls */}
+                                    <div className="absolute -top-8 left-0 right-0 flex items-center justify-between">
+                                        <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                                            {sectionDesign.pageTitle || sectionType}
+                                        </span>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={() => moveSectionUp(orderedSections.indexOf(sectionType))}
+                                                disabled={orderedSections.indexOf(sectionType) === 0}
+                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                title="Move Up"
                                             >
-                                                {el.content}
+                                                <ChevronUp size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => moveSectionDown(orderedSections.indexOf(sectionType))}
+                                                disabled={orderedSections.indexOf(sectionType) === orderedSections.length - 1}
+                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                title="Move Down"
+                                            >
+                                                <ChevronDown size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => toggleSectionVisibility(sectionType)}
+                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white transition-colors"
+                                                title={isVisible ? "Hide Section" : "Show Section"}
+                                            >
+                                                {isVisible ? <Eye size={14} /> : <EyeOff size={14} />}
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    const targetSection = prompt('Copy to which section?', 'quotes');
+                                                    if (targetSection && SECTION_TYPES.includes(targetSection as SectionType)) {
+                                                        copySectionDesign(templateId, sectionType, targetSection as SectionType);
+                                                    }
+                                                }}
+                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white transition-colors"
+                                                title="Copy Section"
+                                            >
+                                                <Copy size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => clearSection(sectionType)}
+                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-red-400 transition-colors"
+                                                title="Clear Section"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Canvas Background & Content */}
+                                    <div
+                                        ref={(el) => { sectionRefs.current[sectionType] = el; }}
+                                        className="absolute inset-0 bg-white overflow-hidden"
+                                        style={{
+                                            backgroundColor: sectionDesign.backgroundColor || '#ffffff',
+                                            backgroundImage: sectionDesign.backgroundUrl ? `url(${sectionDesign.backgroundUrl})` : undefined,
+                                            backgroundSize: 'cover',
+                                            backgroundPosition: 'center',
+                                        }}
+                                        onClick={() => setSelectedElement(null)}
+                                    >
+                                        {/* Overlay */}
+                                        {sectionDesign.overlayOpacity && sectionDesign.overlayOpacity > 0 && (
+                                            <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: `rgba(0,0,0,${sectionDesign.overlayOpacity})` }} />
+                                        )}
+
+                                        {/* Elements */}
+                                        {sortedSectionElements.map((el) => (
+                                            <div
+                                                key={el.id}
+                                                className={`absolute cursor-move group ${selectedElementId === el.id ? 'z-50' : ''}`}
+                                                style={{
+                                                    left: el.position.x,
+                                                    top: el.position.y,
+                                                    width: el.size.width,
+                                                    height: el.size.height,
+                                                    zIndex: el.zIndex,
+                                                    transform: getElementTransform(el),
+                                                }}
+                                                onMouseDown={(e) => handleMouseDown(e, el.id, sectionType)}
+                                                onClick={(e) => handleElementClick(e, el.id, sectionType)}
+                                            >
+                                                {/* Selection Ring */}
+                                                {selectedElementId === el.id && (
+                                                    <div className="absolute -inset-0.5 border-2 border-blue-500 pointer-events-none z-50" />
+                                                )}
+
+                                                {el.type === 'image' && el.imageUrl && (
+                                                    <img src={el.imageUrl} alt={el.name} className="w-full h-full object-cover pointer-events-none" draggable={false} />
+                                                )}
+                                                {el.type === 'image' && !el.imageUrl && (
+                                                    <div className="w-full h-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs pointer-events-none">
+                                                        <ImageIcon size={24} />
+                                                    </div>
+                                                )}
+                                                {el.type === 'text' && el.textStyle && (
+                                                    <div
+                                                        className="w-full h-full flex items-center pointer-events-none"
+                                                        style={{
+                                                            fontFamily: el.textStyle.fontFamily,
+                                                            fontSize: el.textStyle.fontSize,
+                                                            fontWeight: el.textStyle.fontWeight,
+                                                            fontStyle: el.textStyle.fontStyle,
+                                                            textDecoration: el.textStyle.textDecoration,
+                                                            textAlign: el.textStyle.textAlign,
+                                                            color: el.textStyle.color,
+                                                            justifyContent: el.textStyle.textAlign === 'center' ? 'center' : el.textStyle.textAlign === 'right' ? 'flex-end' : 'flex-start',
+                                                            whiteSpace: 'pre-wrap',
+                                                            lineHeight: 1.2,
+                                                        }}
+                                                    >
+                                                        {el.content}
+                                                    </div>
+                                                )}
+                                                {/* Resize handles when selected */}
+                                                {selectedElementId === el.id && <ResizeHandles elementId={el.id} sectionType={sectionType} />}
+                                            </div>
+                                        ))}
+                                        {sectionElements.length === 0 && (
+                                            <div className="absolute inset-0 flex items-center justify-center text-slate-500 pointer-events-none opacity-50">
+                                                Empty Section
                                             </div>
                                         )}
-                                        {/* Resize handles when selected */}
-                                        {selectedElementId === el.id && <ResizeHandles elementId={el.id} />}
                                     </div>
-                                ))}
-                                {elements.length === 0 && (
-                                    <div className="absolute inset-0 flex items-center justify-center text-slate-500 pointer-events-none">
-                                        Add elements to preview
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
+
+            {/* Preview Modal */}
+            <PreviewModal />
         </div>
     );
 }
