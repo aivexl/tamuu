@@ -5,6 +5,31 @@ const supabase = createClient();
 
 // --- Templates ---
 
+// Fast fetch for template listing (without sections/elements)
+export async function getTemplatesBasic(): Promise<Template[]> {
+    const { data, error } = await supabase
+        .from('templates')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+
+    return data.map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        thumbnail: t.thumbnail,
+        status: t.status || 'draft',
+        sections: {}, // Empty - not loaded for performance
+        sectionOrder: t.section_order || [],
+        customSections: t.custom_sections || [],
+        globalTheme: t.global_theme || {},
+        eventDate: t.event_date,
+        createdAt: t.created_at,
+        updatedAt: t.updated_at,
+    }));
+}
+
+// Full fetch with sections and elements (slower, use for editor/preview)
 export async function getTemplates(): Promise<Template[]> {
     const { data, error } = await supabase
         .from('templates')
@@ -77,6 +102,7 @@ export async function getTemplate(id: string): Promise<Template | null> {
                     size: { width: el.width, height: el.height },
                     zIndex: el.z_index,
                     animation: el.animation,
+                    loopAnimation: el.loop_animation,
                     animationDelay: el.animation_delay,
                     animationSpeed: el.animation_speed,
                     animationDuration: el.animation_duration,
@@ -87,6 +113,9 @@ export async function getTemplate(id: string): Promise<Template | null> {
                     countdownConfig: el.countdown_config,
                     rsvpFormConfig: el.rsvp_form_config,
                     guestWishesConfig: el.guest_wishes_config,
+                    rotation: el.rotation,
+                    flipHorizontal: el.flip_horizontal,
+                    flipVertical: el.flip_vertical,
                 })),
             };
         }
@@ -95,6 +124,7 @@ export async function getTemplate(id: string): Promise<Template | null> {
             id: templateData.id,
             name: templateData.name,
             thumbnail: templateData.thumbnail,
+            status: templateData.status || 'draft',
             sections: sections,
             sectionOrder: templateData.section_order,
             customSections: templateData.custom_sections,
@@ -122,6 +152,7 @@ export async function createTemplate(template: Partial<Template>): Promise<Templ
             .insert({
                 name: template.name,
                 thumbnail: template.thumbnail,
+                status: template.status || 'draft',
                 section_order: template.sectionOrder,
                 custom_sections: template.customSections,
                 global_theme: template.globalTheme,
@@ -162,6 +193,7 @@ export async function updateTemplate(id: string, updates: Partial<Template>): Pr
         .update({
             name: updates.name,
             thumbnail: updates.thumbnail,
+            status: updates.status,
             section_order: updates.sectionOrder,
             custom_sections: updates.customSections,
             global_theme: updates.globalTheme,
@@ -231,7 +263,7 @@ export async function updateSection(templateId: string, sectionType: string, upd
 
 // --- Elements ---
 
-export async function createElement(templateId: string, sectionType: string, element: TemplateElement): Promise<void> {
+export async function createElement(templateId: string, sectionType: string, element: TemplateElement): Promise<TemplateElement> {
     // Ensure section exists first
     let { data: section } = await supabase
         .from('template_sections')
@@ -252,7 +284,7 @@ export async function createElement(templateId: string, sectionType: string, ele
 
     if (!section) throw new Error("Failed to find or create section");
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('template_elements')
         .insert({
             id: element.id.startsWith('el-') ? undefined : element.id, // Let DB generate UUID if it's a temp ID
@@ -265,6 +297,7 @@ export async function createElement(templateId: string, sectionType: string, ele
             height: element.size.height,
             z_index: element.zIndex,
             animation: element.animation,
+            loop_animation: element.loopAnimation,
             animation_delay: element.animationDelay,
             animation_speed: element.animationSpeed,
             animation_duration: element.animationDuration,
@@ -275,9 +308,39 @@ export async function createElement(templateId: string, sectionType: string, ele
             countdown_config: element.countdownConfig,
             rsvp_form_config: element.rsvpFormConfig,
             guest_wishes_config: element.guestWishesConfig,
-        });
+            rotation: element.rotation,
+            flip_horizontal: element.flipHorizontal,
+            flip_vertical: element.flipVertical,
+        })
+        .select()
+        .single();
 
     if (error) throw error;
+    if (!data) throw new Error("Failed to create element");
+
+    return {
+        id: data.id,
+        type: data.type as ElementType,
+        name: data.name,
+        position: { x: data.position_x, y: data.position_y },
+        size: { width: data.width, height: data.height },
+        zIndex: data.z_index,
+        animation: data.animation,
+        loopAnimation: data.loop_animation,
+        animationDelay: data.animation_delay,
+        animationSpeed: data.animation_speed,
+        animationDuration: data.animation_duration,
+        content: data.content,
+        imageUrl: data.image_url,
+        textStyle: data.text_style,
+        iconStyle: data.icon_style,
+        countdownConfig: data.countdown_config,
+        rsvpFormConfig: data.rsvp_form_config,
+        guestWishesConfig: data.guest_wishes_config,
+        rotation: data.rotation,
+        flipHorizontal: data.flip_horizontal,
+        flipVertical: data.flip_vertical,
+    };
 }
 
 export async function updateElement(elementId: string, updates: Partial<TemplateElement>): Promise<void> {
@@ -293,6 +356,7 @@ export async function updateElement(elementId: string, updates: Partial<Template
     }
     if (updates.zIndex !== undefined) dbUpdates.z_index = updates.zIndex;
     if (updates.animation) dbUpdates.animation = updates.animation;
+    if (updates.loopAnimation !== undefined) dbUpdates.loop_animation = updates.loopAnimation;
     if (updates.animationDelay !== undefined) dbUpdates.animation_delay = updates.animationDelay;
     if (updates.animationSpeed !== undefined) dbUpdates.animation_speed = updates.animationSpeed;
     if (updates.animationDuration !== undefined) dbUpdates.animation_duration = updates.animationDuration;
@@ -303,6 +367,9 @@ export async function updateElement(elementId: string, updates: Partial<Template
     if (updates.countdownConfig) dbUpdates.countdown_config = updates.countdownConfig;
     if (updates.rsvpFormConfig) dbUpdates.rsvp_form_config = updates.rsvpFormConfig;
     if (updates.guestWishesConfig) dbUpdates.guest_wishes_config = updates.guestWishesConfig;
+    if (updates.rotation !== undefined) dbUpdates.rotation = updates.rotation;
+    if (updates.flipHorizontal !== undefined) dbUpdates.flip_horizontal = updates.flipHorizontal;
+    if (updates.flipVertical !== undefined) dbUpdates.flip_vertical = updates.flipVertical;
 
     dbUpdates.updated_at = new Date().toISOString();
 

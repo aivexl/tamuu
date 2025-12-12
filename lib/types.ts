@@ -177,6 +177,7 @@ export interface Analytics {
 }
 
 export type AnimationType =
+    // Entrance animations (trigger once on scroll)
     | 'none'
     | 'fade-in'
     | 'slide-up'
@@ -187,7 +188,17 @@ export type AnimationType =
     | 'zoom-out'
     | 'flip-x'
     | 'flip-y'
-    | 'bounce';
+    | 'bounce'
+    // Continuous/looping animations (run forever)
+    | 'sway'          // Flower-like left-right movement
+    | 'float'         // Gentle up-down floating
+    | 'pulse'         // Heartbeat/scale effect
+    | 'sparkle'       // Twinkling/glowing effect
+    | 'spin'          // Continuous rotation
+    | 'shake'         // Subtle vibration
+    | 'swing'         // Pendulum swing
+    | 'heartbeat'     // Love heartbeat effect
+    | 'glow';         // Soft glowing aura
 
 // Element types - now includes icon, countdown, rsvp_form
 export type ElementType = 'image' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'guest_wishes';
@@ -274,7 +285,8 @@ export interface TemplateElement {
     name: string;
     position: { x: number; y: number };
     size: { width: number; height: number };
-    animation: AnimationType;
+    animation: AnimationType;           // Entrance animation (triggers once on scroll)
+    loopAnimation?: AnimationType;       // Continuous looping animation (runs forever)
     animationDelay?: number;
     animationSpeed?: number; // ms, default 500
     animationDuration?: number; // ms, default 1000
@@ -323,6 +335,7 @@ export interface Template {
     id: string;
     name: string;
     thumbnail: string;
+    status: 'draft' | 'published';
     sections: Record<string, SectionDesign>; // Changed to Record<string, ...> for custom sections
     sectionOrder?: string[]; // Order of sections (can be any string ID)
     customSections?: CustomSection[]; // List of custom sections

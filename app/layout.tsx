@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Inter, Playfair_Display, Cormorant_Garamond } from 'next/font/google';
 import './globals.css';
+import { Toaster } from '@/components/ui/Toaster';
+import { ClientOnly } from '@/components/ClientOnly';
 
 const inter = Inter({
     subsets: ['latin'],
@@ -44,7 +46,12 @@ export default function RootLayout({
                     rel="stylesheet"
                 />
             </head>
-            <body suppressHydrationWarning>{children}</body>
+            <body suppressHydrationWarning>
+                {children}
+                <ClientOnly>
+                    <Toaster />
+                </ClientOnly>
+            </body>
         </html>
     );
 }

@@ -16,7 +16,11 @@ interface TimeLeft {
 }
 
 const calculateTimeLeft = (targetDate: string): TimeLeft => {
-    const difference = new Date(targetDate).getTime() - new Date().getTime();
+    const target = new Date(targetDate).getTime();
+    if (isNaN(target)) {
+        return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    }
+    const difference = target - new Date().getTime();
 
     if (difference <= 0) {
         return { days: 0, hours: 0, minutes: 0, seconds: 0 };

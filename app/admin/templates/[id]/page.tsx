@@ -21,13 +21,21 @@ import {
     AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd,
     Move, GripVertical, Copy, Eye, EyeOff, MoreHorizontal, ExternalLink,
     FlipHorizontal, FlipVertical, RotateCw, Maximize, Minimize, X,
-    Heart, Clock, MessageSquare, Users, Plus, Palette, Settings
+    Heart, Clock, MessageSquare, Users, Plus, Palette, Settings, Edit2
 } from 'lucide-react';
+import { SectionSelectModal } from '@/components/dashboard/SectionSelectModal';
+import { InputModal } from '@/components/dashboard/InputModal';
+import { useToast } from '@/components/ui/use-toast';
+import { ClientOnly } from '@/components/ClientOnly';
+import { AnimatedElement } from '@/components/AnimatedElement';
 
 const SECTION_TYPES: SectionType[] = ['opening', 'quotes', 'couple', 'event', 'maps', 'rsvp', 'thanks'];
 const ANIMATION_TYPES: AnimationType[] = [
+    // Entrance animations
     'none', 'fade-in', 'slide-up', 'slide-down', 'slide-left', 'slide-right',
-    'zoom-in', 'zoom-out', 'flip-x', 'flip-y', 'bounce'
+    'zoom-in', 'zoom-out', 'flip-x', 'flip-y', 'bounce',
+    // Looping animations
+    'sway', 'float', 'pulse', 'sparkle', 'spin', 'shake', 'swing', 'heartbeat', 'glow'
 ];
 const FONT_FAMILIES = [
     // Sans-serif
@@ -58,8 +66,10 @@ export default function TemplateEditorPage() {
     const templateId = params.id as string;
     const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const thumbnailInputRef = useRef<HTMLInputElement>(null);
     const wasDraggedRef = useRef(false);
     const wasSelectedRef = useRef(false);
+    const lastDragPos = useRef<{ x: number, y: number } | null>(null);
 
     const templates = useTemplateStore((state) => state.templates);
     const updateTemplate = useTemplateStore((state) => state.updateTemplate);
@@ -76,6 +86,7 @@ export default function TemplateEditorPage() {
     const copyElement = useTemplateStore((state) => state.copyElement);
     const pasteElement = useTemplateStore((state) => state.pasteElement);
     const fetchTemplates = useTemplateStore((state) => state.fetchTemplates);
+    const { toast } = useToast();
 
     const template = templates.find((t) => t.id === templateId);
     const orderedSections = template?.sectionOrder || SECTION_TYPES;
@@ -110,6 +121,93 @@ export default function TemplateEditorPage() {
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [visibleSections, setVisibleSections] = useState<Set<SectionType>>(new Set(SECTION_TYPES));
+
+    const [sectionSelectModal, setSectionSelectModal] = useState<{
+        isOpen: boolean;
+        mode: 'copy_section' | 'paste_element' | null;
+        sourceId?: string | null;
+    }>({ isOpen: false, mode: null, sourceId: null });
+
+    const [inputModal, setInputModal] = useState<{
+        isOpen: boolean;
+        mode: 'add_page' | 'rename_page' | null;
+        defaultValue?: string;
+        targetId?: string;
+    }>({ isOpen: false, mode: null });
+
+    // Helper to get all sections for the modal
+    const getAvailableSections = () => {
+        if (!template) return [];
+        return orderedSections.map(id => {
+            const section = template.sections[id];
+            // Format label: use pageTitle or capitalize ID, distinguish custom pages
+            let label = section?.pageTitle || id.charAt(0).toUpperCase() + id.slice(1);
+            if (id.startsWith('custom_')) {
+                label = `Page: ${label}`;
+            }
+            return { id, label };
+        });
+    };
+
+    const handleSectionSelect = (targetSectionId: string) => {
+        if (sectionSelectModal.mode === 'copy_section' && sectionSelectModal.sourceId) {
+            copySectionDesign(templateId, sectionSelectModal.sourceId as SectionType, targetSectionId as SectionType);
+            toast({
+                title: "Section Copied",
+                description: `Design copied to ${targetSectionId}`,
+                variant: 'success'
+            });
+        } else if (sectionSelectModal.mode === 'paste_element') {
+            pasteElement(templateId, targetSectionId as SectionType);
+            toast({
+                title: "Element Pasted",
+                description: `Element pasted to ${targetSectionId}`,
+                variant: 'success'
+            });
+        }
+        setSectionSelectModal({ isOpen: false, mode: null, sourceId: null });
+    };
+
+    const handleInputModalSubmit = (value: string) => {
+        if (inputModal.mode === 'add_page') {
+            // Generate unique section ID
+            const sectionId = `custom_${Date.now()}`;
+            const newOrder = [...orderedSections, sectionId];
+            reorderSections(templateId, newOrder as SectionType[]);
+            updateSectionDesign(templateId, sectionId as SectionType, {
+                animation: 'fade-in',
+                elements: [],
+                isVisible: true,
+                pageTitle: value
+            });
+            setActiveSection(sectionId as SectionType);
+        } else if (inputModal.mode === 'rename_page' && inputModal.targetId) {
+            updateSectionDesign(templateId, inputModal.targetId as SectionType, { pageTitle: value });
+            toast({
+                title: "Page Renamed",
+                description: "Page name updated successfully",
+                variant: "success",
+            });
+        }
+        setInputModal({ isOpen: false, mode: null });
+    };
+
+    const handleThumbnailUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const result = event.target?.result as string;
+                updateTemplate(templateId, { thumbnail: result });
+                toast({
+                    title: "Thumbnail Updated",
+                    description: "Template thumbnail has been updated.",
+                    variant: "success",
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
 
     useEffect(() => {
@@ -356,7 +454,11 @@ export default function TemplateEditorPage() {
 
     const handleSave = () => {
         updateTemplate(templateId, { name: templateName });
-        alert('Template saved!');
+        toast({
+            title: "Template saved!",
+            description: "Your changes have been successfully saved.",
+            variant: "success",
+        });
     };
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -568,12 +670,23 @@ export default function TemplateEditorPage() {
             }
         }
 
+        const newPos = { x: Math.round(x), y: Math.round(y) };
+        lastDragPos.current = newPos;
+
         updateElement(templateId, draggingSection, draggingElementId, {
-            position: { x: Math.round(x), y: Math.round(y) },
-        });
+            position: newPos,
+        }, { skipDb: true });
     };
 
     const handleMouseUp = () => {
+        // If we were dragging and have a final position, save it to DB now
+        if (draggingElementId && draggingSection && lastDragPos.current) {
+            updateElement(templateId, draggingSection, draggingElementId, {
+                position: lastDragPos.current,
+            });
+            lastDragPos.current = null;
+        }
+
         setDraggingElementId(null);
         setDraggingSection(null);
         setResizing(null);
@@ -674,6 +787,16 @@ export default function TemplateEditorPage() {
             'flip-x': `flipX ${duration}ms ease-out ${delay}ms forwards`,
             'flip-y': `flipY ${duration}ms ease-out ${delay}ms forwards`,
             'bounce': `bounce ${duration}ms ease-out ${delay}ms forwards`,
+            // Looping animations (handled separately in AnimatedElement)
+            'sway': '',
+            'float': '',
+            'pulse': '',
+            'sparkle': '',
+            'spin': '',
+            'shake': '',
+            'swing': '',
+            'heartbeat': '',
+            'glow': '',
         };
 
         return {
@@ -687,7 +810,7 @@ export default function TemplateEditorPage() {
         if (!isPreviewMode) return null;
 
         return (
-            <div className={`fixed inset-0 z-50 bg-black flex flex-col`}>
+            <div className={`fixed inset-0 z-50 bg-black flex flex-col overflow-hidden`}>
                 {/* Preview Header - Hidden when fullscreen */}
                 {!isFullscreen && (
                     <div className="flex justify-between items-center p-4 bg-slate-900 shrink-0">
@@ -734,7 +857,14 @@ export default function TemplateEditorPage() {
                 )}
 
                 {/* Preview Content - Sections at SAME size, no gaps, centered */}
-                <div className="flex-1 overflow-auto flex flex-col items-center justify-start">
+                <div
+                    className="flex-1 overflow-y-scroll overflow-x-hidden flex flex-col items-center justify-start"
+                    style={{
+                        WebkitOverflowScrolling: 'touch',
+                        touchAction: 'pan-y',
+                        height: isFullscreen ? '100vh' : 'auto',
+                    }}
+                >
                     {orderedSections.map((sectionType) => {
                         const sectionDesign = template.sections[sectionType] || { animation: 'none' as const, elements: [] };
                         const sectionElements = sectionDesign.elements || [];
@@ -769,10 +899,14 @@ export default function TemplateEditorPage() {
                                         <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${sectionDesign.overlayOpacity})` }} />
                                     )}
 
-                                    {/* Elements with animations */}
+                                    {/* Elements with scroll-triggered animations */}
                                     {sortedSectionElements.map((el) => (
-                                        <div
+                                        <AnimatedElement
                                             key={el.id}
+                                            animation={el.animation}
+                                            loopAnimation={el.loopAnimation}
+                                            delay={el.animationDelay || 0}
+                                            duration={el.animationDuration || 800}
                                             className="absolute"
                                             style={{
                                                 left: el.position.x,
@@ -780,7 +914,6 @@ export default function TemplateEditorPage() {
                                                 width: el.size.width,
                                                 height: el.size.height,
                                                 zIndex: el.zIndex,
-                                                ...getAnimationStyle(el, true, isSectionVisibleInViewport),
                                             }}
                                         >
                                             {/* Inner wrapper for user transforms (flip/rotation) */}
@@ -816,32 +949,58 @@ export default function TemplateEditorPage() {
                                                         {el.content}
                                                     </div>
                                                 )}
-                                                {el.type === 'icon' && el.iconStyle && (
+                                                {el.type === 'icon' && (
                                                     <div className="w-full h-full flex items-center justify-center">
-                                                        <DynamicIcon
-                                                            name={el.iconStyle.iconName}
-                                                            size={el.iconStyle.iconSize}
-                                                            color={el.iconStyle.iconColor}
-                                                        />
+                                                        {el.iconStyle ? (
+                                                            <DynamicIcon
+                                                                name={el.iconStyle.iconName}
+                                                                size={el.iconStyle.iconSize}
+                                                                color={el.iconStyle.iconColor}
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 rounded">
+                                                                <span className="text-[10px] text-slate-400">Icon</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
-                                                {el.type === 'countdown' && el.countdownConfig && (
-                                                    <div className="w-full h-full flex items-center justify-center overflow-hidden" style={{ transform: 'scale(0.85)' }}>
-                                                        <CountdownTimer config={el.countdownConfig} />
+                                                {el.type === 'countdown' && (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <div style={{ width: '100%' }}>
+                                                            {el.countdownConfig ? (
+                                                                <CountdownTimer config={el.countdownConfig} />
+                                                            ) : (
+                                                                <div className="w-full h-12 flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 rounded">
+                                                                    <span className="text-xs text-slate-400">Timer Element</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 )}
-                                                {el.type === 'rsvp_form' && el.rsvpFormConfig && (
-                                                    <div className="w-full h-full overflow-hidden" style={{ transform: 'scale(0.9)', transformOrigin: 'top center' }}>
-                                                        <RSVPForm config={el.rsvpFormConfig} templateId={templateId} />
+                                                {el.type === 'rsvp_form' && (
+                                                    <div className="w-full h-full overflow-y-auto">
+                                                        {el.rsvpFormConfig ? (
+                                                            <RSVPForm config={el.rsvpFormConfig} templateId={templateId} />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300">
+                                                                <span className="text-xs text-slate-400">RSVP Form</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
-                                                {el.type === 'guest_wishes' && el.guestWishesConfig && (
-                                                    <div className="w-full h-full overflow-hidden" style={{ transform: 'scale(0.9)', transformOrigin: 'top center' }}>
-                                                        <GuestWishes config={el.guestWishesConfig} wishes={[]} />
+                                                {el.type === 'guest_wishes' && (
+                                                    <div className="w-full h-full overflow-y-auto">
+                                                        {el.guestWishesConfig ? (
+                                                            <GuestWishes config={el.guestWishesConfig} wishes={[]} />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300">
+                                                                <span className="text-xs text-slate-400">Guest Wishes</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
-                                        </div>
+                                        </AnimatedElement>
                                     ))}
                                 </div>
                             </div>
@@ -872,1014 +1031,1179 @@ export default function TemplateEditorPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-            {/* Hidden file input */}
-            <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageUpload}
-            />
+        <ClientOnly>
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+                {/* Hidden file input */}
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                />
 
-            {/* Header */}
-            <header className="bg-slate-800/50 border-b border-slate-700 sticky top-0 z-20 backdrop-blur-sm">
-                <div className="max-w-full mx-auto px-4 py-3">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => router.push('/admin/templates')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors" title="Back to Templates">
-                                <ArrowLeft size={20} />
-                            </button>
-                            <Input
-                                value={templateName}
-                                onChange={(e) => setTemplateName(e.target.value)}
-                                className="bg-slate-700 border-slate-600 text-white w-64"
-                                placeholder="Template Name"
-                            />
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Button variant="outline" onClick={startPreview} className="flex items-center gap-2 text-slate-300 border-slate-600">
-                                <Play size={16} />
-                                Preview
-                            </Button>
-                            <Button onClick={handleSave} className="flex items-center gap-2">
-                                <Save size={16} />
-                                Save
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <div className="flex h-[calc(100vh-57px)]">
-                {/* Left Panel - Multi-Section Page Preview */}
-                <aside className="w-80 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden">
-                    <div className="p-3 border-b border-slate-700">
-                        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pages</h2>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-3 space-y-4">
-                        {orderedSections.map((sectionType, idx) => {
-                            const sectionDesign = template.sections[sectionType];
-                            const isVisible = sectionDesign?.isVisible !== false;
-                            const pageTitle = sectionDesign?.pageTitle || sectionType;
-
-                            return (
-                                <div key={sectionType} className="group">
-                                    {/* Page Header */}
-                                    <div className={`flex items-center justify-between mb-2 px-1 ${activeSection === sectionType ? 'text-blue-400' : 'text-slate-400'}`}>
-                                        <span className="text-xs font-medium">
-                                            Halaman {idx + 1} - <span className="capitalize text-slate-500">{pageTitle}</span>
-                                        </span>
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={() => moveSectionUp(idx)}
-                                                className={`p-1 hover:bg-slate-700 rounded ${idx === 0 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-500 hover:text-white'}`}
-                                                title="Move Up"
-                                                disabled={idx === 0}
-                                            >
-                                                <ChevronUp size={12} />
-                                            </button>
-                                            <button
-                                                onClick={() => moveSectionDown(idx)}
-                                                className={`p-1 hover:bg-slate-700 rounded ${idx === orderedSections.length - 1 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-500 hover:text-white'}`}
-                                                title="Move Down"
-                                                disabled={idx === orderedSections.length - 1}
-                                            >
-                                                <ChevronDown size={12} />
-                                            </button>
-                                            <button
-                                                onClick={() => updateSectionDesign(templateId, sectionType, { isVisible: !isVisible })}
-                                                className={`p-1 hover:bg-slate-700 rounded ${isVisible ? 'text-slate-500 hover:text-white' : 'text-red-400'}`}
-                                                title={isVisible ? 'Hide Section' : 'Show Section'}
-                                            >
-                                                {isVisible ? <Eye size={12} /> : <EyeOff size={12} />}
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    const targetSection = SECTION_TYPES.find(s => s !== sectionType && window.confirm(`Copy to ${s}?`));
-                                                    if (targetSection) copySectionDesign(templateId, sectionType, targetSection);
-                                                }}
-                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white"
-                                                title="Copy Section"
-                                            >
-                                                <Copy size={12} />
-                                            </button>
-                                            <button
-                                                onClick={() => updateSectionDesign(templateId, sectionType, { elements: [] })}
-                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-red-400"
-                                                title="Clear Section"
-                                            >
-                                                <Trash2 size={12} />
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Simplified Page Row - No Preview (matching Image 1) */}
-                                    <div
-                                        onClick={() => { setActiveSection(sectionType); setSelectedElement(null); }}
-                                        className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all ${activeSection === sectionType
-                                            ? 'bg-blue-600/20 border border-blue-500'
-                                            : 'bg-slate-700/30 hover:bg-slate-700/50 border border-transparent'
-                                            } ${!isVisible ? 'opacity-50' : ''}`}
-                                    >
-                                        <span className="text-sm text-white truncate">{pageTitle}</span>
-                                        {activeSection === sectionType && (
-                                            <span className="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded">Editing</span>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-
-                        {/* Add Custom Page Button */}
-                        <div className="mt-4 pt-4 border-t border-slate-700">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full text-slate-300 border-slate-600 border-dashed hover:border-blue-500 hover:text-blue-400"
-                                onClick={() => {
-                                    const pageName = prompt('Masukkan nama halaman baru:');
-                                    if (!pageName || !pageName.trim()) return;
-
-                                    // Generate unique section ID
-                                    const sectionId = `custom_${Date.now()}`;
-                                    const newOrder = [...orderedSections, sectionId];
-                                    reorderSections(templateId, newOrder as SectionType[]);
-                                    updateSectionDesign(templateId, sectionId as SectionType, {
-                                        animation: 'fade-in',
-                                        elements: [],
-                                        isVisible: true,
-                                        pageTitle: pageName.trim()
-                                    });
-                                    setActiveSection(sectionId as SectionType);
-                                }}
-                            >
-                                <Plus size={14} className="mr-1" /> Tambah Halaman Baru
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Admin Thumbnail Section */}
-                    <div className="p-3 border-t border-slate-700">
-                        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                            Admin - Thumbnail
-                        </h2>
-                        <div className="relative rounded-lg overflow-hidden bg-slate-700 aspect-[4/3]">
-                            {template.thumbnail ? (
-                                <NextImage
-                                    src={template.thumbnail}
-                                    alt="Thumbnail"
-                                    fill
-                                    className="object-cover"
-                                    unoptimized
+                {/* Header */}
+                <header className="bg-slate-800/50 border-b border-slate-700 sticky top-0 z-20 backdrop-blur-sm">
+                    <div className="max-w-full mx-auto px-4 py-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => router.push('/admin/templates')} className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors" title="Back to Templates">
+                                    <ArrowLeft size={20} />
+                                </button>
+                                <Input
+                                    value={templateName}
+                                    onChange={(e) => setTemplateName(e.target.value)}
+                                    className="bg-slate-700 border-slate-600 text-white w-64"
+                                    placeholder="Template Name"
                                 />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-500">
-                                    <ImageIcon size={24} />
-                                </div>
-                            )}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className={`text-xs px-2 py-1 rounded ${template.status === 'published' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                                    {template.status === 'published' ? 'Published' : 'Draft'}
+                                </span>
+                                <Button variant="outline" onClick={startPreview} className="flex items-center gap-2 text-slate-300 border-slate-600">
+                                    <Play size={16} />
+                                    Preview
+                                </Button>
                                 <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    className="text-xs"
+                                    variant="outline"
                                     onClick={() => {
-                                        const url = prompt('Masukkan URL thumbnail:', template.thumbnail || '');
-                                        if (url !== null) {
-                                            updateTemplate(templateId, { thumbnail: url });
-                                        }
+                                        updateTemplate(templateId, { name: templateName, status: 'draft' });
+                                        toast({
+                                            title: "Draft Saved",
+                                            description: "Template saved as draft.",
+                                            variant: "success",
+                                        });
                                     }}
+                                    className="flex items-center gap-2 text-slate-300 border-slate-600"
                                 >
-                                    <Upload size={12} className="mr-1" />
-                                    Ubah Thumbnail
+                                    <Save size={16} />
+                                    Save Draft
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        updateTemplate(templateId, { name: templateName, status: 'published' });
+                                        toast({
+                                            title: "Template Published!",
+                                            description: "Your template is now live in the Template Store.",
+                                            variant: "success",
+                                        });
+                                    }}
+                                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                                >
+                                    <ExternalLink size={16} />
+                                    Publish
                                 </Button>
                             </div>
                         </div>
-                        <p className="text-[10px] text-slate-500 mt-1 text-center">
-                            Thumbnail hanya terlihat oleh admin
-                        </p>
                     </div>
-                </aside>
+                </header>
 
-                {/* Center-Left Panel - Elements/Layers */}
-                <div className="w-72 bg-slate-800/50 border-r border-slate-700 flex flex-col overflow-hidden">
-                    {/* Tabs */}
-                    <div className="flex border-b border-slate-700">
-                        <button
-                            onClick={() => setActiveTab('elements')}
-                            className={`flex-1 px-4 py-3 text-sm font-medium ${activeTab === 'elements' ? 'text-white border-b-2 border-blue-500' : 'text-slate-400'}`}
-                        >
-                            Elements
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('layers')}
-                            className={`flex-1 px-4 py-3 text-sm font-medium flex items-center justify-center gap-2 ${activeTab === 'layers' ? 'text-white border-b-2 border-blue-500' : 'text-slate-400'}`}
-                        >
-                            <Layers size={14} /> Layers
-                        </button>
-                    </div>
+                <div className="flex h-[calc(100vh-57px)]">
+                    {/* Left Panel - Multi-Section Page Preview */}
+                    <aside className="w-80 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden">
+                        <div className="p-3 border-b border-slate-700">
+                            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pages</h2>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-3 space-y-4">
+                            {orderedSections.map((sectionType, idx) => {
+                                const sectionDesign = template.sections[sectionType];
+                                const isVisible = sectionDesign?.isVisible !== false;
+                                const pageTitle = sectionDesign?.pageTitle || sectionType;
 
-                    <div className="flex-1 overflow-y-auto p-3">
-                        {activeTab === 'elements' && (
-                            <>
-                                {/* Add Element */}
-                                <div className="mb-4">
-                                    <h3 className="text-xs font-semibold text-slate-400 uppercase mb-2">Add Element</h3>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Button size="sm" variant="outline" onClick={() => handleAddElement('image')} className="text-slate-300 border-slate-600 text-xs py-2">
-                                            <ImageIcon size={14} className="mr-1" /> Image
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => handleAddElement('text')} className="text-slate-300 border-slate-600 text-xs py-2">
-                                            <Type size={14} className="mr-1" /> Text
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => handleAddElement('icon')} className="text-slate-300 border-slate-600 text-xs py-2">
-                                            <Heart size={14} className="mr-1" /> Icon
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => handleAddElement('countdown')} className="text-slate-300 border-slate-600 text-xs py-2">
-                                            <Clock size={14} className="mr-1" /> Countdown
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => handleAddElement('rsvp_form')} className="text-slate-300 border-slate-600 text-xs py-2">
-                                            <MessageSquare size={14} className="mr-1" /> RSVP Form
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={() => handleAddElement('guest_wishes')} className="text-slate-300 border-slate-600 text-xs py-2">
-                                            <Users size={14} className="mr-1" /> Wishes
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                {/* Elements List */}
-                                <div className="mb-4">
-                                    <h3 className="text-xs font-semibold text-slate-400 uppercase mb-2">Elements</h3>
-                                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                                        {elements.length === 0 && <p className="text-xs text-slate-500">No elements yet.</p>}
-                                        {elements.map((el) => (
-                                            <div
-                                                key={el.id}
-                                                onClick={() => setSelectedElement(el.id)}
-                                                className={`flex items-center justify-between px-3 py-2 rounded cursor-pointer text-sm ${selectedElementId === el.id ? 'bg-blue-600 text-white' : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
-                                                    }`}
-                                            >
-                                                <span className="flex items-center gap-2 truncate">
-                                                    {el.type === 'image' && <ImageIcon size={14} />}
-                                                    {el.type === 'text' && <Type size={14} />}
-                                                    {el.type === 'icon' && <Heart size={14} />}
-                                                    {el.type === 'countdown' && <Clock size={14} />}
-                                                    {el.type === 'rsvp_form' && <MessageSquare size={14} />}
-                                                    {el.type === 'guest_wishes' && <Users size={14} />}
-                                                    <span className="truncate">{el.name}</span>
-                                                </span>
+                                return (
+                                    <div key={sectionType} className="group">
+                                        {/* Page Header */}
+                                        <div className={`flex items-center justify-between mb-2 px-1 ${activeSection === sectionType ? 'text-blue-400' : 'text-slate-400'}`}>
+                                            <span className="text-xs font-medium">
+                                                Halaman {idx + 1} - <span className="capitalize text-slate-500">{pageTitle}</span>
+                                            </span>
+                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); deleteElement(templateId, activeSection, el.id); }}
-                                                    className="text-red-400 hover:text-red-300 ml-2"
+                                                    onClick={() => {
+                                                        setInputModal({
+                                                            isOpen: true,
+                                                            mode: 'rename_page',
+                                                            targetId: sectionType,
+                                                            defaultValue: pageTitle
+                                                        });
+                                                    }}
+                                                    className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white"
+                                                    title="Rename Page"
                                                 >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Element Editor */}
-                                {selectedElement && (
-                                    <div className="border-t border-slate-700 pt-3">
-                                        <h3 className="text-sm font-semibold text-white mb-3">Edit: {selectedElement.name}</h3>
-
-                                        {/* Name */}
-                                        <div className="mb-3">
-                                            <Label className="text-slate-300 text-xs">Name</Label>
-                                            <Input value={selectedElement.name} onChange={(e) => handleElementChange('name', e.target.value)} className="mt-1 bg-slate-700 border-slate-600 text-white text-sm h-8" />
-                                        </div>
-
-                                        {/* Position */}
-                                        <div className="mb-3">
-                                            <Label className="text-slate-300 text-xs flex items-center gap-1"><Move size={12} /> Position</Label>
-                                            <div className="flex gap-2 mt-1">
-                                                <div className="flex-1">
-                                                    <span className="text-xs text-slate-500">X</span>
-                                                    <Input type="number" value={selectedElement.position.x} onChange={(e) => handlePositionChange('x', parseInt(e.target.value) || 0)} className="bg-slate-700 border-slate-600 text-white text-sm h-8" />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <span className="text-xs text-slate-500">Y</span>
-                                                    <Input type="number" value={selectedElement.position.y} onChange={(e) => handlePositionChange('y', parseInt(e.target.value) || 0)} className="bg-slate-700 border-slate-600 text-white text-sm h-8" />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Size */}
-                                        <div className="mb-3">
-                                            <Label className="text-slate-300 text-xs">Size</Label>
-                                            <div className="flex gap-2 mt-1">
-                                                <div className="flex-1">
-                                                    <span className="text-xs text-slate-500">W</span>
-                                                    <Input type="number" value={selectedElement.size.width} onChange={(e) => handleSizeChange('width', parseInt(e.target.value) || 50)} className="bg-slate-700 border-slate-600 text-white text-sm h-8" />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <span className="text-xs text-slate-500">H</span>
-                                                    <Input type="number" value={selectedElement.size.height} onChange={(e) => handleSizeChange('height', parseInt(e.target.value) || 50)} className="bg-slate-700 border-slate-600 text-white text-sm h-8" />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Alignment */}
-                                        <div className="mb-3">
-                                            <Label className="text-slate-300 text-xs">Page Alignment</Label>
-                                            <div className="grid grid-cols-3 gap-1 mt-1">
-                                                <button onClick={() => alignElement('top')} className="p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 flex items-center justify-center" title="Atas"><AlignVerticalJustifyStart size={14} /></button>
-                                                <button onClick={() => alignElement('center-v')} className="p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 flex items-center justify-center" title="Tengah V"><AlignVerticalJustifyCenter size={14} /></button>
-                                                <button onClick={() => alignElement('bottom')} className="p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 flex items-center justify-center" title="Bawah"><AlignVerticalJustifyEnd size={14} /></button>
-                                                <button onClick={() => alignElement('left')} className="p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 flex items-center justify-center" title="Kiri"><AlignHorizontalJustifyStart size={14} /></button>
-                                                <button onClick={() => alignElement('center-h')} className="p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 flex items-center justify-center" title="Tengah H"><AlignHorizontalJustifyCenter size={14} /></button>
-                                                <button onClick={() => alignElement('right')} className="p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 flex items-center justify-center" title="Kanan"><AlignHorizontalJustifyEnd size={14} /></button>
-                                            </div>
-                                        </div>
-
-                                        {/* Layer Order */}
-                                        <div className="mb-3">
-                                            <Label className="text-slate-300 text-xs">Layer Order</Label>
-                                            <div className="flex gap-1 mt-1">
-                                                <button onClick={() => moveToTop(selectedElementId!)} className="flex-1 p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 text-xs flex items-center justify-center gap-1" title="Ke Paling Depan"><ChevronsUp size={14} /></button>
-                                                <button onClick={() => moveLayerUp(selectedElementId!)} className="flex-1 p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 text-xs flex items-center justify-center gap-1" title="Maju"><ChevronUp size={14} /></button>
-                                                <button onClick={() => moveLayerDown(selectedElementId!)} className="flex-1 p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 text-xs flex items-center justify-center gap-1" title="Mundur"><ChevronDown size={14} /></button>
-                                                <button onClick={() => moveToBottom(selectedElementId!)} className="flex-1 p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 text-xs flex items-center justify-center gap-1" title="Ke Paling Belakang"><ChevronsDown size={14} /></button>
-                                            </div>
-                                        </div>
-
-                                        {/* Animation */}
-                                        <div className="mb-3">
-                                            <Label className="text-slate-300 text-xs">Animation</Label>
-                                            <select value={selectedElement.animation} onChange={(e) => handleElementChange('animation', e.target.value)} className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8">
-                                                {ANIMATION_TYPES.map((a) => <option key={a} value={a}>{a}</option>)}
-                                            </select>
-                                        </div>
-
-                                        {/* Image Upload */}
-                                        {selectedElement.type === 'image' && (
-                                            <div className="mb-3">
-                                                <Label className="text-slate-300 text-xs">Image</Label>
-                                                <div className="mt-1 space-y-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => fileInputRef.current?.click()}
-                                                        className="w-full text-slate-300 border-slate-600 text-xs"
-                                                    >
-                                                        <Upload size={14} className="mr-1" /> Upload Image
-                                                    </Button>
-                                                    <Input
-                                                        value={selectedElement.imageUrl || ''}
-                                                        onChange={(e) => handleElementChange('imageUrl', e.target.value)}
-                                                        className="bg-slate-700 border-slate-600 text-white text-sm h-8"
-                                                        placeholder="Or paste URL..."
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Transform Controls */}
-                                        <div className="mb-3">
-                                            <Label className="text-slate-300 text-xs mb-2 block">Transform</Label>
-                                            <div className="flex gap-1 mb-2">
-                                                <button
-                                                    onClick={() => handleElementChange('flipHorizontal', !selectedElement.flipHorizontal)}
-                                                    className={`flex-1 p-2 rounded text-xs flex items-center justify-center gap-1 ${selectedElement.flipHorizontal ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}
-                                                    title="Flip Horizontal"
-                                                >
-                                                    <FlipHorizontal size={14} /> H
+                                                    <Edit2 size={12} />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleElementChange('flipVertical', !selectedElement.flipVertical)}
-                                                    className={`flex-1 p-2 rounded text-xs flex items-center justify-center gap-1 ${selectedElement.flipVertical ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}
-                                                    title="Flip Vertical"
-                                                >
-                                                    <FlipVertical size={14} /> V
-                                                </button>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <RotateCw size={14} className="text-slate-400" />
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="360"
-                                                    value={selectedElement.rotation || 0}
-                                                    onChange={(e) => handleElementChange('rotation', parseInt(e.target.value))}
-                                                    className="flex-1"
-                                                />
-                                                <Input
-                                                    type="number"
-                                                    min="0"
-                                                    max="360"
-                                                    value={selectedElement.rotation || 0}
-                                                    onChange={(e) => handleElementChange('rotation', parseInt(e.target.value) || 0)}
-                                                    className="w-16 bg-slate-700 border-slate-600 text-white text-sm h-8 text-center"
-                                                />
-                                                <span className="text-slate-400 text-xs">°</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Animation Controls */}
-                                        <div className="mb-3">
-                                            <Label className="text-slate-300 text-xs mb-2 block">Animation</Label>
-                                            <select
-                                                value={selectedElement.animation}
-                                                onChange={(e) => handleElementChange('animation', e.target.value)}
-                                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8 mb-2"
-                                            >
-                                                {ANIMATION_TYPES.map((a) => (
-                                                    <option key={a} value={a}>{a}</option>
-                                                ))}
-                                            </select>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <div>
-                                                    <Label className="text-slate-400 text-xs">Speed (ms)</Label>
-                                                    <Input
-                                                        type="number"
-                                                        min="100"
-                                                        step="100"
-                                                        value={selectedElement.animationSpeed || 500}
-                                                        onChange={(e) => handleElementChange('animationSpeed', parseInt(e.target.value) || 500)}
-                                                        className="bg-slate-700 border-slate-600 text-white text-sm h-8"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label className="text-slate-400 text-xs">Duration (ms)</Label>
-                                                    <Input
-                                                        type="number"
-                                                        min="100"
-                                                        step="100"
-                                                        value={selectedElement.animationDuration || 1000}
-                                                        onChange={(e) => handleElementChange('animationDuration', parseInt(e.target.value) || 1000)}
-                                                        className="bg-slate-700 border-slate-600 text-white text-sm h-8"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="mt-2">
-                                                <Label className="text-slate-400 text-xs">Delay (ms)</Label>
-                                                <Input
-                                                    type="number"
-                                                    min="0"
-                                                    step="100"
-                                                    value={selectedElement.animationDelay || 0}
-                                                    onChange={(e) => handleElementChange('animationDelay', parseInt(e.target.value) || 0)}
-                                                    className="bg-slate-700 border-slate-600 text-white text-sm h-8"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Text Content & Styles */}
-                                        {selectedElement.type === 'text' && selectedElement.textStyle && (
-                                            <>
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Content</Label>
-                                                    <textarea value={selectedElement.content || ''} onChange={(e) => handleElementChange('content', e.target.value)} className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm min-h-[50px]" />
-                                                </div>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Font</Label>
-                                                    <select value={selectedElement.textStyle.fontFamily} onChange={(e) => handleTextStyleChange('fontFamily', e.target.value)} className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-10">
-                                                        {FONT_FAMILIES.map((f) => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
-                                                    </select>
-                                                </div>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Size</Label>
-                                                    <select value={selectedElement.textStyle.fontSize} onChange={(e) => handleTextStyleChange('fontSize', parseInt(e.target.value))} className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8">
-                                                        {FONT_SIZES.map((s) => <option key={s} value={s}>{s}px</option>)}
-                                                    </select>
-                                                </div>
-
-                                                {/* Bold/Italic/Underline/Align */}
-                                                <div className="mb-3 flex gap-1 flex-wrap">
-                                                    <button onClick={() => handleTextStyleChange('fontWeight', selectedElement.textStyle!.fontWeight === 'bold' ? 'normal' : 'bold')} className={`p-2 rounded ${selectedElement.textStyle.fontWeight === 'bold' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}><Bold size={14} /></button>
-                                                    <button onClick={() => handleTextStyleChange('fontStyle', selectedElement.textStyle!.fontStyle === 'italic' ? 'normal' : 'italic')} className={`p-2 rounded ${selectedElement.textStyle.fontStyle === 'italic' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}><Italic size={14} /></button>
-                                                    <button onClick={() => handleTextStyleChange('textDecoration', selectedElement.textStyle!.textDecoration === 'underline' ? 'none' : 'underline')} className={`p-2 rounded ${selectedElement.textStyle.textDecoration === 'underline' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}><Underline size={14} /></button>
-                                                    <div className="w-px bg-slate-600 mx-1" />
-                                                    <button onClick={() => handleTextStyleChange('textAlign', 'left')} className={`p-2 rounded ${selectedElement.textStyle.textAlign === 'left' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}><AlignLeft size={14} /></button>
-                                                    <button onClick={() => handleTextStyleChange('textAlign', 'center')} className={`p-2 rounded ${selectedElement.textStyle.textAlign === 'center' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}><AlignCenter size={14} /></button>
-                                                    <button onClick={() => handleTextStyleChange('textAlign', 'right')} className={`p-2 rounded ${selectedElement.textStyle.textAlign === 'right' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}><AlignRight size={14} /></button>
-                                                </div>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Color</Label>
-                                                    <div className="flex gap-2 mt-1">
-                                                        <input type="color" value={selectedElement.textStyle.color} onChange={(e) => handleTextStyleChange('color', e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
-                                                        <Input value={selectedElement.textStyle.color} onChange={(e) => handleTextStyleChange('color', e.target.value)} className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8" />
-                                                    </div>
-                                                </div>
-                                            </>
-                                        )}
-
-                                        {/* Icon Settings */}
-                                        {selectedElement.type === 'icon' && selectedElement.iconStyle && (
-                                            <div className="border-t border-slate-700 pt-3">
-                                                <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">Icon Settings</h4>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Icon</Label>
-                                                    <div className="mt-1 space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                                                        {Object.entries(ICON_CATEGORIES).map(([category, icons]) => (
-                                                            <div key={category}>
-                                                                <h5 className="text-[10px] font-semibold text-slate-500 uppercase mb-2 sticky top-0 bg-slate-800 py-1">{category}</h5>
-                                                                <div className="grid grid-cols-5 gap-2">
-                                                                    {icons.map((icon) => (
-                                                                        <button
-                                                                            key={icon}
-                                                                            onClick={() => handleElementChange('iconStyle', { ...selectedElement.iconStyle!, iconName: icon })}
-                                                                            className={`aspect-square rounded flex items-center justify-center transition-all ${selectedElement.iconStyle?.iconName === icon
-                                                                                ? 'bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-1 ring-offset-slate-800'
-                                                                                : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-white'
-                                                                                }`}
-                                                                            title={icon}
-                                                                        >
-                                                                            <DynamicIcon name={icon} size={20} />
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Size</Label>
-                                                    <Input
-                                                        type="number"
-                                                        min="12"
-                                                        max="200"
-                                                        value={selectedElement.iconStyle.iconSize}
-                                                        onChange={(e) => handleElementChange('iconStyle', { ...selectedElement.iconStyle, iconSize: parseInt(e.target.value) || 48 })}
-                                                        className="mt-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
-                                                    />
-                                                </div>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Color</Label>
-                                                    <div className="flex gap-2 mt-1">
-                                                        <input
-                                                            type="color"
-                                                            value={selectedElement.iconStyle.iconColor}
-                                                            onChange={(e) => handleElementChange('iconStyle', { ...selectedElement.iconStyle, iconColor: e.target.value })}
-                                                            className="w-8 h-8 rounded cursor-pointer border-0"
-                                                        />
-                                                        <Input
-                                                            value={selectedElement.iconStyle.iconColor}
-                                                            onChange={(e) => handleElementChange('iconStyle', { ...selectedElement.iconStyle, iconColor: e.target.value })}
-                                                            className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Countdown Settings */}
-                                        {selectedElement.type === 'countdown' && selectedElement.countdownConfig && (
-                                            <div className="border-t border-slate-700 pt-3">
-                                                <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">Countdown Settings</h4>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Target Date</Label>
-                                                    <Input
-                                                        type="datetime-local"
-                                                        value={selectedElement.countdownConfig.targetDate.slice(0, 16)}
-                                                        onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, targetDate: new Date(e.target.value).toISOString() })}
-                                                        className="mt-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
-                                                    />
-                                                </div>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Style</Label>
-                                                    <select
-                                                        value={selectedElement.countdownConfig.style}
-                                                        onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, style: e.target.value })}
-                                                        className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8"
-                                                    >
-                                                        <option value="elegant">Elegant</option>
-                                                        <option value="minimal">Minimal</option>
-                                                        <option value="flip">Flip</option>
-                                                        <option value="circle">Circle</option>
-                                                        <option value="card">Card</option>
-                                                        <option value="neon">Neon</option>
-                                                    </select>
-                                                </div>
-
-                                                <div className="mb-3 grid grid-cols-2 gap-2">
-                                                    <label className="flex items-center gap-2 text-xs text-slate-300">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedElement.countdownConfig.showDays}
-                                                            onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, showDays: e.target.checked })}
-                                                        />
-                                                        Days
-                                                    </label>
-                                                    <label className="flex items-center gap-2 text-xs text-slate-300">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedElement.countdownConfig.showHours}
-                                                            onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, showHours: e.target.checked })}
-                                                        />
-                                                        Hours
-                                                    </label>
-                                                    <label className="flex items-center gap-2 text-xs text-slate-300">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedElement.countdownConfig.showMinutes}
-                                                            onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, showMinutes: e.target.checked })}
-                                                        />
-                                                        Minutes
-                                                    </label>
-                                                    <label className="flex items-center gap-2 text-xs text-slate-300">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedElement.countdownConfig.showSeconds}
-                                                            onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, showSeconds: e.target.checked })}
-                                                        />
-                                                        Seconds
-                                                    </label>
-                                                </div>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Accent Color</Label>
-                                                    <div className="flex gap-2 mt-1">
-                                                        <input
-                                                            type="color"
-                                                            value={selectedElement.countdownConfig.accentColor}
-                                                            onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, accentColor: e.target.value })}
-                                                            className="w-8 h-8 rounded cursor-pointer border-0"
-                                                        />
-                                                        <Input
-                                                            value={selectedElement.countdownConfig.accentColor}
-                                                            onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, accentColor: e.target.value })}
-                                                            className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* RSVP Form Settings */}
-                                        {selectedElement.type === 'rsvp_form' && selectedElement.rsvpFormConfig && (
-                                            <div className="border-t border-slate-700 pt-3">
-                                                <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">RSVP Form Settings</h4>
-
-                                                <div className="mb-3 space-y-2">
-                                                    <label className="flex items-center gap-2 text-xs text-slate-300">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedElement.rsvpFormConfig.showNameField}
-                                                            onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, showNameField: e.target.checked })}
-                                                        />
-                                                        Show Name Field
-                                                    </label>
-                                                    <label className="flex items-center gap-2 text-xs text-slate-300">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedElement.rsvpFormConfig.showEmailField}
-                                                            onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, showEmailField: e.target.checked })}
-                                                        />
-                                                        Show Email Field
-                                                    </label>
-                                                    <label className="flex items-center gap-2 text-xs text-slate-300">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedElement.rsvpFormConfig.showPhoneField}
-                                                            onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, showPhoneField: e.target.checked })}
-                                                        />
-                                                        Show Phone Field
-                                                    </label>
-                                                    <label className="flex items-center gap-2 text-xs text-slate-300">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedElement.rsvpFormConfig.showMessageField}
-                                                            onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, showMessageField: e.target.checked })}
-                                                        />
-                                                        Show Message Field
-                                                    </label>
-                                                    <label className="flex items-center gap-2 text-xs text-slate-300">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedElement.rsvpFormConfig.showAttendanceField}
-                                                            onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, showAttendanceField: e.target.checked })}
-                                                        />
-                                                        Show Attendance Field
-                                                    </label>
-                                                </div>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Button Color</Label>
-                                                    <div className="flex gap-2 mt-1">
-                                                        <input
-                                                            type="color"
-                                                            value={selectedElement.rsvpFormConfig.buttonColor}
-                                                            onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, buttonColor: e.target.value })}
-                                                            className="w-8 h-8 rounded cursor-pointer border-0"
-                                                        />
-                                                        <Input
-                                                            value={selectedElement.rsvpFormConfig.buttonColor}
-                                                            onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, buttonColor: e.target.value })}
-                                                            className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Submit Button Text</Label>
-                                                    <Input
-                                                        value={selectedElement.rsvpFormConfig.submitButtonText}
-                                                        onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, submitButtonText: e.target.value })}
-                                                        className="mt-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Guest Wishes Settings */}
-                                        {selectedElement.type === 'guest_wishes' && selectedElement.guestWishesConfig && (
-                                            <div className="border-t border-slate-700 pt-3">
-                                                <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">Guest Wishes Settings</h4>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Layout</Label>
-                                                    <select
-                                                        value={selectedElement.guestWishesConfig.layout}
-                                                        onChange={(e) => handleElementChange('guestWishesConfig', { ...selectedElement.guestWishesConfig, layout: e.target.value })}
-                                                        className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8"
-                                                    >
-                                                        <option value="list">List</option>
-                                                        <option value="grid">Grid</option>
-                                                        <option value="masonry">Masonry</option>
-                                                    </select>
-                                                </div>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Max Display</Label>
-                                                    <Input
-                                                        type="number"
-                                                        min="1"
-                                                        max="100"
-                                                        value={selectedElement.guestWishesConfig.maxDisplayCount}
-                                                        onChange={(e) => handleElementChange('guestWishesConfig', { ...selectedElement.guestWishesConfig, maxDisplayCount: parseInt(e.target.value) || 20 })}
-                                                        className="mt-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
-                                                    />
-                                                </div>
-
-                                                <label className="flex items-center gap-2 text-xs text-slate-300 mb-3">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedElement.guestWishesConfig.showTimestamp}
-                                                        onChange={(e) => handleElementChange('guestWishesConfig', { ...selectedElement.guestWishesConfig, showTimestamp: e.target.checked })}
-                                                    />
-                                                    Show Timestamp
-                                                </label>
-
-                                                <div className="mb-3">
-                                                    <Label className="text-slate-300 text-xs">Card Background</Label>
-                                                    <div className="flex gap-2 mt-1">
-                                                        <input
-                                                            type="color"
-                                                            value={selectedElement.guestWishesConfig.cardBackgroundColor}
-                                                            onChange={(e) => handleElementChange('guestWishesConfig', { ...selectedElement.guestWishesConfig, cardBackgroundColor: e.target.value })}
-                                                            className="w-8 h-8 rounded cursor-pointer border-0"
-                                                        />
-                                                        <Input
-                                                            value={selectedElement.guestWishesConfig.cardBackgroundColor}
-                                                            onChange={(e) => handleElementChange('guestWishesConfig', { ...selectedElement.guestWishesConfig, cardBackgroundColor: e.target.value })}
-                                                            className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Section Background (when no element selected) */}
-                                {!selectedElement && (
-                                    <div className="border-t border-slate-700 pt-3">
-                                        <h3 className="text-sm font-semibold text-white mb-3">Section Background</h3>
-                                        <div className="mb-3">
-                                            <Label className="text-slate-300 text-xs">Background Image</Label>
-                                            <Input value={currentDesign.backgroundUrl || ''} onChange={(e) => handleDesignChange('backgroundUrl', e.target.value)} className="mt-1 bg-slate-700 border-slate-600 text-white text-sm h-8" placeholder="https://..." />
-                                        </div>
-                                        <div className="mb-3">
-                                            <Label className="text-slate-300 text-xs">Background Color</Label>
-                                            <div className="flex gap-2 mt-1">
-                                                <input type="color" value={currentDesign.backgroundColor || '#ffffff'} onChange={(e) => handleDesignChange('backgroundColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
-                                                <Input value={currentDesign.backgroundColor || ''} onChange={(e) => handleDesignChange('backgroundColor', e.target.value)} className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8" />
-                                            </div>
-                                        </div>
-                                        <div className="mb-3">
-                                            <Label className="text-slate-300 text-xs">Overlay Opacity: {(currentDesign.overlayOpacity ?? 0.3).toFixed(1)}</Label>
-                                            <input type="range" min="0" max="1" step="0.1" value={currentDesign.overlayOpacity ?? 0.3} onChange={(e) => handleDesignChange('overlayOpacity', parseFloat(e.target.value))} className="w-full mt-1" />
-                                        </div>
-                                        <div className="mb-3">
-                                            <Label className="text-slate-300 text-xs">Section Animation</Label>
-                                            <select value={currentDesign.animation} onChange={(e) => handleDesignChange('animation', e.target.value)} className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8">
-                                                {ANIMATION_TYPES.map((a) => <option key={a} value={a}>{a}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
-
-                        {activeTab === 'layers' && (
-                            <div>
-                                <h3 className="text-xs font-semibold text-slate-400 uppercase mb-2">Layer Order (top to bottom)</h3>
-                                <div className="space-y-1">
-                                    {[...sortedElements].reverse().map((el, idx) => (
-                                        <div
-                                            key={el.id}
-                                            onClick={() => setSelectedElement(el.id)}
-                                            className={`flex items-center gap-2 px-3 py-2 rounded cursor-pointer text-sm ${selectedElementId === el.id ? 'bg-blue-600 text-white' : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
-                                                }`}
-                                        >
-                                            <GripVertical size={14} className="text-slate-500" />
-                                            {el.type === 'image' ? <ImageIcon size={14} /> : <Type size={14} />}
-                                            <span className="truncate flex-1">{el.name}</span>
-                                            <div className="flex gap-1">
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); moveLayerUp(el.id); }}
-                                                    className="p-1 hover:bg-slate-600 rounded"
+                                                    onClick={() => moveSectionUp(idx)}
+                                                    className={`p-1 hover:bg-slate-700 rounded ${idx === 0 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-500 hover:text-white'}`}
                                                     title="Move Up"
+                                                    disabled={idx === 0}
                                                 >
                                                     <ChevronUp size={12} />
                                                 </button>
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); moveLayerDown(el.id); }}
-                                                    className="p-1 hover:bg-slate-600 rounded"
+                                                    onClick={() => moveSectionDown(idx)}
+                                                    className={`p-1 hover:bg-slate-700 rounded ${idx === orderedSections.length - 1 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-500 hover:text-white'}`}
                                                     title="Move Down"
+                                                    disabled={idx === orderedSections.length - 1}
                                                 >
                                                     <ChevronDown size={12} />
                                                 </button>
+                                                <button
+                                                    onClick={() => updateSectionDesign(templateId, sectionType, { isVisible: !isVisible })}
+                                                    className={`p-1 hover:bg-slate-700 rounded ${isVisible ? 'text-slate-500 hover:text-white' : 'text-red-400'}`}
+                                                    title={isVisible ? 'Hide Section' : 'Show Section'}
+                                                >
+                                                    {isVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+                                                </button>
+
+
+
+
+
+                                                <button
+                                                    onClick={() => {
+                                                        setSectionSelectModal({
+                                                            isOpen: true,
+                                                            mode: 'copy_section',
+                                                            sourceId: sectionType
+                                                        });
+                                                    }}
+                                                    className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white"
+                                                    title="Copy Section"
+                                                >
+                                                    <Copy size={12} />
+                                                </button>
+                                                <button
+                                                    onClick={() => updateSectionDesign(templateId, sectionType, { elements: [] })}
+                                                    className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-red-400"
+                                                    title="Clear Section"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </button>
                                             </div>
                                         </div>
-                                    ))}
-                                    {elements.length === 0 && <p className="text-xs text-slate-500">No elements yet.</p>}
+
+                                        {/* Simplified Page Row - No Preview (matching Image 1) */}
+                                        <div
+                                            onClick={() => { setActiveSection(sectionType); setSelectedElement(null); }}
+                                            className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all ${activeSection === sectionType
+                                                ? 'bg-blue-600/20 border border-blue-500'
+                                                : 'bg-slate-700/30 hover:bg-slate-700/50 border border-transparent'
+                                                } ${!isVisible ? 'opacity-50' : ''}`}
+                                        >
+                                            <span className="text-sm text-white truncate">{pageTitle}</span>
+                                            {activeSection === sectionType && (
+                                                <span className="text-[10px] bg-blue-500 text-white px-2 py-0.5 rounded">Editing</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            {/* Add Custom Page Button */}
+                            <div className="mt-4 pt-4 border-t border-slate-700">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full text-slate-300 border-slate-600 border-dashed hover:border-blue-500 hover:text-blue-400"
+                                    onClick={() => setInputModal({ isOpen: true, mode: 'add_page' })}
+                                >
+                                    <Plus size={14} className="mr-1" /> Tambah Halaman Baru
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Modals */}
+                        <SectionSelectModal
+                            isOpen={sectionSelectModal.isOpen}
+                            onClose={() => setSectionSelectModal({ ...sectionSelectModal, isOpen: false })}
+                            onSelect={handleSectionSelect}
+                            title={sectionSelectModal.mode === 'copy_section' ? "Copy to Section" : "Paste Element to"}
+                            sections={getAvailableSections()}
+                            description={sectionSelectModal.mode === 'copy_section' ? "Select the destination section to copy this layout to." : "Select the section to paste the element."}
+                        />
+
+                        <InputModal
+                            isOpen={inputModal.isOpen}
+                            onClose={() => setInputModal({ ...inputModal, isOpen: false })}
+                            onSubmit={handleInputModalSubmit}
+                            title={inputModal.mode === 'rename_page' ? "Rename Page" : "Add New Page"}
+                            label="Page Name"
+                            placeholder="e.g., Galeri, Denah Lokasi..."
+                            confirmText={inputModal.mode === 'rename_page' ? "Save Changes" : "Create Page"}
+                            defaultValue={inputModal.defaultValue}
+                        />
+
+
+                        {/* Admin Thumbnail Section */}
+                        <div className="p-3 border-t border-slate-700">
+                            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                                Admin - Thumbnail
+                            </h2>
+                            <div className="relative rounded-lg overflow-hidden bg-slate-700 aspect-[4/3]">
+                                {template.thumbnail ? (
+                                    <NextImage
+                                        src={template.thumbnail}
+                                        alt="Thumbnail"
+                                        fill
+                                        className="object-cover"
+                                        unoptimized
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-slate-500">
+                                        <ImageIcon size={24} />
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        className="text-xs"
+                                        onClick={() => thumbnailInputRef.current?.click()}
+                                    >
+                                        <Upload size={12} className="mr-1" />
+                                        Ubah Thumbnail
+                                    </Button>
+                                    <input
+                                        type="file"
+                                        ref={thumbnailInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleThumbnailUpload}
+                                    />
                                 </div>
                             </div>
-                        )}
-                    </div>
-                </div>
+                            <p className="text-[10px] text-slate-500 mt-1 text-center">
+                                Thumbnail hanya terlihat oleh admin
+                            </p>
+                        </div>
+                    </aside>
 
-                {/* Right Panel - Preview Canvas */}
-                <div
-                    className="flex-1 bg-slate-900/50 overflow-hidden flex flex-col relative"
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                >
-                    <div className="absolute inset-0 overflow-auto flex flex-col items-center p-10 gap-8">
-                        {orderedSections.map((sectionType) => {
-                            const sectionDesign = template.sections[sectionType] || { animation: 'none' as const, elements: [] };
-                            const sectionElements = sectionDesign.elements || [];
-                            const sortedSectionElements = [...sectionElements].sort((a, b) => a.zIndex - b.zIndex);
-                            const isVisible = sectionDesign.isVisible !== false;
+                    {/* Center-Left Panel - Elements/Layers */}
+                    <div className="w-72 bg-slate-800/50 border-r border-slate-700 flex flex-col overflow-hidden">
+                        {/* Tabs */}
+                        <div className="flex border-b border-slate-700">
+                            <button
+                                onClick={() => setActiveTab('elements')}
+                                className={`flex-1 px-4 py-3 text-sm font-medium ${activeTab === 'elements' ? 'text-white border-b-2 border-blue-500' : 'text-slate-400'}`}
+                            >
+                                Elements
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('layers')}
+                                className={`flex-1 px-4 py-3 text-sm font-medium flex items-center justify-center gap-2 ${activeTab === 'layers' ? 'text-white border-b-2 border-blue-500' : 'text-slate-400'}`}
+                            >
+                                <Layers size={14} /> Layers
+                            </button>
+                        </div>
 
-                            if (!isVisible) return null;
-
-                            return (
-                                <div
-                                    key={sectionType}
-                                    className="relative shadow-2xl transition-all duration-300 ease-in-out shrink-0"
-                                    style={{
-                                        width: CANVAS_WIDTH,
-                                        height: CANVAS_HEIGHT,
-                                    }}
-                                >
-                                    {/* Section Label with Controls */}
-                                    <div className="absolute -top-8 left-0 right-0 flex items-center justify-between">
-                                        <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                                            {sectionDesign.pageTitle || sectionType}
-                                        </span>
-                                        <div className="flex items-center gap-1">
-                                            <button
-                                                onClick={() => moveSectionUp(orderedSections.indexOf(sectionType))}
-                                                disabled={orderedSections.indexOf(sectionType) === 0}
-                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                                title="Move Up"
-                                            >
-                                                <ChevronUp size={14} />
-                                            </button>
-                                            <button
-                                                onClick={() => moveSectionDown(orderedSections.indexOf(sectionType))}
-                                                disabled={orderedSections.indexOf(sectionType) === orderedSections.length - 1}
-                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                                title="Move Down"
-                                            >
-                                                <ChevronDown size={14} />
-                                            </button>
-                                            <button
-                                                onClick={() => toggleSectionVisibility(sectionType)}
-                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white transition-colors"
-                                                title={isVisible ? "Hide Section" : "Show Section"}
-                                            >
-                                                {isVisible ? <Eye size={14} /> : <EyeOff size={14} />}
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    const targetSection = prompt('Copy to which section?', 'quotes');
-                                                    if (targetSection && SECTION_TYPES.includes(targetSection as SectionType)) {
-                                                        copySectionDesign(templateId, sectionType, targetSection as SectionType);
-                                                    }
-                                                }}
-                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white transition-colors"
-                                                title="Copy Section"
-                                            >
-                                                <Copy size={14} />
-                                            </button>
-                                            <button
-                                                onClick={() => clearSection(sectionType)}
-                                                className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-red-400 transition-colors"
-                                                title="Clear Section"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
+                        <div className="flex-1 overflow-y-auto p-3">
+                            {activeTab === 'elements' && (
+                                <>
+                                    {/* Add Element */}
+                                    <div className="mb-4">
+                                        <h3 className="text-xs font-semibold text-slate-400 uppercase mb-2">Add Element</h3>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Button size="sm" variant="outline" onClick={() => handleAddElement('image')} className="text-slate-300 border-slate-600 text-xs py-2">
+                                                <ImageIcon size={14} className="mr-1" /> Image
+                                            </Button>
+                                            <Button size="sm" variant="outline" onClick={() => handleAddElement('text')} className="text-slate-300 border-slate-600 text-xs py-2">
+                                                <Type size={14} className="mr-1" /> Text
+                                            </Button>
+                                            <Button size="sm" variant="outline" onClick={() => handleAddElement('icon')} className="text-slate-300 border-slate-600 text-xs py-2">
+                                                <Heart size={14} className="mr-1" /> Icon
+                                            </Button>
+                                            <Button size="sm" variant="outline" onClick={() => handleAddElement('countdown')} className="text-slate-300 border-slate-600 text-xs py-2">
+                                                <Clock size={14} className="mr-1" /> Countdown
+                                            </Button>
+                                            <Button size="sm" variant="outline" onClick={() => handleAddElement('rsvp_form')} className="text-slate-300 border-slate-600 text-xs py-2">
+                                                <MessageSquare size={14} className="mr-1" /> RSVP Form
+                                            </Button>
+                                            <Button size="sm" variant="outline" onClick={() => handleAddElement('guest_wishes')} className="text-slate-300 border-slate-600 text-xs py-2">
+                                                <Users size={14} className="mr-1" /> Wishes
+                                            </Button>
                                         </div>
                                     </div>
 
-                                    {/* Canvas Background & Content */}
-                                    <div
-                                        ref={(el) => { sectionRefs.current[sectionType] = el; }}
-                                        className="absolute inset-0 bg-white overflow-hidden"
-                                        style={{
-                                            backgroundColor: sectionDesign.backgroundColor || '#ffffff',
-                                            backgroundImage: sectionDesign.backgroundUrl ? `url(${sectionDesign.backgroundUrl})` : undefined,
-                                            backgroundSize: 'cover',
-                                            backgroundPosition: 'center',
-                                        }}
-                                        onClick={() => setSelectedElement(null)}
-                                    >
-                                        {/* Overlay */}
-                                        {sectionDesign.overlayOpacity && sectionDesign.overlayOpacity > 0 && (
-                                            <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: `rgba(0,0,0,${sectionDesign.overlayOpacity})` }} />
-                                        )}
+                                    {/* Elements List */}
+                                    <div className="mb-4">
+                                        <h3 className="text-xs font-semibold text-slate-400 uppercase mb-2">Elements</h3>
+                                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                                            {elements.length === 0 && <p className="text-xs text-slate-500">No elements yet.</p>}
+                                            {elements.map((el) => (
+                                                <div
+                                                    key={el.id}
+                                                    onClick={() => setSelectedElement(el.id)}
+                                                    className={`flex items-center justify-between px-3 py-2 rounded cursor-pointer text-sm ${selectedElementId === el.id ? 'bg-blue-600 text-white' : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
+                                                        }`}
+                                                >
+                                                    <span className="flex items-center gap-2 truncate">
+                                                        {el.type === 'image' && <ImageIcon size={14} />}
+                                                        {el.type === 'text' && <Type size={14} />}
+                                                        {el.type === 'icon' && <Heart size={14} />}
+                                                        {el.type === 'countdown' && <Clock size={14} />}
+                                                        {el.type === 'rsvp_form' && <MessageSquare size={14} />}
+                                                        {el.type === 'guest_wishes' && <Users size={14} />}
+                                                        <span className="truncate">{el.name}</span>
+                                                    </span>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); deleteElement(templateId, activeSection, el.id); }}
+                                                        className="text-red-400 hover:text-red-300 ml-2"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
 
-                                        {/* Elements */}
-                                        {sortedSectionElements.map((el) => (
+                                    {/* Element Editor */}
+                                    {selectedElement && (
+                                        <div className="border-t border-slate-700 pt-3">
+                                            <h3 className="text-sm font-semibold text-white mb-3">Edit: {selectedElement.name}</h3>
+
+                                            {/* Name */}
+                                            <div className="mb-3">
+                                                <Label className="text-slate-300 text-xs">Name</Label>
+                                                <Input value={selectedElement.name} onChange={(e) => handleElementChange('name', e.target.value)} className="mt-1 bg-slate-700 border-slate-600 text-white text-sm h-8" />
+                                            </div>
+
+                                            {/* Position */}
+                                            <div className="mb-3">
+                                                <Label className="text-slate-300 text-xs flex items-center gap-1"><Move size={12} /> Position</Label>
+                                                <div className="flex gap-2 mt-1">
+                                                    <div className="flex-1">
+                                                        <span className="text-xs text-slate-500">X</span>
+                                                        <Input type="number" value={selectedElement.position.x} onChange={(e) => handlePositionChange('x', parseInt(e.target.value) || 0)} className="bg-slate-700 border-slate-600 text-white text-sm h-8" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <span className="text-xs text-slate-500">Y</span>
+                                                        <Input type="number" value={selectedElement.position.y} onChange={(e) => handlePositionChange('y', parseInt(e.target.value) || 0)} className="bg-slate-700 border-slate-600 text-white text-sm h-8" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Size */}
+                                            <div className="mb-3">
+                                                <Label className="text-slate-300 text-xs">Size</Label>
+                                                <div className="flex gap-2 mt-1">
+                                                    <div className="flex-1">
+                                                        <span className="text-xs text-slate-500">W</span>
+                                                        <Input type="number" value={selectedElement.size.width} onChange={(e) => handleSizeChange('width', parseInt(e.target.value) || 50)} className="bg-slate-700 border-slate-600 text-white text-sm h-8" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <span className="text-xs text-slate-500">H</span>
+                                                        <Input type="number" value={selectedElement.size.height} onChange={(e) => handleSizeChange('height', parseInt(e.target.value) || 50)} className="bg-slate-700 border-slate-600 text-white text-sm h-8" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Alignment */}
+                                            <div className="mb-3">
+                                                <Label className="text-slate-300 text-xs">Page Alignment</Label>
+                                                <div className="grid grid-cols-3 gap-1 mt-1">
+                                                    <button onClick={() => alignElement('top')} className="p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 flex items-center justify-center" title="Atas"><AlignVerticalJustifyStart size={14} /></button>
+                                                    <button onClick={() => alignElement('center-v')} className="p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 flex items-center justify-center" title="Tengah V"><AlignVerticalJustifyCenter size={14} /></button>
+                                                    <button onClick={() => alignElement('bottom')} className="p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 flex items-center justify-center" title="Bawah"><AlignVerticalJustifyEnd size={14} /></button>
+                                                    <button onClick={() => alignElement('left')} className="p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 flex items-center justify-center" title="Kiri"><AlignHorizontalJustifyStart size={14} /></button>
+                                                    <button onClick={() => alignElement('center-h')} className="p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 flex items-center justify-center" title="Tengah H"><AlignHorizontalJustifyCenter size={14} /></button>
+                                                    <button onClick={() => alignElement('right')} className="p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 flex items-center justify-center" title="Kanan"><AlignHorizontalJustifyEnd size={14} /></button>
+                                                </div>
+                                            </div>
+
+                                            {/* Layer Order */}
+                                            <div className="mb-3">
+                                                <Label className="text-slate-300 text-xs">Layer Order</Label>
+                                                <div className="flex gap-1 mt-1">
+                                                    <button onClick={() => moveToTop(selectedElementId!)} className="flex-1 p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 text-xs flex items-center justify-center gap-1" title="Ke Paling Depan"><ChevronsUp size={14} /></button>
+                                                    <button onClick={() => moveLayerUp(selectedElementId!)} className="flex-1 p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 text-xs flex items-center justify-center gap-1" title="Maju"><ChevronUp size={14} /></button>
+                                                    <button onClick={() => moveLayerDown(selectedElementId!)} className="flex-1 p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 text-xs flex items-center justify-center gap-1" title="Mundur"><ChevronDown size={14} /></button>
+                                                    <button onClick={() => moveToBottom(selectedElementId!)} className="flex-1 p-2 bg-slate-700 hover:bg-slate-600 rounded text-slate-300 text-xs flex items-center justify-center gap-1" title="Ke Paling Belakang"><ChevronsDown size={14} /></button>
+                                                </div>
+                                            </div>
+
+                                            {/* Animation */}
+                                            <div className="mb-3">
+                                                <Label className="text-slate-300 text-xs">Animation</Label>
+                                                <select value={selectedElement.animation} onChange={(e) => handleElementChange('animation', e.target.value)} className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8">
+                                                    {ANIMATION_TYPES.map((a) => <option key={a} value={a}>{a}</option>)}
+                                                </select>
+                                            </div>
+
+                                            {/* Image Upload */}
+                                            {selectedElement.type === 'image' && (
+                                                <div className="mb-3">
+                                                    <Label className="text-slate-300 text-xs">Image</Label>
+                                                    <div className="mt-1 space-y-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => fileInputRef.current?.click()}
+                                                            className="w-full text-slate-300 border-slate-600 text-xs"
+                                                        >
+                                                            <Upload size={14} className="mr-1" /> Upload Image
+                                                        </Button>
+                                                        <Input
+                                                            value={selectedElement.imageUrl || ''}
+                                                            onChange={(e) => handleElementChange('imageUrl', e.target.value)}
+                                                            className="bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                            placeholder="Or paste URL..."
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Transform Controls */}
+                                            <div className="mb-3">
+                                                <Label className="text-slate-300 text-xs mb-2 block">Transform</Label>
+                                                <div className="flex gap-1 mb-2">
+                                                    <button
+                                                        onClick={() => handleElementChange('flipHorizontal', !selectedElement.flipHorizontal)}
+                                                        className={`flex-1 p-2 rounded text-xs flex items-center justify-center gap-1 ${selectedElement.flipHorizontal ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}
+                                                        title="Flip Horizontal"
+                                                    >
+                                                        <FlipHorizontal size={14} /> H
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleElementChange('flipVertical', !selectedElement.flipVertical)}
+                                                        className={`flex-1 p-2 rounded text-xs flex items-center justify-center gap-1 ${selectedElement.flipVertical ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}
+                                                        title="Flip Vertical"
+                                                    >
+                                                        <FlipVertical size={14} /> V
+                                                    </button>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <RotateCw size={14} className="text-slate-400" />
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="360"
+                                                        value={selectedElement.rotation || 0}
+                                                        onChange={(e) => handleElementChange('rotation', parseInt(e.target.value))}
+                                                        className="flex-1"
+                                                    />
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        max="360"
+                                                        value={selectedElement.rotation || 0}
+                                                        onChange={(e) => handleElementChange('rotation', parseInt(e.target.value) || 0)}
+                                                        className="w-16 bg-slate-700 border-slate-600 text-white text-sm h-8 text-center"
+                                                    />
+                                                    <span className="text-slate-400 text-xs">°</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Animation Controls */}
+                                            <div className="mb-3">
+                                                <Label className="text-slate-300 text-xs mb-2 block">Animation</Label>
+                                                <select
+                                                    value={selectedElement.animation}
+                                                    onChange={(e) => handleElementChange('animation', e.target.value)}
+                                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8 mb-2"
+                                                >
+                                                    {ANIMATION_TYPES.map((a) => (
+                                                        <option key={a} value={a}>{a}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <Label className="text-slate-400 text-xs">Speed (ms)</Label>
+                                                        <Input
+                                                            type="number"
+                                                            min="100"
+                                                            step="100"
+                                                            value={selectedElement.animationSpeed || 500}
+                                                            onChange={(e) => handleElementChange('animationSpeed', parseInt(e.target.value) || 500)}
+                                                            className="bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-slate-400 text-xs">Duration (ms)</Label>
+                                                        <Input
+                                                            type="number"
+                                                            min="100"
+                                                            step="100"
+                                                            value={selectedElement.animationDuration || 1000}
+                                                            onChange={(e) => handleElementChange('animationDuration', parseInt(e.target.value) || 1000)}
+                                                            className="bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="mt-2">
+                                                    <Label className="text-slate-400 text-xs">Delay (ms)</Label>
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        step="100"
+                                                        value={selectedElement.animationDelay || 0}
+                                                        onChange={(e) => handleElementChange('animationDelay', parseInt(e.target.value) || 0)}
+                                                        className="bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Loop Animation Controls */}
+                                            <div className="mb-3 border-t border-slate-700 pt-3">
+                                                <Label className="text-slate-300 text-xs mb-2 block">Loop Animation (Continuous)</Label>
+                                                <select
+                                                    value={selectedElement.loopAnimation || 'none'}
+                                                    onChange={(e) => handleElementChange('loopAnimation', e.target.value === 'none' ? undefined : e.target.value)}
+                                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8"
+                                                >
+                                                    <option value="none">None</option>
+                                                    <option value="sway">🌸 Sway (Flower movement)</option>
+                                                    <option value="float">☁️ Float (Up-down)</option>
+                                                    <option value="pulse">💗 Pulse (Scale)</option>
+                                                    <option value="sparkle">✨ Sparkle (Twinkle)</option>
+                                                    <option value="spin">🔄 Spin (Rotate)</option>
+                                                    <option value="shake">📳 Shake (Vibrate)</option>
+                                                    <option value="swing">🔔 Swing (Pendulum)</option>
+                                                    <option value="heartbeat">❤️ Heartbeat</option>
+                                                    <option value="glow">🌟 Glow (Aura)</option>
+                                                </select>
+                                                <p className="text-xs text-slate-500 mt-1">Combines with entrance animation above</p>
+                                            </div>
+
+                                            {/* Text Content & Styles */}
+                                            {selectedElement.type === 'text' && selectedElement.textStyle && (
+                                                <>
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Content</Label>
+                                                        <textarea value={selectedElement.content || ''} onChange={(e) => handleElementChange('content', e.target.value)} className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm min-h-[50px]" />
+                                                    </div>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Font</Label>
+                                                        <select value={selectedElement.textStyle.fontFamily} onChange={(e) => handleTextStyleChange('fontFamily', e.target.value)} className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-10">
+                                                            {FONT_FAMILIES.map((f) => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
+                                                        </select>
+                                                    </div>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Size</Label>
+                                                        <select value={selectedElement.textStyle.fontSize} onChange={(e) => handleTextStyleChange('fontSize', parseInt(e.target.value))} className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8">
+                                                            {FONT_SIZES.map((s) => <option key={s} value={s}>{s}px</option>)}
+                                                        </select>
+                                                    </div>
+
+                                                    {/* Bold/Italic/Underline/Align */}
+                                                    <div className="mb-3 flex gap-1 flex-wrap">
+                                                        <button onClick={() => handleTextStyleChange('fontWeight', selectedElement.textStyle!.fontWeight === 'bold' ? 'normal' : 'bold')} className={`p-2 rounded ${selectedElement.textStyle.fontWeight === 'bold' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}><Bold size={14} /></button>
+                                                        <button onClick={() => handleTextStyleChange('fontStyle', selectedElement.textStyle!.fontStyle === 'italic' ? 'normal' : 'italic')} className={`p-2 rounded ${selectedElement.textStyle.fontStyle === 'italic' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}><Italic size={14} /></button>
+                                                        <button onClick={() => handleTextStyleChange('textDecoration', selectedElement.textStyle!.textDecoration === 'underline' ? 'none' : 'underline')} className={`p-2 rounded ${selectedElement.textStyle.textDecoration === 'underline' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}><Underline size={14} /></button>
+                                                        <div className="w-px bg-slate-600 mx-1" />
+                                                        <button onClick={() => handleTextStyleChange('textAlign', 'left')} className={`p-2 rounded ${selectedElement.textStyle.textAlign === 'left' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}><AlignLeft size={14} /></button>
+                                                        <button onClick={() => handleTextStyleChange('textAlign', 'center')} className={`p-2 rounded ${selectedElement.textStyle.textAlign === 'center' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}><AlignCenter size={14} /></button>
+                                                        <button onClick={() => handleTextStyleChange('textAlign', 'right')} className={`p-2 rounded ${selectedElement.textStyle.textAlign === 'right' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}><AlignRight size={14} /></button>
+                                                    </div>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Color</Label>
+                                                        <div className="flex gap-2 mt-1">
+                                                            <input type="color" value={selectedElement.textStyle.color} onChange={(e) => handleTextStyleChange('color', e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+                                                            <Input value={selectedElement.textStyle.color} onChange={(e) => handleTextStyleChange('color', e.target.value)} className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8" />
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            {/* Icon Settings */}
+                                            {selectedElement.type === 'icon' && selectedElement.iconStyle && (
+                                                <div className="border-t border-slate-700 pt-3">
+                                                    <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">Icon Settings</h4>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Icon</Label>
+                                                        <div className="mt-1 space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                                            {Object.entries(ICON_CATEGORIES).map(([category, icons]) => (
+                                                                <div key={category}>
+                                                                    <h5 className="text-[10px] font-semibold text-slate-500 uppercase mb-2 sticky top-0 bg-slate-800 py-1">{category}</h5>
+                                                                    <div className="grid grid-cols-5 gap-2">
+                                                                        {icons.map((icon) => (
+                                                                            <button
+                                                                                key={icon}
+                                                                                onClick={() => handleElementChange('iconStyle', { ...selectedElement.iconStyle!, iconName: icon })}
+                                                                                className={`aspect-square rounded flex items-center justify-center transition-all ${selectedElement.iconStyle?.iconName === icon
+                                                                                    ? 'bg-blue-600 text-white ring-2 ring-blue-400 ring-offset-1 ring-offset-slate-800'
+                                                                                    : 'bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-white'
+                                                                                    }`}
+                                                                                title={icon}
+                                                                            >
+                                                                                <DynamicIcon name={icon} size={20} />
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Size</Label>
+                                                        <Input
+                                                            type="number"
+                                                            min="12"
+                                                            max="200"
+                                                            value={selectedElement.iconStyle.iconSize}
+                                                            onChange={(e) => handleElementChange('iconStyle', { ...selectedElement.iconStyle, iconSize: parseInt(e.target.value) || 48 })}
+                                                            className="mt-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                        />
+                                                    </div>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Color</Label>
+                                                        <div className="flex gap-2 mt-1">
+                                                            <input
+                                                                type="color"
+                                                                value={selectedElement.iconStyle.iconColor}
+                                                                onChange={(e) => handleElementChange('iconStyle', { ...selectedElement.iconStyle, iconColor: e.target.value })}
+                                                                className="w-8 h-8 rounded cursor-pointer border-0"
+                                                            />
+                                                            <Input
+                                                                value={selectedElement.iconStyle.iconColor}
+                                                                onChange={(e) => handleElementChange('iconStyle', { ...selectedElement.iconStyle, iconColor: e.target.value })}
+                                                                className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Countdown Settings */}
+                                            {selectedElement.type === 'countdown' && selectedElement.countdownConfig && (
+                                                <div className="border-t border-slate-700 pt-3">
+                                                    <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">Countdown Settings</h4>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Target Date</Label>
+                                                        <Input
+                                                            type="datetime-local"
+                                                            value={selectedElement.countdownConfig.targetDate.slice(0, 16)}
+                                                            onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, targetDate: new Date(e.target.value).toISOString() })}
+                                                            className="mt-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                        />
+                                                    </div>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Style</Label>
+                                                        <select
+                                                            value={selectedElement.countdownConfig.style}
+                                                            onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, style: e.target.value })}
+                                                            className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8"
+                                                        >
+                                                            <option value="elegant">Elegant</option>
+                                                            <option value="minimal">Minimal</option>
+                                                            <option value="flip">Flip</option>
+                                                            <option value="circle">Circle</option>
+                                                            <option value="card">Card</option>
+                                                            <option value="neon">Neon</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div className="mb-3 grid grid-cols-2 gap-2">
+                                                        <label className="flex items-center gap-2 text-xs text-slate-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedElement.countdownConfig.showDays}
+                                                                onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, showDays: e.target.checked })}
+                                                            />
+                                                            Days
+                                                        </label>
+                                                        <label className="flex items-center gap-2 text-xs text-slate-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedElement.countdownConfig.showHours}
+                                                                onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, showHours: e.target.checked })}
+                                                            />
+                                                            Hours
+                                                        </label>
+                                                        <label className="flex items-center gap-2 text-xs text-slate-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedElement.countdownConfig.showMinutes}
+                                                                onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, showMinutes: e.target.checked })}
+                                                            />
+                                                            Minutes
+                                                        </label>
+                                                        <label className="flex items-center gap-2 text-xs text-slate-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedElement.countdownConfig.showSeconds}
+                                                                onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, showSeconds: e.target.checked })}
+                                                            />
+                                                            Seconds
+                                                        </label>
+                                                    </div>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Label Color</Label>
+                                                        <div className="flex gap-2 mt-1">
+                                                            <input
+                                                                type="color"
+                                                                value={selectedElement.countdownConfig.labelColor || '#000000'}
+                                                                onChange={(e) => handleElementChange('countdownConfig', {
+                                                                    ...selectedElement.countdownConfig,
+                                                                    labelColor: e.target.value,
+                                                                    dayLabelColor: '',
+                                                                    hourLabelColor: '',
+                                                                    minuteLabelColor: '',
+                                                                    secondLabelColor: ''
+                                                                })}
+                                                                className="w-8 h-8 rounded cursor-pointer border-0"
+                                                            />
+                                                            <Input
+                                                                value={selectedElement.countdownConfig.labelColor || '#000000'}
+                                                                onChange={(e) => handleElementChange('countdownConfig', {
+                                                                    ...selectedElement.countdownConfig,
+                                                                    labelColor: e.target.value,
+                                                                    dayLabelColor: '',
+                                                                    hourLabelColor: '',
+                                                                    minuteLabelColor: '',
+                                                                    secondLabelColor: ''
+                                                                })}
+                                                                className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Accent Color</Label>
+                                                        <div className="flex gap-2 mt-1">
+                                                            <input
+                                                                type="color"
+                                                                value={selectedElement.countdownConfig.accentColor}
+                                                                onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, accentColor: e.target.value })}
+                                                                className="w-8 h-8 rounded cursor-pointer border-0"
+                                                            />
+                                                            <Input
+                                                                value={selectedElement.countdownConfig.accentColor}
+                                                                onChange={(e) => handleElementChange('countdownConfig', { ...selectedElement.countdownConfig, accentColor: e.target.value })}
+                                                                className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* RSVP Form Settings */}
+                                            {selectedElement.type === 'rsvp_form' && selectedElement.rsvpFormConfig && (
+                                                <div className="border-t border-slate-700 pt-3">
+                                                    <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">RSVP Form Settings</h4>
+
+                                                    <div className="mb-3 space-y-2">
+                                                        <label className="flex items-center gap-2 text-xs text-slate-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedElement.rsvpFormConfig.showNameField}
+                                                                onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, showNameField: e.target.checked })}
+                                                            />
+                                                            Show Name Field
+                                                        </label>
+                                                        <label className="flex items-center gap-2 text-xs text-slate-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedElement.rsvpFormConfig.showEmailField}
+                                                                onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, showEmailField: e.target.checked })}
+                                                            />
+                                                            Show Email Field
+                                                        </label>
+                                                        <label className="flex items-center gap-2 text-xs text-slate-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedElement.rsvpFormConfig.showPhoneField}
+                                                                onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, showPhoneField: e.target.checked })}
+                                                            />
+                                                            Show Phone Field
+                                                        </label>
+                                                        <label className="flex items-center gap-2 text-xs text-slate-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedElement.rsvpFormConfig.showMessageField}
+                                                                onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, showMessageField: e.target.checked })}
+                                                            />
+                                                            Show Message Field
+                                                        </label>
+                                                        <label className="flex items-center gap-2 text-xs text-slate-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedElement.rsvpFormConfig.showAttendanceField}
+                                                                onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, showAttendanceField: e.target.checked })}
+                                                            />
+                                                            Show Attendance Field
+                                                        </label>
+                                                    </div>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Button Color</Label>
+                                                        <div className="flex gap-2 mt-1">
+                                                            <input
+                                                                type="color"
+                                                                value={selectedElement.rsvpFormConfig.buttonColor}
+                                                                onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, buttonColor: e.target.value })}
+                                                                className="w-8 h-8 rounded cursor-pointer border-0"
+                                                            />
+                                                            <Input
+                                                                value={selectedElement.rsvpFormConfig.buttonColor}
+                                                                onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, buttonColor: e.target.value })}
+                                                                className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Submit Button Text</Label>
+                                                        <Input
+                                                            value={selectedElement.rsvpFormConfig.submitButtonText}
+                                                            onChange={(e) => handleElementChange('rsvpFormConfig', { ...selectedElement.rsvpFormConfig, submitButtonText: e.target.value })}
+                                                            className="mt-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Guest Wishes Settings */}
+                                            {selectedElement.type === 'guest_wishes' && selectedElement.guestWishesConfig && (
+                                                <div className="border-t border-slate-700 pt-3">
+                                                    <h4 className="text-xs font-semibold text-slate-400 uppercase mb-2">Guest Wishes Settings</h4>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Layout</Label>
+                                                        <select
+                                                            value={selectedElement.guestWishesConfig.layout}
+                                                            onChange={(e) => handleElementChange('guestWishesConfig', { ...selectedElement.guestWishesConfig, layout: e.target.value })}
+                                                            className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8"
+                                                        >
+                                                            <option value="list">List</option>
+                                                            <option value="grid">Grid</option>
+                                                            <option value="masonry">Masonry</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Max Display</Label>
+                                                        <Input
+                                                            type="number"
+                                                            min="1"
+                                                            max="100"
+                                                            value={selectedElement.guestWishesConfig.maxDisplayCount}
+                                                            onChange={(e) => handleElementChange('guestWishesConfig', { ...selectedElement.guestWishesConfig, maxDisplayCount: parseInt(e.target.value) || 20 })}
+                                                            className="mt-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                        />
+                                                    </div>
+
+                                                    <label className="flex items-center gap-2 text-xs text-slate-300 mb-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedElement.guestWishesConfig.showTimestamp}
+                                                            onChange={(e) => handleElementChange('guestWishesConfig', { ...selectedElement.guestWishesConfig, showTimestamp: e.target.checked })}
+                                                        />
+                                                        Show Timestamp
+                                                    </label>
+
+                                                    <div className="mb-3">
+                                                        <Label className="text-slate-300 text-xs">Card Background</Label>
+                                                        <div className="flex gap-2 mt-1">
+                                                            <input
+                                                                type="color"
+                                                                value={selectedElement.guestWishesConfig.cardBackgroundColor}
+                                                                onChange={(e) => handleElementChange('guestWishesConfig', { ...selectedElement.guestWishesConfig, cardBackgroundColor: e.target.value })}
+                                                                className="w-8 h-8 rounded cursor-pointer border-0"
+                                                            />
+                                                            <Input
+                                                                value={selectedElement.guestWishesConfig.cardBackgroundColor}
+                                                                onChange={(e) => handleElementChange('guestWishesConfig', { ...selectedElement.guestWishesConfig, cardBackgroundColor: e.target.value })}
+                                                                className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Section Background (when no element selected) */}
+                                    {!selectedElement && (
+                                        <div className="border-t border-slate-700 pt-3">
+                                            <h3 className="text-sm font-semibold text-white mb-3">Section Background</h3>
+                                            <div className="mb-3">
+                                                <Label className="text-slate-300 text-xs">Background Image</Label>
+                                                <Input value={currentDesign.backgroundUrl || ''} onChange={(e) => handleDesignChange('backgroundUrl', e.target.value)} className="mt-1 bg-slate-700 border-slate-600 text-white text-sm h-8" placeholder="https://..." />
+                                            </div>
+                                            <div className="mb-3">
+                                                <Label className="text-slate-300 text-xs">Background Color</Label>
+                                                <div className="flex gap-2 mt-1">
+                                                    <input type="color" value={currentDesign.backgroundColor || '#ffffff'} onChange={(e) => handleDesignChange('backgroundColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
+                                                    <Input value={currentDesign.backgroundColor || ''} onChange={(e) => handleDesignChange('backgroundColor', e.target.value)} className="flex-1 bg-slate-700 border-slate-600 text-white text-sm h-8" />
+                                                </div>
+                                            </div>
+                                            <div className="mb-3">
+                                                <Label className="text-slate-300 text-xs">Overlay Opacity: {(currentDesign.overlayOpacity ?? 0.3).toFixed(1)}</Label>
+                                                <input type="range" min="0" max="1" step="0.1" value={currentDesign.overlayOpacity ?? 0.3} onChange={(e) => handleDesignChange('overlayOpacity', parseFloat(e.target.value))} className="w-full mt-1" />
+                                            </div>
+                                            <div className="mb-3">
+                                                <Label className="text-slate-300 text-xs">Section Animation</Label>
+                                                <select value={currentDesign.animation} onChange={(e) => handleDesignChange('animation', e.target.value)} className="w-full mt-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm h-8">
+                                                    {ANIMATION_TYPES.map((a) => <option key={a} value={a}>{a}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {activeTab === 'layers' && (
+                                <div>
+                                    <h3 className="text-xs font-semibold text-slate-400 uppercase mb-2">Layer Order (top to bottom)</h3>
+                                    <div className="space-y-1">
+                                        {[...sortedElements].reverse().map((el, idx) => (
                                             <div
                                                 key={el.id}
-                                                className={`absolute cursor-move group ${selectedElementId === el.id ? 'z-50' : ''}`}
-                                                style={{
-                                                    left: el.position.x,
-                                                    top: el.position.y,
-                                                    width: el.size.width,
-                                                    height: el.size.height,
-                                                    zIndex: el.zIndex,
-                                                    transform: getElementTransform(el),
-                                                }}
-                                                onMouseDown={(e) => handleMouseDown(e, el.id, sectionType)}
-                                                onClick={(e) => handleElementClick(e, el.id, sectionType)}
+                                                onClick={() => setSelectedElement(el.id)}
+                                                className={`flex items-center gap-2 px-3 py-2 rounded cursor-pointer text-sm ${selectedElementId === el.id ? 'bg-blue-600 text-white' : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
+                                                    }`}
                                             >
-                                                {/* Selection Ring */}
-                                                {selectedElementId === el.id && (
-                                                    <div className="absolute -inset-0.5 border-2 border-blue-500 pointer-events-none z-50" />
-                                                )}
-
-                                                {el.type === 'image' && el.imageUrl && (
-                                                    <NextImage src={el.imageUrl} alt={el.name} fill className="object-cover pointer-events-none" draggable={false} unoptimized />
-                                                )}
-                                                {el.type === 'image' && !el.imageUrl && (
-                                                    <div className="w-full h-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs pointer-events-none">
-                                                        <ImageIcon size={24} />
-                                                    </div>
-                                                )}
-                                                {el.type === 'text' && el.textStyle && (
-                                                    <div
-                                                        className="w-full h-full flex items-center pointer-events-none"
-                                                        style={{
-                                                            fontFamily: el.textStyle.fontFamily,
-                                                            fontSize: el.textStyle.fontSize,
-                                                            fontWeight: el.textStyle.fontWeight,
-                                                            fontStyle: el.textStyle.fontStyle,
-                                                            textDecoration: el.textStyle.textDecoration,
-                                                            textAlign: el.textStyle.textAlign,
-                                                            color: el.textStyle.color,
-                                                            justifyContent: el.textStyle.textAlign === 'center' ? 'center' : el.textStyle.textAlign === 'right' ? 'flex-end' : 'flex-start',
-                                                            whiteSpace: 'pre-wrap',
-                                                            lineHeight: 1.2,
-                                                        }}
+                                                <GripVertical size={14} className="text-slate-500" />
+                                                {el.type === 'image' ? <ImageIcon size={14} /> : <Type size={14} />}
+                                                <span className="truncate flex-1">{el.name}</span>
+                                                <div className="flex gap-1">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); moveLayerUp(el.id); }}
+                                                        className="p-1 hover:bg-slate-600 rounded"
+                                                        title="Move Up"
                                                     >
-                                                        {el.content}
-                                                    </div>
-                                                )}
-                                                {/* Resize handles when selected */}
-                                                {selectedElementId === el.id && <ResizeHandles elementId={el.id} sectionType={sectionType} />}
+                                                        <ChevronUp size={12} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); moveLayerDown(el.id); }}
+                                                        className="p-1 hover:bg-slate-600 rounded"
+                                                        title="Move Down"
+                                                    >
+                                                        <ChevronDown size={12} />
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))}
-                                        {sectionElements.length === 0 && (
-                                            <div className="absolute inset-0 flex items-center justify-center text-slate-500 pointer-events-none opacity-50">
-                                                Empty Section
-                                            </div>
-                                        )}
+                                        {elements.length === 0 && <p className="text-xs text-slate-500">No elements yet.</p>}
                                     </div>
                                 </div>
-                            );
-                        })}
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Panel - Preview Canvas */}
+                    <div
+                        className="flex-1 bg-slate-900/50 overflow-hidden flex flex-col relative"
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
+                    >
+                        <div className="absolute inset-0 overflow-auto flex flex-col items-center p-10 gap-8">
+                            {orderedSections.map((sectionType) => {
+                                const sectionDesign = template.sections[sectionType] || { animation: 'none' as const, elements: [] };
+                                const sectionElements = sectionDesign.elements || [];
+                                const sortedSectionElements = [...sectionElements].sort((a, b) => a.zIndex - b.zIndex);
+                                const isVisible = sectionDesign.isVisible !== false;
+
+                                if (!isVisible) return null;
+
+                                return (
+                                    <div
+                                        key={sectionType}
+                                        className="relative shadow-2xl transition-all duration-300 ease-in-out shrink-0"
+                                        style={{
+                                            width: CANVAS_WIDTH,
+                                            height: CANVAS_HEIGHT,
+                                        }}
+                                    >
+                                        {/* Section Label with Controls */}
+                                        <div className="absolute -top-8 left-0 right-0 flex items-center justify-between">
+                                            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                                                {sectionDesign.pageTitle || sectionType}
+                                            </span>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    onClick={() => moveSectionUp(orderedSections.indexOf(sectionType))}
+                                                    disabled={orderedSections.indexOf(sectionType) === 0}
+                                                    className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    title="Move Up"
+                                                >
+                                                    <ChevronUp size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => moveSectionDown(orderedSections.indexOf(sectionType))}
+                                                    disabled={orderedSections.indexOf(sectionType) === orderedSections.length - 1}
+                                                    className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    title="Move Down"
+                                                >
+                                                    <ChevronDown size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => toggleSectionVisibility(sectionType)}
+                                                    className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white transition-colors"
+                                                    title={isVisible ? "Hide Section" : "Show Section"}
+                                                >
+                                                    {isVisible ? <Eye size={14} /> : <EyeOff size={14} />}
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setSectionSelectModal({
+                                                            isOpen: true,
+                                                            mode: 'copy_section',
+                                                            sourceId: sectionType
+                                                        });
+                                                    }}
+                                                    className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-white transition-colors"
+                                                    title="Copy Section"
+                                                >
+                                                    <Copy size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => clearSection(sectionType)}
+                                                    className="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-red-400 transition-colors"
+                                                    title="Clear Section"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Canvas Background & Content */}
+                                        <div
+                                            ref={(el) => { sectionRefs.current[sectionType] = el; }}
+                                            className="absolute inset-0 bg-white overflow-hidden"
+                                            style={{
+                                                backgroundColor: sectionDesign.backgroundColor || '#ffffff',
+                                                backgroundImage: sectionDesign.backgroundUrl ? `url(${sectionDesign.backgroundUrl})` : undefined,
+                                                backgroundSize: 'cover',
+                                                backgroundPosition: 'center',
+                                            }}
+                                            onClick={() => setSelectedElement(null)}
+                                        >
+                                            {/* Overlay */}
+                                            {sectionDesign.overlayOpacity && sectionDesign.overlayOpacity > 0 && (
+                                                <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: `rgba(0,0,0,${sectionDesign.overlayOpacity})` }} />
+                                            )}
+
+                                            {/* Elements */}
+                                            {sortedSectionElements.map((el) => (
+                                                <div
+                                                    key={el.id}
+                                                    className={`absolute cursor-move group ${selectedElementId === el.id ? 'z-50' : ''}`}
+                                                    style={{
+                                                        left: el.position.x,
+                                                        top: el.position.y,
+                                                        width: el.size.width,
+                                                        height: el.size.height,
+                                                        zIndex: el.zIndex,
+                                                        transform: getElementTransform(el),
+                                                    }}
+                                                    onMouseDown={(e) => handleMouseDown(e, el.id, sectionType)}
+                                                    onClick={(e) => handleElementClick(e, el.id, sectionType)}
+                                                >
+                                                    {/* Selection Ring */}
+                                                    {selectedElementId === el.id && (
+                                                        <div className="absolute -inset-0.5 border-2 border-blue-500 pointer-events-none z-50" />
+                                                    )}
+
+                                                    {el.type === 'image' && el.imageUrl && (
+                                                        <NextImage src={el.imageUrl} alt={el.name} fill className="object-cover pointer-events-none" draggable={false} unoptimized />
+                                                    )}
+                                                    {el.type === 'image' && !el.imageUrl && (
+                                                        <div className="w-full h-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs pointer-events-none">
+                                                            <ImageIcon size={24} />
+                                                        </div>
+                                                    )}
+                                                    {el.type === 'text' && el.textStyle && (
+                                                        <div
+                                                            className="w-full h-full flex items-center pointer-events-none"
+                                                            style={{
+                                                                fontFamily: el.textStyle.fontFamily,
+                                                                fontSize: el.textStyle.fontSize,
+                                                                fontWeight: el.textStyle.fontWeight,
+                                                                fontStyle: el.textStyle.fontStyle,
+                                                                textDecoration: el.textStyle.textDecoration,
+                                                                textAlign: el.textStyle.textAlign,
+                                                                color: el.textStyle.color,
+                                                                justifyContent: el.textStyle.textAlign === 'center' ? 'center' : el.textStyle.textAlign === 'right' ? 'flex-end' : 'flex-start',
+                                                                whiteSpace: 'pre-wrap',
+                                                                lineHeight: 1.2,
+                                                            }}
+                                                        >
+                                                            {el.content}
+                                                        </div>
+                                                    )}
+                                                    {el.type === 'icon' && (
+                                                        <div className="w-full h-full flex items-center justify-center pointer-events-none">
+                                                            {el.iconStyle ? (
+                                                                <DynamicIcon
+                                                                    name={el.iconStyle.iconName}
+                                                                    size={el.iconStyle.iconSize}
+                                                                    color={el.iconStyle.iconColor}
+                                                                />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 rounded opacity-50">
+                                                                    <span className="text-[10px] text-slate-400">Icon</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {el.type === 'countdown' && (
+                                                        <div className="w-full h-full flex items-center justify-center pointer-events-none">
+                                                            <div style={{ width: '100%' }}>
+                                                                {el.countdownConfig ? (
+                                                                    <CountdownTimer config={el.countdownConfig} />
+                                                                ) : (
+                                                                    <div className="w-full h-12 flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 rounded opacity-50">
+                                                                        <span className="text-xs text-slate-400">Timer Element</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {el.type === 'rsvp_form' && (
+                                                        <div className="w-full h-full overflow-y-auto pointer-events-none">
+                                                            {el.rsvpFormConfig ? (
+                                                                <RSVPForm config={el.rsvpFormConfig} templateId={templateId} />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 opacity-50">
+                                                                    <span className="text-xs text-slate-400">RSVP Form</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {el.type === 'guest_wishes' && (
+                                                        <div className="w-full h-full overflow-y-auto pointer-events-none">
+                                                            {el.guestWishesConfig ? (
+                                                                <GuestWishes config={el.guestWishesConfig} wishes={[]} />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 opacity-50">
+                                                                    <span className="text-xs text-slate-400">Guest Wishes</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {/* Resize handles when selected */}
+                                                    {selectedElementId === el.id && <ResizeHandles elementId={el.id} sectionType={sectionType} />}
+                                                </div>
+                                            ))}
+                                            {sectionElements.length === 0 && (
+                                                <div className="absolute inset-0 flex items-center justify-center text-slate-500 pointer-events-none opacity-50">
+                                                    Empty Section
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Preview Modal */}
-            <PreviewModal />
-        </div>
+                {/* Preview Modal */}
+                <PreviewModal />
+            </div>
+        </ClientOnly>
     );
 }

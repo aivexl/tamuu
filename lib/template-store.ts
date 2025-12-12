@@ -27,7 +27,8 @@ interface TemplateStore {
 
     // Actions
     fetchTemplates: () => Promise<void>;
-    addTemplate: (template: Omit<Template, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string | null>;
+    fetchTemplatesBasic: () => Promise<void>; // Fast fetch for listings
+    addTemplate: (template: Omit<Template, 'id' | 'createdAt' | 'updatedAt' | 'status'> & { status?: 'draft' | 'published' }) => Promise<string | null>;
     updateTemplate: (id: string, updates: Partial<Template>) => Promise<void>;
     deleteTemplate: (id: string) => Promise<void>;
     setActiveTemplate: (id: string | null) => void;
@@ -40,7 +41,7 @@ interface TemplateStore {
     // Element Actions
     setSelectedElement: (elementId: string | null) => void;
     addElement: (templateId: string, sectionType: SectionType, element: TemplateElement) => Promise<void>;
-    updateElement: (templateId: string, sectionType: SectionType, elementId: string, updates: Partial<TemplateElement>) => Promise<void>;
+    updateElement: (templateId: string, sectionType: SectionType, elementId: string, updates: Partial<TemplateElement>, options?: { skipDb?: boolean }) => Promise<void>;
     deleteElement: (templateId: string, sectionType: SectionType, elementId: string) => Promise<void>;
     reorderElements: (templateId: string, sectionType: SectionType, elements: TemplateElement[]) => Promise<void>;
 
@@ -75,6 +76,17 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
         }
     },
 
+    fetchTemplatesBasic: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const templates = await SupabaseService.getTemplatesBasic();
+            set({ templates, isLoading: false });
+        } catch (error: any) {
+            console.error('Failed to fetch templates:', error);
+            set({ error: error.message, isLoading: false });
+        }
+    },
+
     addTemplate: async (templateData) => {
         // Populate default sections if empty
         const sections = templateData.sections && Object.keys(templateData.sections).length > 0
@@ -91,7 +103,8 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
         const finalTemplateData = {
             ...templateData,
             sections,
-            sectionOrder
+            sectionOrder,
+            status: templateData.status || 'draft' as const,
         };
 
         set({ isLoading: true });
@@ -200,6 +213,7 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
     setSelectedElement: (elementId) => set({ selectedElementId: elementId }),
 
     addElement: async (templateId, sectionType, element) => {
+        // Optimistic add (with temp ID)
         set((state) => ({
             templates: state.templates.map((t) => {
                 if (t.id !== templateId) return t;
@@ -219,16 +233,68 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
         }));
 
         try {
-            await SupabaseService.createElement(templateId, sectionType, element);
+            const createdElement = await SupabaseService.createElement(templateId, sectionType, element);
+
+            // 1. Get the latest state of this element (it might have moved while creating!)
+            const currentState = get();
+            const currentTemplate = currentState.templates.find(t => t.id === templateId);
+            const currentSection = currentTemplate?.sections[sectionType];
+            const currentLocalElement = currentSection?.elements.find(el => el.id === element.id);
+
+            // 2. Update local state to use REAL ID
+            set((state) => ({
+                templates: state.templates.map((t) => {
+                    if (t.id !== templateId) return t;
+                    const section = t.sections[sectionType];
+                    if (!section) return t;
+                    return {
+                        ...t,
+                        sections: {
+                            ...t.sections,
+                            [sectionType]: {
+                                ...section,
+                                elements: section.elements.map((el) =>
+                                    el.id === element.id ? { ...el, id: createdElement.id } : el
+                                ),
+                            },
+                        },
+                    };
+                }),
+                // Also update selectedElementId if it matches the temp ID
+                selectedElementId: state.selectedElementId === element.id ? createdElement.id : state.selectedElementId
+            }));
+
+            // 3. CHECK FOR DRIFT: If local element changed while we were creating it, sync those changes to DB now
+            if (currentLocalElement) {
+                // Determine what changed compared to what we sent to DB
+                // We compare currentLocalElement (latest) vs element (what we sent)
+                // We only care about properties that change during interaction (position, size, etc.)
+                const hasMoved = currentLocalElement.position.x !== element.position.x || currentLocalElement.position.y !== element.position.y;
+                const hasResized = currentLocalElement.size.width !== element.size.width || currentLocalElement.size.height !== element.size.height;
+                // Add other checks if necessary (rotation, content, etc.)
+
+                if (hasMoved || hasResized) {
+                    // Sync the new position/size to the REAL ID in Supabase
+                    // We don't need to update local state because it's already correct (from the drag)
+                    // We just need to persist it.
+                    await SupabaseService.updateElement(createdElement.id, {
+                        position: currentLocalElement.position,
+                        size: currentLocalElement.size
+                        // ... other changed props
+                    });
+                }
+            }
+
         } catch (error) {
             console.error('Failed to add element:', error);
             if (typeof error === 'object' && error !== null) {
                 console.error('Error details:', JSON.stringify(error, null, 2));
             }
+            // Ideally we should revert the optimistic update here if it fails
         }
     },
 
-    updateElement: async (templateId, sectionType, elementId, updates) => {
+    updateElement: async (templateId, sectionType, elementId, updates, options = {}) => {
         set((state) => ({
             templates: state.templates.map((t) => {
                 if (t.id !== templateId) return t;
@@ -249,6 +315,9 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
                 };
             }),
         }));
+
+        // Skip DB update if requested (e.g. during drag)
+        if (options.skipDb) return;
 
         // Only update in DB if it's not a temporary element
         if (!elementId.startsWith('el-')) {

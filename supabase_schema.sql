@@ -42,6 +42,7 @@ create table if not exists template_elements (
   height numeric not null,
   z_index integer default 0,
   animation text default 'fade-in',
+  loop_animation text,
   animation_delay integer default 0,
   animation_speed integer default 500,
   animation_duration integer default 1000,
