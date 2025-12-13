@@ -3,54 +3,235 @@ import { Template, InvitationSection, TemplateElement, RSVPResponse, SectionType
 
 const supabase = createClient();
 
+// Debug function to test Supabase connection
+export async function testSupabaseConnection() {
+    try {
+        const { data, error } = await supabase.from('templates').select('count').limit(1);
+        if (error) {
+            console.error('Supabase connection test failed:', error);
+            return { success: false, error };
+        }
+        console.log('Supabase connection test successful');
+        return { success: true, data };
+    } catch (error) {
+        console.error('Supabase connection test error:', error);
+        return { success: false, error };
+    }
+}
+
+// --- Debug Functions ---
+
+export async function debugDatabaseState() {
+    try {
+        console.log('🔍 Starting database debug...');
+
+        // Check templates
+        const { data: templates, error: templatesError } = await supabase
+            .from('templates')
+            .select('*');
+
+        if (templatesError) {
+            console.error('❌ Templates query failed:', templatesError);
+            return { success: false, error: templatesError };
+        }
+
+        console.log(`✅ Found ${templates?.length || 0} templates`);
+
+        // Check sections for each template
+        for (const template of templates || []) {
+            console.log(`📋 Checking template: ${template.id} (${template.name})`);
+
+            const { data: sections, error: sectionsError } = await supabase
+                .from('template_sections')
+                .select('*')
+                .eq('template_id', template.id);
+
+            if (sectionsError) {
+                console.error(`❌ Sections query failed for template ${template.id}:`, sectionsError);
+                continue;
+            }
+
+            console.log(`  📑 Found ${sections?.length || 0} sections`);
+
+            // Check elements for each section
+            for (const section of sections || []) {
+                console.log(`    🔧 Checking section: ${section.type} (${section.id})`);
+
+                const { data: elements, error: elementsError } = await supabase
+                    .from('template_elements')
+                    .select('*')
+                    .eq('section_id', section.id);
+
+                if (elementsError) {
+                    console.error(`❌ Elements query failed for section ${section.id}:`, {
+                        error: elementsError,
+                        message: elementsError.message,
+                        code: elementsError.code,
+                        details: elementsError.details,
+                        hint: elementsError.hint,
+                    });
+                } else {
+                    console.log(`      ✅ Found ${elements?.length || 0} elements`);
+                }
+            }
+        }
+
+        return { success: true, data: { templates } };
+    } catch (error) {
+        console.error('💥 Database debug failed:', error);
+        return { success: false, error };
+    }
+}
+
 // --- Templates ---
 
 // Fast fetch for template listing (without sections/elements)
 export async function getTemplatesBasic(): Promise<Template[]> {
-    const { data, error } = await supabase
-        .from('templates')
-        .select('*')
-        .order('updated_at', { ascending: false });
+    try {
+        console.log('🚀 Calling Supabase getTemplatesBasic...');
 
-    if (error) throw error;
+        const { data, error } = await supabase
+            .from('templates')
+            .select('*')
+            .order('updated_at', { ascending: false });
 
-    return data.map((t: any) => ({
-        id: t.id,
-        name: t.name,
-        thumbnail: t.thumbnail,
-        status: t.status || 'draft',
-        sections: {}, // Empty - not loaded for performance
-        sectionOrder: t.section_order || [],
-        customSections: t.custom_sections || [],
-        globalTheme: t.global_theme || {},
-        eventDate: t.event_date,
-        createdAt: t.created_at,
-        updatedAt: t.updated_at,
-    }));
+        if (error) {
+            console.error('❌ Supabase error in getTemplatesBasic:', {
+                message: error.message,
+                code: error.code,
+                details: error.details,
+                hint: error.hint,
+            });
+            throw error;
+        }
+
+        if (!data) {
+            console.warn('⚠️ No data returned from getTemplatesBasic');
+            return [];
+        }
+
+        console.log(`✅ getTemplatesBasic returned ${data.length} templates`);
+        return data.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            thumbnail: t.thumbnail,
+            status: t.status || 'draft',
+            sections: {}, // Empty - not loaded for performance
+            sectionOrder: t.section_order || [],
+            customSections: t.custom_sections || [],
+            globalTheme: t.global_theme || {},
+            eventDate: t.event_date,
+            createdAt: t.created_at,
+            updatedAt: t.updated_at,
+        }));
+    } catch (error: any) {
+        console.error('💥 Network error in getTemplatesBasic:', {
+            message: error?.message,
+            name: error?.name,
+            stack: error?.stack,
+        });
+
+        // If it's a network error, provide a user-friendly message
+        if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError') {
+            console.error('🌐 Network connectivity issue detected');
+            throw new Error('Unable to connect to database. Please check your internet connection.');
+        }
+
+        throw error;
+    }
 }
 
 // Full fetch with sections and elements (slower, use for editor/preview)
 export async function getTemplates(): Promise<Template[]> {
-    const { data, error } = await supabase
-        .from('templates')
-        .select('*')
-        .order('updated_at', { ascending: false });
+    try {
+        console.log('🚀 Calling Supabase getTemplates...');
 
-    if (error) throw error;
+        const { data, error } = await supabase
+            .from('templates')
+            .select('*')
+            .order('updated_at', { ascending: false });
 
-    // Fetch sections and elements for each template to reconstruct the full object
-    // This is a simplified approach; for production, you might want to load details on demand
-    const templates: Template[] = [];
-    for (const t of data) {
-        const fullTemplate = await getTemplate(t.id);
-        if (fullTemplate) templates.push(fullTemplate);
+        if (error) {
+            console.error('❌ Supabase error in getTemplates:', {
+                message: error.message,
+                code: error.code,
+                details: error.details,
+                hint: error.hint,
+            });
+            throw error;
+        }
+
+        if (!data || data.length === 0) {
+            console.log('ℹ️ No templates found');
+            return [];
+        }
+
+        console.log(`📋 Processing ${data.length} templates with full details...`);
+
+        // Fetch sections and elements for each template to reconstruct the full object
+        // This is a simplified approach; for production, you might want to load details on demand
+        const templates: Template[] = [];
+        for (const t of data) {
+            try {
+                const fullTemplate = await getTemplate(t.id);
+                if (fullTemplate) {
+                    templates.push(fullTemplate);
+                } else {
+                    console.warn(`⚠️ Failed to load full details for template ${t.id}`);
+                }
+            } catch (templateError) {
+                console.error(`❌ Error loading template ${t.id}:`, templateError);
+                // Continue with other templates
+            }
+        }
+
+        console.log(`✅ getTemplates completed: ${templates.length}/${data.length} templates loaded`);
+        return templates;
+    } catch (error: any) {
+        console.error('💥 Network error in getTemplates:', {
+            message: error?.message,
+            name: error?.name,
+            stack: error?.stack,
+        });
+
+        // If it's a network error, provide a user-friendly message
+        if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError') {
+            console.error('🌐 Network connectivity issue detected');
+            throw new Error('Unable to connect to database. Please check your internet connection.');
+        }
+
+        throw error;
     }
-
-    return templates;
 }
 
 export async function getTemplate(id: string): Promise<Template | null> {
     try {
+        console.log(`🔍 Loading template ${id}...`);
+
+        // First, test basic Supabase connectivity
+        console.log('🔗 Testing Supabase client connectivity...');
+        try {
+            const { data: testData, error: testError } = await supabase
+                .from('templates')
+                .select('count')
+                .limit(1)
+                .single();
+
+            if (testError) {
+                console.error('🚫 Supabase connectivity test failed:', {
+                    message: testError.message,
+                    code: testError.code,
+                    details: testError.details,
+                    hint: testError.hint,
+                });
+                throw new Error(`Supabase connectivity issue: ${testError.message}`);
+            }
+            console.log('✅ Supabase client connectivity OK');
+        } catch (connectError) {
+            console.error('💥 Supabase connection test failed:', connectError);
+            throw connectError;
+        }
+
         const { data: templateData, error: templateError } = await supabase
             .from('templates')
             .select('*')
@@ -58,10 +239,21 @@ export async function getTemplate(id: string): Promise<Template | null> {
             .single();
 
         if (templateError) {
-            console.error('Error fetching template:', JSON.stringify(templateError, null, 2));
+            console.error('❌ Error fetching template:', {
+                message: templateError.message,
+                code: templateError.code,
+                details: templateError.details,
+                hint: templateError.hint,
+            });
             return null;
         }
-        if (!templateData) return null;
+
+        if (!templateData) {
+            console.warn(`⚠️ Template ${id} not found`);
+            return null;
+        }
+
+        console.log(`📄 Template ${id} found, loading sections...`);
 
         const { data: sectionsData, error: sectionsError } = await supabase
             .from('template_sections')
@@ -69,59 +261,162 @@ export async function getTemplate(id: string): Promise<Template | null> {
             .eq('template_id', id);
 
         if (sectionsError) {
-            console.error('Error fetching sections:', JSON.stringify(sectionsError, null, 2));
+            console.error('❌ Error fetching sections:', {
+                message: sectionsError.message,
+                code: sectionsError.code,
+                details: sectionsError.details,
+                hint: sectionsError.hint,
+            });
             throw sectionsError;
         }
 
-        const sections: Record<string, any> = {};
-        for (const section of sectionsData) {
-            const { data: elementsData, error: elementsError } = await supabase
+        console.log(`📑 Found ${sectionsData?.length || 0} sections, loading elements...`);
+
+        // Test template_elements table accessibility
+        console.log('🔍 Testing template_elements table access...');
+        try {
+            const { data: testElements, error: testElementsError } = await supabase
                 .from('template_elements')
-                .select('*')
-                .eq('section_id', section.id);
+                .select('count')
+                .limit(1);
 
-            if (elementsError) {
-                console.error('Error fetching elements:', JSON.stringify(elementsError, null, 2));
-                throw elementsError;
+            if (testElementsError) {
+                console.error('🚫 template_elements table access failed:', {
+                    message: testElementsError.message,
+                    code: testElementsError.code,
+                    details: testElementsError.details,
+                    hint: testElementsError.hint,
+                });
+            } else {
+                console.log('✅ template_elements table accessible');
             }
-
-            // Map database fields back to frontend types
-            sections[section.type] = {
-                id: section.id,
-                isVisible: section.is_visible,
-                backgroundColor: section.background_color,
-                backgroundUrl: section.background_url,
-                overlayOpacity: section.overlay_opacity,
-                animation: section.animation,
-                pageTitle: section.page_title,
-                openInvitationConfig: section.open_invitation_config,
-                elements: elementsData.map((el: any) => ({
-                    id: el.id,
-                    type: el.type as ElementType,
-                    name: el.name,
-                    position: { x: el.position_x, y: el.position_y },
-                    size: { width: el.width, height: el.height },
-                    zIndex: el.z_index,
-                    animation: el.animation,
-                    loopAnimation: el.loop_animation,
-                    animationDelay: el.animation_delay,
-                    animationSpeed: el.animation_speed,
-                    animationDuration: el.animation_duration,
-                    content: el.content,
-                    imageUrl: el.image_url,
-                    textStyle: el.text_style,
-                    iconStyle: el.icon_style,
-                    countdownConfig: el.countdown_config,
-                    rsvpFormConfig: el.rsvp_form_config,
-                    guestWishesConfig: el.guest_wishes_config,
-                    rotation: el.rotation,
-                    flipHorizontal: el.flip_horizontal,
-                    flipVertical: el.flip_vertical,
-                })),
-            };
+        } catch (testError) {
+            console.error('💥 template_elements table test failed:', testError);
         }
 
-        return {
+        const sections: Record<string, any> = {};
+        for (const section of sectionsData || []) {
+            try {
+                console.log(`🔍 Fetching elements for section ${section.type} (${section.id})...`);
+                console.log(`🔍 Querying: SELECT * FROM template_elements WHERE section_id = '${section.id}'`);
+
+                const { data: elementsData, error: elementsError } = await supabase
+                    .from('template_elements')
+                    .select('*')
+                    .eq('section_id', section.id);
+
+                console.log(`📊 Query result:`, {
+                    sectionId: section.id,
+                    hasData: !!elementsData,
+                    dataLength: elementsData?.length || 0,
+                    hasError: !!elementsError,
+                    errorType: typeof elementsError
+                });
+
+                if (elementsError) {
+                    console.error('❌ Error fetching elements for section:', section.id, {
+                        message: elementsError.message,
+                        code: elementsError.code,
+                        details: elementsError.details,
+                        hint: elementsError.hint,
+                        fullError: elementsError,
+                        sectionId: section.id,
+                        sectionType: section.type,
+                    });
+
+                    // If it's a permission or table issue, log more details
+                    if (elementsError.code === 'PGRST116' || elementsError.message?.includes('permission')) {
+                        console.error('🚫 Possible permission or table issue detected');
+                        console.error('🔍 Error details:', {
+                            code: elementsError.code,
+                            message: elementsError.message,
+                            hint: elementsError.hint,
+                            details: elementsError.details,
+                        });
+                    }
+
+                    // Instead of throwing, create an empty elements array and continue
+                    console.warn(`⚠️ Continuing with empty elements for section ${section.type}`);
+                    sections[section.type] = {
+                        id: section.id,
+                        isVisible: section.is_visible,
+                        backgroundColor: section.background_color,
+                        backgroundUrl: section.background_url,
+                        overlayOpacity: section.overlay_opacity,
+                        animation: section.animation,
+                        pageTitle: section.page_title,
+                        openInvitationConfig: section.open_invitation_config,
+                        elements: [], // Empty array instead of failing
+                    };
+                    continue; // Skip to next section
+                }
+
+                console.log(`✅ Found ${elementsData?.length || 0} elements for section ${section.type}`);
+
+                console.log(`🔧 Section ${section.type}: ${elementsData?.length || 0} elements`);
+
+                // Map database fields back to frontend types
+                sections[section.type] = {
+                    id: section.id,
+                    isVisible: section.is_visible,
+                    backgroundColor: section.background_color,
+                    backgroundUrl: section.background_url,
+                    overlayOpacity: section.overlay_opacity,
+                    animation: section.animation,
+                    pageTitle: section.page_title,
+                    openInvitationConfig: section.open_invitation_config,
+                    elements: (elementsData || []).map((el: any) => ({
+                        id: el.id,
+                        type: el.type as ElementType,
+                        name: el.name,
+                        position: { x: el.position_x, y: el.position_y },
+                        size: { width: el.width, height: el.height },
+                        zIndex: el.z_index,
+                        animation: el.animation,
+                        loopAnimation: el.loop_animation,
+                        animationDelay: el.animation_delay,
+                        animationSpeed: el.animation_speed,
+                        animationDuration: el.animation_duration,
+                        content: el.content,
+                        imageUrl: el.image_url,
+                        textStyle: el.text_style,
+                        iconStyle: el.icon_style,
+                        countdownConfig: el.countdown_config,
+                        rsvpFormConfig: el.rsvp_form_config,
+                        guestWishesConfig: el.guest_wishes_config,
+                        rotation: el.rotation,
+                        flipHorizontal: el.flip_horizontal,
+                        flipVertical: el.flip_vertical,
+                    })),
+                };
+            } catch (sectionError: any) {
+                console.error(`❌ Error processing section ${section.type}:`, {
+                    sectionId: section.id,
+                    sectionType: section.type,
+                    error: sectionError,
+                    message: sectionError?.message,
+                    code: sectionError?.code,
+                    details: sectionError?.details,
+                    hint: sectionError?.hint,
+                });
+
+                // Continue with other sections but mark this one as failed
+                sections[section.type] = {
+                    id: section.id,
+                    isVisible: false,
+                    elements: [],
+                    error: sectionError?.message || 'Failed to load elements',
+                    backgroundColor: section.background_color,
+                    backgroundUrl: section.background_url,
+                    overlayOpacity: section.overlay_opacity,
+                    animation: section.animation,
+                    pageTitle: section.page_title,
+                    openInvitationConfig: section.open_invitation_config,
+                };
+            }
+        }
+
+        const result = {
             id: templateData.id,
             name: templateData.name,
             thumbnail: templateData.thumbnail,
@@ -134,8 +429,23 @@ export async function getTemplate(id: string): Promise<Template | null> {
             createdAt: templateData.created_at,
             updatedAt: templateData.updated_at,
         };
-    } catch (err) {
-        console.error('Unexpected error in getTemplate:', err);
+
+        console.log(`✅ Template ${id} loaded successfully with ${Object.keys(sections).length} sections`);
+        return result;
+
+    } catch (err: any) {
+        console.error('💥 Unexpected error in getTemplate:', {
+            message: err?.message,
+            name: err?.name,
+            stack: err?.stack,
+        });
+
+        // If it's a network error, provide a user-friendly message
+        if (err?.message?.includes('Failed to fetch') || err?.name === 'TypeError') {
+            console.error('🌐 Network connectivity issue detected in getTemplate');
+            throw new Error('Unable to connect to database. Please check your internet connection.');
+        }
+
         throw err;
     }
 }
@@ -184,7 +494,8 @@ export async function createTemplate(template: Partial<Template>): Promise<Templ
         return getTemplate(data.id);
     } catch (err) {
         console.error('Unexpected error in createTemplate:', err);
-        return null;
+        // Re-throw the error so the calling code can handle it properly
+        throw err;
     }
 }
 

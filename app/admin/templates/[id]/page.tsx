@@ -28,6 +28,7 @@ import { SectionSelectModal } from '@/components/dashboard/SectionSelectModal';
 import { InputModal } from '@/components/dashboard/InputModal';
 import { useToast } from '@/components/ui/use-toast';
 import { ClientOnly } from '@/components/ClientOnly';
+import { uploadToR2 } from '@/lib/uploadToR2';
 import { AnimatedElement } from '@/components/AnimatedElement';
 
 const SECTION_TYPES: SectionType[] = ['opening', 'quotes', 'couple', 'event', 'maps', 'rsvp', 'thanks'];
@@ -122,6 +123,8 @@ export default function TemplateEditorPage() {
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [visibleSections, setVisibleSections] = useState<Set<SectionType>>(new Set(SECTION_TYPES));
+    const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     const [sectionSelectModal, setSectionSelectModal] = useState<{
         isOpen: boolean;
@@ -193,22 +196,57 @@ export default function TemplateEditorPage() {
         setInputModal({ isOpen: false, mode: null });
     };
 
-    const handleThumbnailUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const result = event.target?.result as string;
-                updateTemplate(templateId, { thumbnail: result });
+        if (!file) return;
+
+        setUploadingThumbnail(true);
+        try {
+            const result = await uploadToR2(file, { folder: 'thumbnails' });
+
+            if (result.success && result.url) {
+                updateTemplate(templateId, { thumbnail: result.url });
                 toast({
                     title: "Thumbnail Updated",
-                    description: "Template thumbnail has been updated.",
+                    description: "Template thumbnail has been uploaded to R2.",
                     variant: "success",
                 });
-            };
-            reader.readAsDataURL(file);
+            } else {
+                toast({
+                    title: "Upload Failed",
+                    description: result.error || "Failed to upload thumbnail",
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            console.error('Thumbnail upload error:', error);
+            toast({
+                title: "Upload Error",
+                description: "An unexpected error occurred while uploading",
+                variant: "destructive",
+            });
+        } finally {
+            setUploadingThumbnail(false);
         }
     };
+
+    // OLD CODE (FileReader - commented for rollback):
+    // const handleThumbnailUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    //     const file = e.target.files?.[0];
+    //     if (file) {
+    //         const reader = new FileReader();
+    //         reader.onload = (event) => {
+    //             const result = event.target?.result as string;
+    //             updateTemplate(templateId, { thumbnail: result });
+    //             toast({
+    //                 title: "Thumbnail Updated",
+    //                 description: "Template thumbnail has been updated.",
+    //                 variant: "success",
+    //             });
+    //         };
+    //         reader.readAsDataURL(file);
+    //     }
+    // };
 
 
     useEffect(() => {
@@ -262,7 +300,7 @@ export default function TemplateEditorPage() {
 
     if (!template) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-900">
+            <div className="min-h-screen flex items-center justify-center bg-slate-900" suppressHydrationWarning>
                 <p className="text-slate-500">Template not found.</p>
             </div>
         );
@@ -471,13 +509,15 @@ export default function TemplateEditorPage() {
         });
     };
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file && selectedElementId) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const result = event.target?.result as string;
+        if (!file || !selectedElementId) return;
 
+        setUploadingImage(true);
+        try {
+            const result = await uploadToR2(file, { folder: 'elements' });
+
+            if (result.success && result.url) {
                 // Load image to get dimensions and set proper size
                 const img = new Image();
                 img.onload = () => {
@@ -487,15 +527,69 @@ export default function TemplateEditorPage() {
                     const newHeight = newWidth / aspectRatio;
 
                     updateElement(templateId, activeSection, selectedElementId, {
-                        imageUrl: result,
+                        imageUrl: result.url,
                         size: { width: Math.round(newWidth), height: Math.round(newHeight) }
                     });
+
+                    toast({
+                        title: "Image Updated",
+                        description: "Element image has been uploaded to R2.",
+                        variant: "success",
+                    });
                 };
-                img.src = result;
-            };
-            reader.readAsDataURL(file);
+                img.onerror = () => {
+                    toast({
+                        title: "Image Load Error",
+                        description: "Failed to process uploaded image",
+                        variant: "destructive",
+                    });
+                };
+                img.src = result.url;
+            } else {
+                toast({
+                    title: "Upload Failed",
+                    description: result.error || "Failed to upload image",
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            console.error('Image upload error:', error);
+            toast({
+                title: "Upload Error",
+                description: "An unexpected error occurred while uploading",
+                variant: "destructive",
+            });
+        } finally {
+            setUploadingImage(false);
         }
     };
+
+    // OLD CODE (FileReader - commented for rollback):
+    // const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    //     const file = e.target.files?.[0];
+    //     if (file && selectedElementId) {
+    //         const reader = new FileReader();
+    //         reader.onload = (event) => {
+    //             const result = event.target?.result as string;
+
+    //             // Load image to get dimensions and set proper size
+    //             const img = new Image();
+    //             img.onload = () => {
+    //                 const maxWidth = 300;
+    //                 const aspectRatio = img.naturalWidth / img.naturalHeight;
+    //                 const newWidth = Math.min(img.naturalWidth, maxWidth);
+    //                 const newHeight = newWidth / aspectRatio;
+
+    //                 updateElement(templateId, activeSection, selectedElementId, {
+    //                     imageUrl: result,
+    //                     size: { width: Math.round(newWidth), height: Math.round(newHeight) }
+    //                 });
+    //             };
+    //             img.src = result;
+    //         };
+    //         reader.readAsDataURL(file);
+    //     }
+    // };
 
     // Track if element was dragged to prevent deselect on drag end
     // Moved to top
@@ -1160,7 +1254,7 @@ export default function TemplateEditorPage() {
 
     return (
         <ClientOnly>
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800" suppressHydrationWarning>
                 {/* Hidden file input */}
                 <input
                     ref={fileInputRef}
@@ -1389,9 +1483,10 @@ export default function TemplateEditorPage() {
                                         variant="secondary"
                                         className="text-xs"
                                         onClick={() => thumbnailInputRef.current?.click()}
+                                        disabled={uploadingThumbnail}
                                     >
                                         <Upload size={12} className="mr-1" />
-                                        Ubah Thumbnail
+                                        {uploadingThumbnail ? 'Uploading...' : 'Ubah Thumbnail'}
                                     </Button>
                                     <input
                                         type="file"
@@ -1571,9 +1666,11 @@ export default function TemplateEditorPage() {
                                                             size="sm"
                                                             variant="outline"
                                                             onClick={() => fileInputRef.current?.click()}
+                                                            disabled={uploadingImage}
                                                             className="w-full text-slate-300 border-slate-600 text-xs"
                                                         >
-                                                            <Upload size={14} className="mr-1" /> Upload Image
+                                                            <Upload size={14} className="mr-1" />
+                                                            {uploadingImage ? 'Uploading...' : 'Upload Image'}
                                                         </Button>
                                                         <Input
                                                             value={selectedElement.imageUrl || ''}

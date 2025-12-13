@@ -12,7 +12,7 @@ interface OpenInvitationButtonProps {
 }
 
 // Icon mapping
-const iconMap: Record<string, React.FC<{ size: number; color: string }>> = {
+const iconMap: Record<string, React.ComponentType<any>> = {
     'mail-open': MailOpen,
     'heart': Heart,
     'sparkles': Sparkles,
@@ -498,6 +498,7 @@ export const getDefaultOpenInvitationConfig = (): OpenInvitationConfig => ({
     textTransform: 'uppercase',
     buttonStyle: 'elegant',
     buttonShape: 'pill',
+    position: 'bottom-center',
     animation: 'none',
     showIcon: true,
     iconName: 'mail-open',

@@ -1,6 +1,87 @@
 import { create } from 'zustand';
 import { Template, SectionType, SectionDesign, ThemeConfig, TemplateElement, PREDEFINED_SECTION_TYPES, AnimationType } from './types';
-import * as SupabaseService from './supabase-templates';
+
+// Network error handling utilities
+const isNetworkError = (error: any): boolean => {
+    return error?.message?.includes('Failed to fetch') ||
+           error?.name === 'TypeError' ||
+           error?.message?.includes('NetworkError') ||
+           error?.message?.includes('ERR_NETWORK') ||
+           !navigator.onLine;
+};
+
+const createRetryFunction = <T extends any[], R>(
+    fn: (...args: T) => Promise<R>,
+    maxRetries: number = 3,
+    delay: number = 1000
+): ((...args: T) => Promise<R>) => {
+    return async (...args: T): Promise<R> => {
+        let lastError: any;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                console.log(`🔄 Attempt ${attempt}/${maxRetries}...`);
+                return await fn(...args);
+            } catch (error: any) {
+                lastError = error;
+
+                if (!isNetworkError(error) || attempt === maxRetries) {
+                    break;
+                }
+
+                console.warn(`⚠️ Network error on attempt ${attempt}, retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2; // Exponential backoff
+            }
+        }
+
+        console.error('❌ All retry attempts failed');
+        throw lastError;
+    };
+};
+
+// Import Supabase service with proper error handling
+let SupabaseService: any;
+try {
+    const supabaseModule = require('./supabase-templates');
+    console.log('✅ Supabase service loaded successfully');
+
+    // Create a wrapper with retry logic
+    SupabaseService = {
+        getTemplatesBasic: createRetryFunction(supabaseModule.getTemplatesBasic),
+        getTemplates: createRetryFunction(supabaseModule.getTemplates),
+        getTemplate: createRetryFunction(supabaseModule.getTemplate),
+        createTemplate: createRetryFunction(supabaseModule.createTemplate),
+        updateTemplate: supabaseModule.updateTemplate,
+        deleteTemplate: supabaseModule.deleteTemplate,
+        updateSection: supabaseModule.updateSection,
+        createElement: supabaseModule.createElement,
+        updateElement: supabaseModule.updateElement,
+        deleteElement: supabaseModule.deleteElement,
+        getRSVPResponses: supabaseModule.getRSVPResponses,
+        submitRSVP: supabaseModule.submitRSVP,
+        debugDatabaseState: supabaseModule.debugDatabaseState,
+    };
+
+} catch (error) {
+    console.error('❌ Failed to load Supabase service:', error);
+    // Create a proxy that throws meaningful errors
+    SupabaseService = new Proxy({}, {
+        get(target, prop) {
+            return async (...args: any[]) => {
+                const operationName = typeof prop === 'string' ? prop : String(prop);
+                const error = new Error(`Supabase service unavailable: ${operationName}() cannot be called`);
+                console.error('Supabase operation failed:', {
+                    operation: operationName,
+                    args,
+                    error: error.message,
+                    stack: error.stack
+                });
+                throw error;
+            };
+        }
+    });
+}
 
 // Mock initial templates (fallback)
 const defaultTheme: ThemeConfig = {
@@ -24,6 +105,7 @@ interface TemplateStore {
     clipboard: TemplateElement | null;
     isLoading: boolean;
     error: string | null;
+    isOnline: boolean;
 
     // Actions
     fetchTemplates: () => Promise<void>;
@@ -57,6 +139,26 @@ interface TemplateStore {
     duplicateElement: (templateId: string, fromSection: SectionType, elementId: string, toSection?: SectionType) => void;
 }
 
+// Full store implementation with safe Supabase imports
+// Network status management
+let isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('online', () => {
+        console.log('🌐 Network connection restored');
+        isOnline = true;
+        // Update store state
+        useTemplateStore.setState({ isOnline: true });
+    });
+
+    window.addEventListener('offline', () => {
+        console.log('📴 Network connection lost');
+        isOnline = false;
+        // Update store state
+        useTemplateStore.setState({ isOnline: false, error: 'No internet connection' });
+    });
+}
+
 export const useTemplateStore = create<TemplateStore>((set, get) => ({
     templates: [],
     activeTemplateId: null,
@@ -64,30 +166,102 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
     clipboard: null,
     isLoading: false,
     error: null,
+    isOnline: isOnline,
 
     fetchTemplates: async () => {
+        console.log('🔄 Fetching all templates...');
         set({ isLoading: true, error: null });
+
+        // Check network status
+        if (!isOnline) {
+            const errorMessage = 'No internet connection. Please check your network and try again.';
+            console.warn('📴 Offline mode detected');
+            set({ error: errorMessage, isLoading: false });
+            return;
+        }
+
         try {
+            console.log('🚀 Calling SupabaseService.getTemplates...');
             const templates = await SupabaseService.getTemplates();
-            set({ templates, isLoading: false });
+
+            if (Array.isArray(templates)) {
+                console.log(`✅ Successfully fetched ${templates.length} templates`);
+                set({ templates, isLoading: false, error: null, isOnline: true });
+            } else {
+                console.warn('⚠️ Supabase returned non-array response:', templates);
+                set({ templates: [], isLoading: false, error: null, isOnline: true });
+            }
         } catch (error: any) {
-            console.error('Failed to fetch templates:', error);
-            set({ error: error.message, isLoading: false });
+            console.error('❌ Failed to fetch templates:', {
+                message: error?.message,
+                code: error?.code,
+                details: error?.details,
+                hint: error?.hint,
+                stack: error?.stack,
+                fullError: error
+            });
+
+            let errorMessage = 'Failed to load templates';
+            if (error?.message?.includes('Unable to connect') || error?.message?.includes('Failed to fetch')) {
+                errorMessage = 'Unable to connect to database. Please check your internet connection.';
+                set({ isOnline: false });
+            } else if (error?.message) {
+                errorMessage = `Failed to load templates: ${error.message}`;
+            } else if (error?.code) {
+                errorMessage = `Database error (${error.code}) while loading templates`;
+            }
+
+            set({ error: errorMessage, isLoading: false, templates: [] });
         }
     },
 
     fetchTemplatesBasic: async () => {
+        console.log('🔄 Fetching basic templates...');
         set({ isLoading: true, error: null });
+
         try {
+            console.log('🚀 Calling SupabaseService.getTemplatesBasic...');
             const templates = await SupabaseService.getTemplatesBasic();
-            set({ templates, isLoading: false });
+
+            if (Array.isArray(templates)) {
+                console.log(`✅ Successfully fetched ${templates.length} basic templates`);
+                set({ templates, isLoading: false, error: null });
+            } else {
+                console.warn('⚠️ Supabase returned non-array response for basic templates:', templates);
+                set({ templates: [], isLoading: false, error: null });
+            }
         } catch (error: any) {
-            console.error('Failed to fetch templates:', error);
-            set({ error: error.message, isLoading: false });
+            console.error('❌ Failed to fetch basic templates:', {
+                message: error?.message,
+                code: error?.code,
+                details: error?.details,
+                hint: error?.hint,
+                stack: error?.stack,
+                fullError: error
+            });
+
+            let errorMessage = 'Failed to load templates';
+            if (error?.message) {
+                errorMessage = `Failed to load templates: ${error.message}`;
+            } else if (error?.code) {
+                errorMessage = `Database error (${error.code}) while loading templates`;
+            }
+
+            set({ error: errorMessage, isLoading: false, templates: [] });
         }
     },
 
     addTemplate: async (templateData) => {
+        console.log('🔄 Starting template creation process...', { templateData });
+
+        // Validate input data
+        if (!templateData || !templateData.name) {
+            const error = new Error('Template name is required');
+            console.error('❌ Template validation failed:', error.message);
+            set({ error: error.message, isLoading: false });
+            return null;
+        }
+
         // Populate default sections if empty
         const sections = templateData.sections && Object.keys(templateData.sections).length > 0
             ? templateData.sections
@@ -107,25 +281,56 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             status: templateData.status || 'draft' as const,
         };
 
-        set({ isLoading: true });
+        console.log('📝 Prepared template data:', {
+            name: finalTemplateData.name,
+            sectionsCount: Object.keys(finalTemplateData.sections).length,
+            sectionOrder: finalTemplateData.sectionOrder,
+            status: finalTemplateData.status
+        });
+
+        set({ isLoading: true, error: null });
 
         try {
+            console.log('🚀 Calling SupabaseService.createTemplate...');
             const created = await SupabaseService.createTemplate(finalTemplateData);
-            if (created) {
+
+            if (created && created.id) {
+                console.log('✅ Template created successfully:', { id: created.id, name: created.name });
                 set((state) => ({
                     templates: [created, ...state.templates],
-                    isLoading: false
+                    isLoading: false,
+                    error: null
                 }));
                 return created.id;
             } else {
-                throw new Error('Failed to create template');
+                const error = new Error('Supabase returned null or invalid template data');
+                console.error('❌ Template creation failed - invalid response:', created);
+                set({ error: error.message, isLoading: false });
+                return null;
             }
         } catch (error: any) {
-            console.error('Failed to create template:', error);
-            if (typeof error === 'object' && error !== null) {
-                console.error('Error details:', JSON.stringify(error, null, 2));
+            console.error('❌ Failed to create template:', {
+                message: error?.message,
+                code: error?.code,
+                details: error?.details,
+                hint: error?.hint,
+                stack: error?.stack,
+                fullError: error
+            });
+
+            // Provide meaningful error messages
+            let errorMessage = 'Failed to create template';
+            if (error?.message) {
+                errorMessage = error.message;
+            } else if (error?.code) {
+                errorMessage = `Database error (${error.code})`;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            } else {
+                errorMessage = 'Unknown error occurred during template creation';
             }
-            set({ error: error.message, isLoading: false });
+
+            set({ error: errorMessage, isLoading: false });
             return null;
         }
     },

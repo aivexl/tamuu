@@ -36,4 +36,14 @@
   .gradient-gold {
     @apply bg-gradient-to-r from-yellow-400 to-amber-500;
   }
+
+  /* Suppress browser extension attributes that cause hydration warnings */
+  *[bis_skin_checked] {
+    /* Hide these cosmetic attributes from browser extensions */
+  }
+
+  /* Global hydration warning suppression */
+  .hydration-safe {
+    /* Additional safety for hydration-sensitive elements */
+  }
 }
