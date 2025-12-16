@@ -15,11 +15,23 @@ export default function AdminTemplatesPage() {
     const templates = useTemplateStore((state) => state.templates);
     const deleteTemplate = useTemplateStore((state) => state.deleteTemplate);
     const addTemplate = useTemplateStore((state) => state.addTemplate);
-    const fetchTemplates = useTemplateStore((state) => state.fetchTemplates);
+    const fetchTemplatesBasic = useTemplateStore((state) => state.fetchTemplatesBasic);
+    const isLoading = useTemplateStore((state) => state.isLoading);
+    const error = useTemplateStore((state) => state.error);
 
     React.useEffect(() => {
-        fetchTemplates();
-    }, [fetchTemplates]);
+        console.time('Fetch Templates Duration');
+        console.log('🏁 AdminTemplatesPage mounted, triggering fetch...');
+        fetchTemplatesBasic().then(() => {
+            console.timeEnd('Fetch Templates Duration');
+            console.log('✅ Fetch complete');
+        });
+    }, [fetchTemplatesBasic]);
+
+    // Log when isLoading changes
+    React.useEffect(() => {
+        console.log(`📊 Loading state changed: ${isLoading}, Error: ${error}, Templates: ${templates.length}`);
+    }, [isLoading, error, templates.length]);
 
     const handleCreateTemplate = async () => {
         const newId = `t${Date.now()}`;
@@ -69,54 +81,85 @@ export default function AdminTemplatesPage() {
 
                 {/* Template Grid */}
                 <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {templates.map((template) => (
-                            <Card key={template.id} className="overflow-hidden group hover:shadow-xl transition-shadow duration-300">
-                                {/* Thumbnail */}
-                                <div className="relative aspect-[4/3] bg-slate-100">
-                                    <Image
-                                        src={template.thumbnail}
-                                        alt={template.name}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                    {/* Overlay on hover */}
-                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
-                                        <Link href={`/admin/templates/${template.id}`}>
-                                            <Button size="sm" variant="secondary" className="flex items-center gap-1">
-                                                <Edit size={14} />
-                                                Edit
-                                            </Button>
-                                        </Link>
-                                        <Button size="sm" variant="outline" className="flex items-center gap-1 bg-white/90">
-                                            <Eye size={14} />
-                                            Preview
-                                        </Button>
-                                    </div>
-                                </div>
-                                {/* Info */}
-                                <div className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="font-semibold text-slate-800">{template.name}</h3>
-                                        <button
-                                            onClick={() => deleteTemplate(template.id)}
-                                            className="text-slate-400 hover:text-red-500 transition-colors"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                    <p className="text-xs text-slate-400 mt-1">
-                                        {Object.keys(template.sections).length} sections configured
-                                    </p>
-                                </div>
-                            </Card>
-                        ))}
-                    </div>
-
-                    {templates.length === 0 && (
-                        <div className="text-center py-16">
-                            <p className="text-slate-500">No templates yet. Create your first one!</p>
+                    {error && (
+                        <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700">
+                            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-red-100">
+                                ⚠️
+                            </div>
+                            <div>
+                                <h3 className="font-semibold">Connection Error</h3>
+                                <p className="text-sm">{error}</p>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => fetchTemplatesBasic()}
+                                className="ml-auto bg-white hover:bg-red-50 border-red-200 text-red-700"
+                            >
+                                Retry
+                            </Button>
                         </div>
+                    )}
+
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-20">
+                            <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-600 rounded-full animate-spin mb-4"></div>
+                            <p className="text-slate-500">Loading templates...</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {templates.map((template) => (
+                                    <Card key={template.id} className="overflow-hidden group hover:shadow-xl transition-shadow duration-300">
+                                        {/* Thumbnail */}
+                                        <div className="relative aspect-[4/3] bg-slate-100">
+                                            <Image
+                                                src={template.thumbnail}
+                                                alt={template.name}
+                                                fill
+                                                className="object-cover"
+                                                unoptimized
+                                            />
+                                            {/* Overlay on hover */}
+                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+                                                <Link href={`/admin/templates/${template.id}`}>
+                                                    <Button size="sm" variant="secondary" className="flex items-center gap-1">
+                                                        <Edit size={14} />
+                                                        Edit
+                                                    </Button>
+                                                </Link>
+                                                <Button size="sm" variant="outline" className="flex items-center gap-1 bg-white/90">
+                                                    <Eye size={14} />
+                                                    Preview
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        {/* Info */}
+                                        <div className="p-4">
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="font-semibold text-slate-800">{template.name}</h3>
+                                                <button
+                                                    onClick={() => deleteTemplate(template.id)}
+                                                    className="text-slate-400 hover:text-red-500 transition-colors"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-slate-400 mt-1">
+                                                {/* Using sectionOrder length as a proxy for complexity since sections aren't loaded */}
+                                                {(template.sectionOrder?.length || 0)} sections defined
+                                            </p>
+                                        </div>
+                                    </Card>
+                                ))}
+                            </div>
+
+                            {templates.length === 0 && !error && (
+                                <div className="text-center py-16">
+                                    <p className="text-slate-500">No templates yet. Create your first one!</p>
+                                </div>
+                            )}
+                        </>
                     )}
                 </main>
             </div>

@@ -116,7 +116,7 @@ async function runTests() {
     // Test 2: Templates endpoint
     console.log('\n2. Testing templates endpoint...');
     const templatesResult = await testTemplates();
-    console.log('✅ Templates check result:', templatesResult);
+    console.log('✅ Templates check result:', JSON.stringify(templatesResult, null, 2));
 
     console.log('\n🎉 All connectivity tests completed!');
 

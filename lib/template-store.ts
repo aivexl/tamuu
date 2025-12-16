@@ -4,10 +4,10 @@ import { Template, SectionType, SectionDesign, ThemeConfig, TemplateElement, PRE
 // Network error handling utilities
 const isNetworkError = (error: any): boolean => {
     return error?.message?.includes('Failed to fetch') ||
-           error?.name === 'TypeError' ||
-           error?.message?.includes('NetworkError') ||
-           error?.message?.includes('ERR_NETWORK') ||
-           !navigator.onLine;
+        error?.name === 'TypeError' ||
+        error?.message?.includes('NetworkError') ||
+        error?.message?.includes('ERR_NETWORK') ||
+        !navigator.onLine;
 };
 
 const createRetryFunction = <T extends any[], R>(
@@ -109,6 +109,7 @@ interface TemplateStore {
 
     // Actions
     fetchTemplates: () => Promise<void>;
+    fetchTemplate: (id: string) => Promise<void>;
     fetchTemplatesBasic: () => Promise<void>; // Fast fetch for listings
     addTemplate: (template: Omit<Template, 'id' | 'createdAt' | 'updatedAt' | 'status'> & { status?: 'draft' | 'published' }) => Promise<string | null>;
     updateTemplate: (id: string, updates: Partial<Template>) => Promise<void>;
@@ -212,6 +213,30 @@ export const useTemplateStore = create<TemplateStore>((set, get) => ({
             }
 
             set({ error: errorMessage, isLoading: false, templates: [] });
+        }
+    },
+
+    fetchTemplate: async (id: string) => {
+        console.log(`🔄 Fetching template ${id}...`);
+        set({ isLoading: true, error: null });
+
+        try {
+            const template = await SupabaseService.getTemplate(id);
+            if (template) {
+                set((state) => ({
+                    templates: [
+                        ...state.templates.filter(t => t.id !== id),
+                        template
+                    ],
+                    isLoading: false,
+                    error: null
+                }));
+            } else {
+                set({ error: 'Template not found', isLoading: false });
+            }
+        } catch (error: any) {
+            console.error(`❌ Failed to fetch template ${id}:`, error);
+            set({ error: error.message || 'Failed to fetch template', isLoading: false });
         }
     },
 

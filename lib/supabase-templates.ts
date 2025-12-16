@@ -3,6 +3,56 @@ import { Template, InvitationSection, TemplateElement, RSVPResponse, SectionType
 
 const supabase = createClient();
 
+// --- Retry Helper for Network Resilience ---
+
+/**
+ * Retry a function with exponential backoff
+ * Handles QUIC protocol errors and network issues
+ */
+async function withRetry<T>(
+    fn: () => Promise<T>,
+    options: {
+        maxAttempts?: number;
+        baseDelayMs?: number;
+        operationName?: string;
+    } = {}
+): Promise<T> {
+    const { maxAttempts = 3, baseDelayMs = 300, operationName = 'operation' } = options;
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            return await fn();
+        } catch (error: any) {
+            lastError = error;
+            const isNetworkError =
+                error?.message?.includes('QUIC') ||
+                error?.message?.includes('network') ||
+                error?.message?.includes('fetch') ||
+                error?.code === 'ECONNRESET';
+
+            console.warn(`⚠️ ${operationName} attempt ${attempt}/${maxAttempts} failed:`,
+                error?.message || error);
+
+            if (attempt < maxAttempts) {
+                const delay = baseDelayMs * Math.pow(2, attempt - 1);
+                console.log(`⏳ Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+
+    console.error(`❌ ${operationName} failed after ${maxAttempts} attempts`);
+    throw lastError;
+}
+
+/**
+ * Delay helper
+ */
+function delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // Debug function to test Supabase connection
 export async function testSupabaseConnection() {
     try {
@@ -88,340 +138,275 @@ export async function debugDatabaseState() {
 // Fast fetch for template listing (without sections/elements)
 export async function getTemplatesBasic(): Promise<Template[]> {
     try {
-        console.log('🚀 Calling Supabase getTemplatesBasic...');
+        console.log('🚀 Calling Supabase getTemplatesBasic (Ultra-Light)...');
 
         const { data, error } = await supabase
             .from('templates')
-            .select('*')
-            .order('updated_at', { ascending: false });
+            .select('id, name, thumbnail, status, updated_at, created_at')
+            .order('updated_at', { ascending: false })
+            .limit(50);
 
         if (error) {
-            console.error('❌ Supabase error in getTemplatesBasic:', {
-                message: error.message,
-                code: error.code,
-                details: error.details,
-                hint: error.hint,
-            });
+            console.error('❌ Supabase error in getTemplatesBasic:', error);
             throw error;
         }
 
-        if (!data) {
-            console.warn('⚠️ No data returned from getTemplatesBasic');
-            return [];
-        }
+        if (!data) return [];
 
-        console.log(`✅ getTemplatesBasic returned ${data.length} templates`);
         return data.map((t: any) => ({
             id: t.id,
             name: t.name,
             thumbnail: t.thumbnail,
             status: t.status || 'draft',
-            sections: {}, // Empty - not loaded for performance
-            sectionOrder: t.section_order || [],
-            customSections: t.custom_sections || [],
-            globalTheme: t.global_theme || {},
-            eventDate: t.event_date,
+            sections: {},
+            sectionOrder: [], // Not needed for list view
+            customSections: [], // Not needed for list view
+            globalTheme: {
+                id: 'default',
+                name: 'Default',
+                category: 'modern',
+                colors: { primary: '#000000', secondary: '#ffffff', accent: '#000000', background: '#ffffff', text: '#000000' },
+                fontFamily: 'Inter',
+            }, // Minimal valid theme for list view
+            eventDate: undefined,
             createdAt: t.created_at,
             updatedAt: t.updated_at,
         }));
     } catch (error: any) {
-        console.error('💥 Network error in getTemplatesBasic:', {
-            message: error?.message,
-            name: error?.name,
-            stack: error?.stack,
-        });
-
-        // If it's a network error, provide a user-friendly message
-        if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError') {
-            console.error('🌐 Network connectivity issue detected');
-            throw new Error('Unable to connect to database. Please check your internet connection.');
-        }
-
+        console.error('💥 Error in getTemplatesBasic:', error);
         throw error;
     }
 }
 
-// Full fetch with sections and elements (slower, use for editor/preview)
+// Full fetch with sections and elements (Optimized with nested join)
 export async function getTemplates(): Promise<Template[]> {
+    // This is still heavy if we load ALL templates with ALL details.
+    // Ideally usage should be avoided in favor of getTemplatesBasic + getTemplate(id)
+    // But for now we optimize it anyway.
     try {
-        console.log('🚀 Calling Supabase getTemplates...');
+        console.log('🚀 Calling Supabase getTemplates (Optimized)...');
 
         const { data, error } = await supabase
             .from('templates')
-            .select('*')
+            .select(`
+                *,
+                template_sections (
+                    *,
+                    template_elements (*)
+                )
+            `)
             .order('updated_at', { ascending: false });
 
-        if (error) {
-            console.error('❌ Supabase error in getTemplates:', {
-                message: error.message,
-                code: error.code,
-                details: error.details,
-                hint: error.hint,
-            });
-            throw error;
-        }
+        if (error) throw error;
+        if (!data) return [];
 
-        if (!data || data.length === 0) {
-            console.log('ℹ️ No templates found');
-            return [];
-        }
-
-        console.log(`📋 Processing ${data.length} templates with full details...`);
-
-        // Fetch sections and elements for each template to reconstruct the full object
-        // This is a simplified approach; for production, you might want to load details on demand
-        const templates: Template[] = [];
-        for (const t of data) {
-            try {
-                const fullTemplate = await getTemplate(t.id);
-                if (fullTemplate) {
-                    templates.push(fullTemplate);
-                } else {
-                    console.warn(`⚠️ Failed to load full details for template ${t.id}`);
-                }
-            } catch (templateError) {
-                console.error(`❌ Error loading template ${t.id}:`, templateError);
-                // Continue with other templates
-            }
-        }
-
-        console.log(`✅ getTemplates completed: ${templates.length}/${data.length} templates loaded`);
-        return templates;
+        return data.map((t: any) => mapDatabaseResponseToTemplate(t));
     } catch (error: any) {
-        console.error('💥 Network error in getTemplates:', {
-            message: error?.message,
-            name: error?.name,
-            stack: error?.stack,
-        });
-
-        // If it's a network error, provide a user-friendly message
-        if (error?.message?.includes('Failed to fetch') || error?.name === 'TypeError') {
-            console.error('🌐 Network connectivity issue detected');
-            throw new Error('Unable to connect to database. Please check your internet connection.');
-        }
-
+        console.error('💥 Error in getTemplates:', error);
         throw error;
     }
+}
+
+// Restoring the helper function content that was deleted
+function mapDatabaseResponseToTemplate(data: any): Template {
+    const sections: Record<string, any> = {};
+
+    if (data.template_sections && Array.isArray(data.template_sections)) {
+        for (const section of data.template_sections) {
+            sections[section.type] = {
+                id: section.id,
+                isVisible: section.is_visible,
+                backgroundColor: section.background_color,
+                backgroundUrl: section.background_url,
+                overlayOpacity: section.overlay_opacity,
+                animation: section.animation,
+                pageTitle: section.page_title,
+                openInvitationConfig: section.open_invitation_config,
+                elements: (section.template_elements || []).map((el: any) => ({
+                    id: el.id,
+                    type: el.type as ElementType,
+                    name: el.name,
+                    position: { x: el.position_x, y: el.position_y },
+                    size: { width: el.width, height: el.height },
+                    zIndex: el.z_index,
+                    animation: el.animation,
+                    loopAnimation: el.loop_animation,
+                    animationDelay: el.animation_delay,
+                    animationSpeed: el.animation_speed,
+                    animationDuration: el.animation_duration,
+                    content: el.content,
+                    imageUrl: el.image_url,
+                    textStyle: el.text_style,
+                    iconStyle: el.icon_style,
+                    countdownConfig: el.countdown_config,
+                    rsvpFormConfig: el.rsvp_form_config,
+                    guestWishesConfig: el.guest_wishes_config,
+                    rotation: el.rotation,
+                    flipHorizontal: el.flip_horizontal,
+                    flipVertical: el.flip_vertical,
+                })),
+            };
+        }
+    }
+
+    return {
+        id: data.id,
+        name: data.name,
+        thumbnail: data.thumbnail,
+        status: data.status || 'draft',
+        sections: sections,
+        sectionOrder: data.section_order,
+        customSections: data.custom_sections,
+        globalTheme: data.global_theme,
+        eventDate: data.event_date,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+    };
 }
 
 export async function getTemplate(id: string): Promise<Template | null> {
     try {
-        console.log(`🔍 Loading template ${id}...`);
+        console.log(`🔍 Loading template ${id} (Resilient Batch Mode)...`);
 
-        // First, test basic Supabase connectivity
-        console.log('🔗 Testing Supabase client connectivity...');
-        try {
-            const { data: testData, error: testError } = await supabase
+        // Step 1: Fetch Template (with retry)
+        const templateData = await withRetry(async () => {
+            const { data, error } = await supabase
                 .from('templates')
-                .select('count')
-                .limit(1)
+                .select('*')
+                .eq('id', id)
                 .single();
 
-            if (testError) {
-                console.error('🚫 Supabase connectivity test failed:', {
-                    message: testError.message,
-                    code: testError.code,
-                    details: testError.details,
-                    hint: testError.hint,
-                });
-                throw new Error(`Supabase connectivity issue: ${testError.message}`);
+            if (error) throw error;
+            return data;
+        }, { operationName: 'Fetch Template', maxAttempts: 3, baseDelayMs: 300 });
+
+        if (!templateData) return null;
+
+        // Small delay between requests
+        await delay(100);
+
+        // Step 2: Fetch Sections (with retry)
+        const sections = await withRetry(async () => {
+            const { data, error } = await supabase
+                .from('template_sections')
+                .select('*')
+                .eq('template_id', id);
+
+            if (error) throw error;
+            return data || [];
+        }, { operationName: 'Fetch Sections', maxAttempts: 3, baseDelayMs: 300 });
+
+        const sectionMap: Record<string, any> = {};
+
+        // Initialize sections in map
+        sections.forEach(s => {
+            sectionMap[s.id] = { ...s, elements: [] };
+        });
+
+        // Step 3: Fetch Elements in SMALLER BATCHES with retry
+        const sectionIds = sections.map(s => s.id);
+        let allElements: any[] = [];
+
+        if (sectionIds.length > 0) {
+            // Split into batches of 4 to reduce request size
+            const BATCH_SIZE = 4;
+            const batches: string[][] = [];
+
+            for (let i = 0; i < sectionIds.length; i += BATCH_SIZE) {
+                batches.push(sectionIds.slice(i, i + BATCH_SIZE));
             }
-            console.log('✅ Supabase client connectivity OK');
-        } catch (connectError) {
-            console.error('💥 Supabase connection test failed:', connectError);
-            throw connectError;
-        }
 
-        const { data: templateData, error: templateError } = await supabase
-            .from('templates')
-            .select('*')
-            .eq('id', id)
-            .single();
+            console.log(`📦 Fetching elements in ${batches.length} batch(es)...`);
 
-        if (templateError) {
-            console.error('❌ Error fetching template:', {
-                message: templateError.message,
-                code: templateError.code,
-                details: templateError.details,
-                hint: templateError.hint,
-            });
-            return null;
-        }
+            for (let i = 0; i < batches.length; i++) {
+                const batchIds = batches[i];
 
-        if (!templateData) {
-            console.warn(`⚠️ Template ${id} not found`);
-            return null;
-        }
+                try {
+                    const batchElements = await withRetry(async () => {
+                        const { data, error } = await supabase
+                            .from('template_elements')
+                            .select('*')
+                            .in('section_id', batchIds);
 
-        console.log(`📄 Template ${id} found, loading sections...`);
-
-        const { data: sectionsData, error: sectionsError } = await supabase
-            .from('template_sections')
-            .select('*')
-            .eq('template_id', id);
-
-        if (sectionsError) {
-            console.error('❌ Error fetching sections:', {
-                message: sectionsError.message,
-                code: sectionsError.code,
-                details: sectionsError.details,
-                hint: sectionsError.hint,
-            });
-            throw sectionsError;
-        }
-
-        console.log(`📑 Found ${sectionsData?.length || 0} sections, loading elements...`);
-
-        // Test template_elements table accessibility
-        console.log('🔍 Testing template_elements table access...');
-        try {
-            const { data: testElements, error: testElementsError } = await supabase
-                .from('template_elements')
-                .select('count')
-                .limit(1);
-
-            if (testElementsError) {
-                console.error('🚫 template_elements table access failed:', {
-                    message: testElementsError.message,
-                    code: testElementsError.code,
-                    details: testElementsError.details,
-                    hint: testElementsError.hint,
-                });
-            } else {
-                console.log('✅ template_elements table accessible');
-            }
-        } catch (testError) {
-            console.error('💥 template_elements table test failed:', testError);
-        }
-
-        const sections: Record<string, any> = {};
-        for (const section of sectionsData || []) {
-            try {
-                console.log(`🔍 Fetching elements for section ${section.type} (${section.id})...`);
-                console.log(`🔍 Querying: SELECT * FROM template_elements WHERE section_id = '${section.id}'`);
-
-                const { data: elementsData, error: elementsError } = await supabase
-                    .from('template_elements')
-                    .select('*')
-                    .eq('section_id', section.id);
-
-                console.log(`📊 Query result:`, {
-                    sectionId: section.id,
-                    hasData: !!elementsData,
-                    dataLength: elementsData?.length || 0,
-                    hasError: !!elementsError,
-                    errorType: typeof elementsError
-                });
-
-                if (elementsError) {
-                    console.error('❌ Error fetching elements for section:', section.id, {
-                        message: elementsError.message,
-                        code: elementsError.code,
-                        details: elementsError.details,
-                        hint: elementsError.hint,
-                        fullError: elementsError,
-                        sectionId: section.id,
-                        sectionType: section.type,
+                        if (error) throw error;
+                        return data || [];
+                    }, {
+                        operationName: `Fetch Elements Batch ${i + 1}/${batches.length}`,
+                        maxAttempts: 3,
+                        baseDelayMs: 400
                     });
 
-                    // If it's a permission or table issue, log more details
-                    if (elementsError.code === 'PGRST116' || elementsError.message?.includes('permission')) {
-                        console.error('🚫 Possible permission or table issue detected');
-                        console.error('🔍 Error details:', {
-                            code: elementsError.code,
-                            message: elementsError.message,
-                            hint: elementsError.hint,
-                            details: elementsError.details,
-                        });
+                    allElements = [...allElements, ...batchElements];
+                    console.log(`  ✅ Batch ${i + 1}: ${batchElements.length} elements`);
+
+                    // Delay between batches to avoid overwhelming the server
+                    if (i < batches.length - 1) {
+                        await delay(300);
                     }
-
-                    // Instead of throwing, create an empty elements array and continue
-                    console.warn(`⚠️ Continuing with empty elements for section ${section.type}`);
-                    sections[section.type] = {
-                        id: section.id,
-                        isVisible: section.is_visible,
-                        backgroundColor: section.background_color,
-                        backgroundUrl: section.background_url,
-                        overlayOpacity: section.overlay_opacity,
-                        animation: section.animation,
-                        pageTitle: section.page_title,
-                        openInvitationConfig: section.open_invitation_config,
-                        elements: [], // Empty array instead of failing
-                    };
-                    continue; // Skip to next section
+                } catch (batchError: any) {
+                    console.error(`  ⚠️ Batch ${i + 1} failed, continuing with others:`, batchError?.message);
+                    // Continue with other batches even if one fails
                 }
-
-                console.log(`✅ Found ${elementsData?.length || 0} elements for section ${section.type}`);
-
-                console.log(`🔧 Section ${section.type}: ${elementsData?.length || 0} elements`);
-
-                // Map database fields back to frontend types
-                sections[section.type] = {
-                    id: section.id,
-                    isVisible: section.is_visible,
-                    backgroundColor: section.background_color,
-                    backgroundUrl: section.background_url,
-                    overlayOpacity: section.overlay_opacity,
-                    animation: section.animation,
-                    pageTitle: section.page_title,
-                    openInvitationConfig: section.open_invitation_config,
-                    elements: (elementsData || []).map((el: any) => ({
-                        id: el.id,
-                        type: el.type as ElementType,
-                        name: el.name,
-                        position: { x: el.position_x, y: el.position_y },
-                        size: { width: el.width, height: el.height },
-                        zIndex: el.z_index,
-                        animation: el.animation,
-                        loopAnimation: el.loop_animation,
-                        animationDelay: el.animation_delay,
-                        animationSpeed: el.animation_speed,
-                        animationDuration: el.animation_duration,
-                        content: el.content,
-                        imageUrl: el.image_url,
-                        textStyle: el.text_style,
-                        iconStyle: el.icon_style,
-                        countdownConfig: el.countdown_config,
-                        rsvpFormConfig: el.rsvp_form_config,
-                        guestWishesConfig: el.guest_wishes_config,
-                        rotation: el.rotation,
-                        flipHorizontal: el.flip_horizontal,
-                        flipVertical: el.flip_vertical,
-                    })),
-                };
-            } catch (sectionError: any) {
-                console.error(`❌ Error processing section ${section.type}:`, {
-                    sectionId: section.id,
-                    sectionType: section.type,
-                    error: sectionError,
-                    message: sectionError?.message,
-                    code: sectionError?.code,
-                    details: sectionError?.details,
-                    hint: sectionError?.hint,
-                });
-
-                // Continue with other sections but mark this one as failed
-                sections[section.type] = {
-                    id: section.id,
-                    isVisible: false,
-                    elements: [],
-                    error: sectionError?.message || 'Failed to load elements',
-                    backgroundColor: section.background_color,
-                    backgroundUrl: section.background_url,
-                    overlayOpacity: section.overlay_opacity,
-                    animation: section.animation,
-                    pageTitle: section.page_title,
-                    openInvitationConfig: section.open_invitation_config,
-                };
             }
         }
 
-        const result = {
+        // Step 4: Assemble Data (In-Memory Join)
+        allElements.forEach(el => {
+            if (sectionMap[el.section_id]) {
+                sectionMap[el.section_id].elements.push(el);
+            }
+        });
+
+        // Step 5: Convert to Frontend Structure
+        const finalSections: Record<string, any> = {};
+
+        sections.forEach(section => {
+            const elementsRaw = sectionMap[section.id].elements;
+
+            // KEY FIX: Use section.type as the key, consistent with Frontend expectations
+            finalSections[section.type] = {
+                id: section.id,
+                isVisible: section.is_visible,
+                backgroundColor: section.background_color,
+                backgroundUrl: section.background_url,
+                overlayOpacity: section.overlay_opacity,
+                animation: section.animation,
+                pageTitle: section.page_title,
+                openInvitationConfig: section.open_invitation_config,
+                elements: elementsRaw.map((el: any) => ({
+                    id: el.id,
+                    type: el.type as ElementType,
+                    name: el.name,
+                    position: { x: el.position_x, y: el.position_y },
+                    size: { width: el.width, height: el.height },
+                    zIndex: el.z_index,
+                    animation: el.animation,
+                    loopAnimation: el.loop_animation,
+                    animationDelay: el.animation_delay,
+                    animationSpeed: el.animation_speed,
+                    animationDuration: el.animation_duration,
+                    content: el.content,
+                    imageUrl: el.image_url,
+                    textStyle: el.text_style,
+                    iconStyle: el.icon_style,
+                    countdownConfig: el.countdown_config,
+                    rsvpFormConfig: el.rsvp_form_config,
+                    guestWishesConfig: el.guest_wishes_config,
+                    rotation: el.rotation,
+                    flipHorizontal: el.flip_horizontal,
+                    flipVertical: el.flip_vertical,
+                })),
+            };
+        });
+
+        console.log(`✅ Template ${id} loaded (Resilient Strategy). Sections: ${sections.length}, Elements: ${allElements.length}`);
+
+        return {
             id: templateData.id,
             name: templateData.name,
             thumbnail: templateData.thumbnail,
             status: templateData.status || 'draft',
-            sections: sections,
+            sections: finalSections,
             sectionOrder: templateData.section_order,
             customSections: templateData.custom_sections,
             globalTheme: templateData.global_theme,
@@ -430,22 +415,8 @@ export async function getTemplate(id: string): Promise<Template | null> {
             updatedAt: templateData.updated_at,
         };
 
-        console.log(`✅ Template ${id} loaded successfully with ${Object.keys(sections).length} sections`);
-        return result;
-
     } catch (err: any) {
-        console.error('💥 Unexpected error in getTemplate:', {
-            message: err?.message,
-            name: err?.name,
-            stack: err?.stack,
-        });
-
-        // If it's a network error, provide a user-friendly message
-        if (err?.message?.includes('Failed to fetch') || err?.name === 'TypeError') {
-            console.error('🌐 Network connectivity issue detected in getTemplate');
-            throw new Error('Unable to connect to database. Please check your internet connection.');
-        }
-
+        console.error('💥 Unexpected error in getTemplate:', err);
         throw err;
     }
 }

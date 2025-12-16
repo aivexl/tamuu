@@ -30,6 +30,19 @@ import { useToast } from '@/components/ui/use-toast';
 import { ClientOnly } from '@/components/ClientOnly';
 import { uploadToR2 } from '@/lib/uploadToR2';
 import { AnimatedElement } from '@/components/AnimatedElement';
+import dynamic from 'next/dynamic';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/lib/constants';
+
+// Dynamic import KonvaCanvas to ensure client-side only rendering
+// Uses Konva.js directly (not react-konva) for maximum compatibility and performance
+const KonvaCanvas = dynamic(() => import('@/components/editor/KonvaCanvas').then(mod => ({ default: mod.KonvaCanvas })), {
+    ssr: false,
+    loading: () => (
+        <div className="absolute inset-0 flex items-center justify-center bg-white">
+            <div className="text-slate-500 text-sm">Loading canvas...</div>
+        </div>
+    ),
+});
 
 const SECTION_TYPES: SectionType[] = ['opening', 'quotes', 'couple', 'event', 'maps', 'rsvp', 'thanks'];
 const ANIMATION_TYPES: AnimationType[] = [
@@ -57,8 +70,7 @@ const FONT_FAMILIES = [
 ];
 const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 56, 64, 72];
 
-const CANVAS_WIDTH = 375;
-const CANVAS_HEIGHT = 667;
+// Canvas dimensions moved to lib/constants.ts
 
 type ResizeHandle = 'nw' | 'n' | 'ne' | 'w' | 'e' | 'sw' | 's' | 'se' | null;
 
@@ -72,6 +84,8 @@ export default function TemplateEditorPage() {
     const wasDraggedRef = useRef(false);
     const wasSelectedRef = useRef(false);
     const lastDragPos = useRef<{ x: number, y: number } | null>(null);
+    const rafIdRef = useRef<number | null>(null);
+    const pendingUpdateRef = useRef<{ x: number, y: number } | null>(null);
 
     const templates = useTemplateStore((state) => state.templates);
     const updateTemplate = useTemplateStore((state) => state.updateTemplate);
@@ -87,7 +101,7 @@ export default function TemplateEditorPage() {
     const setSelectedElement = useTemplateStore((state) => state.setSelectedElement);
     const copyElement = useTemplateStore((state) => state.copyElement);
     const pasteElement = useTemplateStore((state) => state.pasteElement);
-    const fetchTemplates = useTemplateStore((state) => state.fetchTemplates);
+    const fetchTemplate = useTemplateStore((state) => state.fetchTemplate);
     const { toast } = useToast();
 
     const template = templates.find((t) => t.id === templateId);
@@ -95,8 +109,10 @@ export default function TemplateEditorPage() {
 
     // Fetch templates on mount
     useEffect(() => {
-        fetchTemplates();
-    }, [fetchTemplates]);
+        if (templateId) {
+            fetchTemplate(templateId);
+        }
+    }, [fetchTemplate, templateId]);
 
     const moveSectionUp = (index: number) => {
         if (index <= 0) return;
@@ -298,15 +314,10 @@ export default function TemplateEditorPage() {
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [selectedElementId, templateId, activeSection, copyElement, pasteElement, deleteElement]);
 
-    if (!template) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-900" suppressHydrationWarning>
-                <p className="text-slate-500">Template not found.</p>
-            </div>
-        );
-    }
+    // Early return removed to fix Hook ordering (Rule of Hooks)
+    // if (!template) return <Loading />; 
 
-    const currentDesign = template.sections[activeSection] || { animation: 'fade-in', elements: [] };
+    const currentDesign = template?.sections?.[activeSection] || { animation: 'fade-in', elements: [] };
     const elements = currentDesign.elements || [];
     const selectedElement = elements.find((el) => el.id === selectedElementId);
     const sortedElements = [...elements].sort((a, b) => a.zIndex - b.zIndex);
@@ -441,7 +452,7 @@ export default function TemplateEditorPage() {
 
     // Helper to get elements for a specific section
     const getSectionElements = (sectionType: SectionType) => {
-        return template.sections[sectionType]?.elements || [];
+        return template?.sections[sectionType]?.elements || [];
     };
 
     // Alignment functions
@@ -669,132 +680,189 @@ export default function TemplateEditorPage() {
         setSelectedElement(elementId);
     };
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (resizing) {
-            const canvasEl = sectionRefs.current[resizing.sectionType];
+    // Global mouse move handler for smooth dragging
+    useEffect(() => {
+        const handleGlobalMouseMove = (e: MouseEvent) => {
+            if (resizing) {
+                const canvasEl = sectionRefs.current[resizing.sectionType];
+                if (!canvasEl) return;
+
+                const dx = e.clientX - resizing.startX;
+                const dy = e.clientY - resizing.startY;
+
+                if (!template) return;
+                const sectionElements = template.sections[resizing.sectionType]?.elements || [];
+                const el = sectionElements.find((el) => el.id === resizing.elementId);
+                if (!el) return;
+
+                let newPos = { ...resizing.startPos };
+                let newSize = { ...resizing.startSize };
+
+                switch (resizing.handle) {
+                    case 'se':
+                        newSize.width = Math.max(30, resizing.startSize.width + dx);
+                        newSize.height = Math.max(30, resizing.startSize.height + dy);
+                        break;
+                    case 'sw':
+                        newPos.x = resizing.startPos.x + dx;
+                        newSize.width = Math.max(30, resizing.startSize.width - dx);
+                        newSize.height = Math.max(30, resizing.startSize.height + dy);
+                        break;
+                    case 'ne':
+                        newPos.y = resizing.startPos.y + dy;
+                        newSize.width = Math.max(30, resizing.startSize.width + dx);
+                        newSize.height = Math.max(30, resizing.startSize.height - dy);
+                        break;
+                    case 'nw':
+                        newPos.x = resizing.startPos.x + dx;
+                        newPos.y = resizing.startPos.y + dy;
+                        newSize.width = Math.max(30, resizing.startSize.width - dx);
+                        newSize.height = Math.max(30, resizing.startSize.height - dy);
+                        break;
+                    case 'n':
+                        newPos.y = resizing.startPos.y + dy;
+                        newSize.height = Math.max(30, resizing.startSize.height - dy);
+                        break;
+                    case 's':
+                        newSize.height = Math.max(30, resizing.startSize.height + dy);
+                        break;
+                    case 'w':
+                        newPos.x = resizing.startPos.x + dx;
+                        newSize.width = Math.max(30, resizing.startSize.width - dx);
+                        break;
+                    case 'e':
+                        newSize.width = Math.max(30, resizing.startSize.width + dx);
+                        break;
+                }
+
+                // Smart boundary detection: auto-stop at canvas edge unless Shift is held
+                if (!e.shiftKey) {
+                    // Clamp right edge
+                    if (newPos.x + newSize.width > CANVAS_WIDTH) {
+                        newSize.width = CANVAS_WIDTH - newPos.x;
+                    }
+                    // Clamp bottom edge
+                    if (newPos.y + newSize.height > CANVAS_HEIGHT) {
+                        newSize.height = CANVAS_HEIGHT - newPos.y;
+                    }
+                    // Clamp left edge
+                    if (newPos.x < 0) {
+                        const overflow = -newPos.x;
+                        newPos.x = 0;
+                        newSize.width = Math.max(30, newSize.width - overflow);
+                    }
+                    // Clamp top edge
+                    if (newPos.y < 0) {
+                        const overflow = -newPos.y;
+                        newPos.y = 0;
+                        newSize.height = Math.max(30, newSize.height - overflow);
+                    }
+                }
+
+                // Cancel any pending RAF
+                if (rafIdRef.current !== null) {
+                    cancelAnimationFrame(rafIdRef.current);
+                }
+
+                // Use requestAnimationFrame for smooth resize
+                rafIdRef.current = requestAnimationFrame(() => {
+                    updateElement(templateId, resizing.sectionType, resizing.elementId, {
+                        position: { x: Math.round(newPos.x), y: Math.round(newPos.y) },
+                        size: { width: Math.round(newSize.width), height: Math.round(newSize.height) },
+                    });
+                    rafIdRef.current = null;
+                });
+                return;
+            }
+
+            if (!draggingElementId || !draggingSection) return;
+
+            const canvasEl = sectionRefs.current[draggingSection];
             if (!canvasEl) return;
 
-            const dx = e.clientX - resizing.startX;
-            const dy = e.clientY - resizing.startY;
+            // Mark as dragged to prevent deselect
+            wasDraggedRef.current = true;
 
-            const sectionElements = getSectionElements(resizing.sectionType);
-            const el = sectionElements.find((el) => el.id === resizing.elementId);
-            if (!el) return;
+            const rect = canvasEl.getBoundingClientRect();
+            let x = e.clientX - rect.left - dragOffset.x;
+            let y = e.clientY - rect.top - dragOffset.y;
 
-            let newPos = { ...resizing.startPos };
-            let newSize = { ...resizing.startSize };
-
-            switch (resizing.handle) {
-                case 'se':
-                    newSize.width = Math.max(30, resizing.startSize.width + dx);
-                    newSize.height = Math.max(30, resizing.startSize.height + dy);
-                    break;
-                case 'sw':
-                    newPos.x = resizing.startPos.x + dx;
-                    newSize.width = Math.max(30, resizing.startSize.width - dx);
-                    newSize.height = Math.max(30, resizing.startSize.height + dy);
-                    break;
-                case 'ne':
-                    newPos.y = resizing.startPos.y + dy;
-                    newSize.width = Math.max(30, resizing.startSize.width + dx);
-                    newSize.height = Math.max(30, resizing.startSize.height - dy);
-                    break;
-                case 'nw':
-                    newPos.x = resizing.startPos.x + dx;
-                    newPos.y = resizing.startPos.y + dy;
-                    newSize.width = Math.max(30, resizing.startSize.width - dx);
-                    newSize.height = Math.max(30, resizing.startSize.height - dy);
-                    break;
-                case 'n':
-                    newPos.y = resizing.startPos.y + dy;
-                    newSize.height = Math.max(30, resizing.startSize.height - dy);
-                    break;
-                case 's':
-                    newSize.height = Math.max(30, resizing.startSize.height + dy);
-                    break;
-                case 'w':
-                    newPos.x = resizing.startPos.x + dx;
-                    newSize.width = Math.max(30, resizing.startSize.width - dx);
-                    break;
-                case 'e':
-                    newSize.width = Math.max(30, resizing.startSize.width + dx);
-                    break;
-            }
-
-            // Smart boundary detection: auto-stop at canvas edge unless Shift is held
-            if (!e.shiftKey) {
-                // Clamp right edge
-                if (newPos.x + newSize.width > CANVAS_WIDTH) {
-                    newSize.width = CANVAS_WIDTH - newPos.x;
-                }
-                // Clamp bottom edge
-                if (newPos.y + newSize.height > CANVAS_HEIGHT) {
-                    newSize.height = CANVAS_HEIGHT - newPos.y;
-                }
-                // Clamp left edge
-                if (newPos.x < 0) {
-                    const overflow = -newPos.x;
-                    newPos.x = 0;
-                    newSize.width = Math.max(30, newSize.width - overflow);
-                }
-                // Clamp top edge
-                if (newPos.y < 0) {
-                    const overflow = -newPos.y;
-                    newPos.y = 0;
-                    newSize.height = Math.max(30, newSize.height - overflow);
+            // Smart boundary for drag: constrain to canvas unless Shift held
+            if (!e.shiftKey && template) {
+                const sectionElements = template.sections[draggingSection]?.elements || [];
+                const el = sectionElements.find((el) => el.id === draggingElementId);
+                if (el) {
+                    x = Math.max(0, Math.min(x, CANVAS_WIDTH - el.size.width));
+                    y = Math.max(0, Math.min(y, CANVAS_HEIGHT - el.size.height));
                 }
             }
 
-            updateElement(templateId, resizing.sectionType, resizing.elementId, {
-                position: { x: Math.round(newPos.x), y: Math.round(newPos.y) },
-                size: { width: Math.round(newSize.width), height: Math.round(newSize.height) },
+            // Store smooth position (no rounding during drag)
+            pendingUpdateRef.current = { x, y };
+            lastDragPos.current = { x: Math.round(x), y: Math.round(y) };
+
+            // Cancel any pending RAF
+            if (rafIdRef.current !== null) {
+                cancelAnimationFrame(rafIdRef.current);
+            }
+
+            // Use requestAnimationFrame for smooth drag updates
+            rafIdRef.current = requestAnimationFrame(() => {
+                if (pendingUpdateRef.current) {
+                    updateElement(templateId, draggingSection, draggingElementId, {
+                        position: pendingUpdateRef.current,
+                    }, { skipDb: true });
+                    pendingUpdateRef.current = null;
+                }
+                rafIdRef.current = null;
             });
-            return;
-        }
+        };
 
-        if (!draggingElementId || !draggingSection) return;
-
-        const canvasEl = sectionRefs.current[draggingSection];
-        if (!canvasEl) return;
-
-        // Mark as dragged to prevent deselect
-        wasDraggedRef.current = true;
-
-        const rect = canvasEl.getBoundingClientRect();
-        let x = e.clientX - rect.left - dragOffset.x;
-        let y = e.clientY - rect.top - dragOffset.y;
-
-        // Smart boundary for drag: constrain to canvas unless Shift held
-        if (!e.shiftKey) {
-            const sectionElements = getSectionElements(draggingSection);
-            const el = sectionElements.find((el) => el.id === draggingElementId);
-            if (el) {
-                x = Math.max(0, Math.min(x, CANVAS_WIDTH - el.size.width));
-                y = Math.max(0, Math.min(y, CANVAS_HEIGHT - el.size.height));
+        const handleGlobalMouseUp = () => {
+            // Cancel any pending RAF
+            if (rafIdRef.current !== null) {
+                cancelAnimationFrame(rafIdRef.current);
+                rafIdRef.current = null;
             }
+
+            // If we were dragging and have a final position, save it to DB now
+            if (draggingElementId && draggingSection && lastDragPos.current) {
+                updateElement(templateId, draggingSection, draggingElementId, {
+                    position: lastDragPos.current,
+                });
+                lastDragPos.current = null;
+            }
+
+            setDraggingElementId(null);
+            setDraggingSection(null);
+            setResizing(null);
+        };
+
+        // Only attach listeners when dragging or resizing
+        if (draggingElementId || resizing) {
+            window.addEventListener('mousemove', handleGlobalMouseMove, { passive: true });
+            window.addEventListener('mouseup', handleGlobalMouseUp);
+            return () => {
+                window.removeEventListener('mousemove', handleGlobalMouseMove);
+                window.removeEventListener('mouseup', handleGlobalMouseUp);
+                if (rafIdRef.current !== null) {
+                    cancelAnimationFrame(rafIdRef.current);
+                }
+            };
         }
+    }, [draggingElementId, draggingSection, dragOffset, resizing, templateId, updateElement, template]);
 
-        const newPos = { x: Math.round(x), y: Math.round(y) };
-        lastDragPos.current = newPos;
+    // handleMouseUp is now handled in useEffect with global listener
 
-        updateElement(templateId, draggingSection, draggingElementId, {
-            position: newPos,
-        }, { skipDb: true });
-    };
-
-    const handleMouseUp = () => {
-        // If we were dragging and have a final position, save it to DB now
-        if (draggingElementId && draggingSection && lastDragPos.current) {
-            updateElement(templateId, draggingSection, draggingElementId, {
-                position: lastDragPos.current,
-            });
-            lastDragPos.current = null;
-        }
-
-        setDraggingElementId(null);
-        setDraggingSection(null);
-        setResizing(null);
-    };
+    if (!template) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-900" suppressHydrationWarning>
+                <div className="flex flex-col items-center gap-4">
+                    <p className="text-slate-500">Loading template...</p>
+                </div>
+            </div>
+        );
+    }
 
     // Resize handle component
     const ResizeHandles = ({ elementId, sectionType }: { elementId: string, sectionType: SectionType }) => {
@@ -2379,9 +2447,6 @@ export default function TemplateEditorPage() {
                     {/* Right Panel - Preview Canvas */}
                     <div
                         className="flex-1 bg-slate-900/50 overflow-hidden flex flex-col relative"
-                        onMouseMove={handleMouseMove}
-                        onMouseUp={handleMouseUp}
-                        onMouseLeave={handleMouseUp}
                     >
                         <div className="absolute inset-0 overflow-auto flex flex-col items-center p-10 gap-8">
                             {orderedSections.map((sectionType) => {
@@ -2453,140 +2518,153 @@ export default function TemplateEditorPage() {
                                             </div>
                                         </div>
 
-                                        {/* Canvas Background & Content */}
+                                        {/* Canvas Background & Content - Using Konva for smooth drag */}
                                         <div
                                             ref={(el) => { sectionRefs.current[sectionType] = el; }}
-                                            className="absolute inset-0 bg-white overflow-hidden"
-                                            style={{
-                                                backgroundColor: sectionDesign.backgroundColor || '#ffffff',
-                                                backgroundImage: sectionDesign.backgroundUrl ? `url(${sectionDesign.backgroundUrl})` : undefined,
-                                                backgroundSize: 'cover',
-                                                backgroundPosition: 'center',
-                                            }}
-                                            onClick={() => setSelectedElement(null)}
+                                            className="absolute inset-0 overflow-hidden"
                                         >
-                                            {/* Overlay */}
-                                            {sectionDesign.overlayOpacity && sectionDesign.overlayOpacity > 0 && (
-                                                <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: `rgba(0,0,0,${sectionDesign.overlayOpacity})` }} />
-                                            )}
+                                            <KonvaCanvas
+                                                sectionType={sectionType}
+                                                elements={sortedSectionElements.filter(el => el.type === 'image' || el.type === 'text')}
+                                                selectedElementId={selectedElementId}
+                                                backgroundColor={sectionDesign.backgroundColor || '#ffffff'}
+                                                backgroundUrl={sectionDesign.backgroundUrl}
+                                                overlayOpacity={sectionDesign.overlayOpacity}
+                                                onElementSelect={(id) => setSelectedElement(id)}
+                                                onElementDrag={(elementId, x, y) => {
+                                                    updateElement(templateId, sectionType, elementId, {
+                                                        position: { x, y },
+                                                    }, { skipDb: true });
+                                                }}
+                                                onElementDragEnd={(elementId, x, y) => {
+                                                    updateElement(templateId, sectionType, elementId, {
+                                                        position: { x, y },
+                                                    });
+                                                }}
+                                                getElementTransform={getElementTransform}
+                                                scale={1}
+                                            />
 
-                                            {/* Elements */}
-                                            {sortedSectionElements.map((el) => (
-                                                <div
-                                                    key={el.id}
-                                                    className={`absolute cursor-move group ${selectedElementId === el.id ? 'z-50' : ''}`}
-                                                    style={{
-                                                        left: el.position.x,
-                                                        top: el.position.y,
-                                                        width: el.size.width,
-                                                        height: el.size.height,
-                                                        zIndex: el.zIndex,
-                                                        transform: getElementTransform(el),
-                                                    }}
-                                                    onMouseDown={(e) => handleMouseDown(e, el.id, sectionType)}
-                                                    onClick={(e) => handleElementClick(e, el.id, sectionType)}
-                                                >
-                                                    {/* Selection Ring */}
-                                                    {selectedElementId === el.id && (
-                                                        <div className="absolute -inset-0.5 border-2 border-blue-500 pointer-events-none z-50" />
-                                                    )}
-
-                                                    {el.type === 'image' && el.imageUrl && (
-                                                        <NextImage src={el.imageUrl} alt={el.name} fill className="object-cover pointer-events-none" draggable={false} unoptimized />
-                                                    )}
-                                                    {el.type === 'image' && !el.imageUrl && (
-                                                        <div className="w-full h-full bg-slate-300 flex items-center justify-center text-slate-500 text-xs pointer-events-none">
-                                                            <ImageIcon size={24} />
+                                            {/* Resize handles overlay for Konva elements */}
+                                            {sortedSectionElements
+                                                .filter(el => (el.type === 'image' || el.type === 'text') && selectedElementId === el.id)
+                                                .map((el) => (
+                                                    <div
+                                                        key={`resize-${el.id}`}
+                                                        className="absolute"
+                                                        style={{
+                                                            left: el.position.x,
+                                                            top: el.position.y,
+                                                            width: el.size.width,
+                                                            height: el.size.height,
+                                                            zIndex: 1000,
+                                                            pointerEvents: 'none',
+                                                        }}
+                                                    >
+                                                        <div style={{ pointerEvents: 'auto' }}>
+                                                            <ResizeHandles elementId={el.id} sectionType={sectionType} />
                                                         </div>
-                                                    )}
-                                                    {el.type === 'text' && el.textStyle && (
+                                                    </div>
+                                                ))}
+
+                                            {/* HTML Overlay for complex elements (icon, countdown, rsvp_form, etc.) */}
+                                            {sortedSectionElements
+                                                .filter(el => el.type !== 'image' && el.type !== 'text')
+                                                .map((el) => {
+                                                    const isDragging = draggingElementId === el.id && draggingSection === sectionType;
+                                                    return (
                                                         <div
-                                                            className="w-full h-full flex items-center pointer-events-none"
+                                                            key={el.id}
+                                                            className={`absolute cursor-move group ${selectedElementId === el.id ? 'z-50' : ''}`}
                                                             style={{
-                                                                fontFamily: el.textStyle.fontFamily,
-                                                                fontSize: el.textStyle.fontSize,
-                                                                fontWeight: el.textStyle.fontWeight,
-                                                                fontStyle: el.textStyle.fontStyle,
-                                                                textDecoration: el.textStyle.textDecoration,
-                                                                textAlign: el.textStyle.textAlign,
-                                                                color: el.textStyle.color,
-                                                                justifyContent: el.textStyle.textAlign === 'center' ? 'center' : el.textStyle.textAlign === 'right' ? 'flex-end' : 'flex-start',
-                                                                whiteSpace: 'pre-wrap',
-                                                                lineHeight: 1.2,
+                                                                left: el.position.x,
+                                                                top: el.position.y,
+                                                                width: el.size.width,
+                                                                height: el.size.height,
+                                                                zIndex: el.zIndex,
+                                                                transform: getElementTransform(el),
+                                                                willChange: isDragging ? 'transform' : 'auto',
+                                                                transition: isDragging ? 'none' : undefined,
                                                             }}
+                                                            onMouseDown={(e) => handleMouseDown(e, el.id, sectionType)}
+                                                            onClick={(e) => handleElementClick(e, el.id, sectionType)}
                                                         >
-                                                            {el.content}
-                                                        </div>
-                                                    )}
-                                                    {el.type === 'icon' && (
-                                                        <div className="w-full h-full flex items-center justify-center pointer-events-none">
-                                                            {el.iconStyle ? (
-                                                                <DynamicIcon
-                                                                    name={el.iconStyle.iconName}
-                                                                    size={el.iconStyle.iconSize}
-                                                                    color={el.iconStyle.iconColor}
-                                                                />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 rounded opacity-50">
-                                                                    <span className="text-[10px] text-slate-400">Icon</span>
+                                                            {/* Selection Ring */}
+                                                            {selectedElementId === el.id && (
+                                                                <div className="absolute -inset-0.5 border-2 border-blue-500 pointer-events-none z-50" />
+                                                            )}
+
+                                                            {el.type === 'icon' && (
+                                                                <div className="w-full h-full flex items-center justify-center pointer-events-none">
+                                                                    {el.iconStyle ? (
+                                                                        <DynamicIcon
+                                                                            name={el.iconStyle.iconName}
+                                                                            size={el.iconStyle.iconSize}
+                                                                            color={el.iconStyle.iconColor}
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 rounded opacity-50">
+                                                                            <span className="text-[10px] text-slate-400">Icon</span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             )}
-                                                        </div>
-                                                    )}
-                                                    {el.type === 'countdown' && (
-                                                        <div className="w-full h-full flex items-center justify-center pointer-events-none">
-                                                            <div style={{ width: '100%' }}>
-                                                                {el.countdownConfig ? (
-                                                                    <CountdownTimer config={el.countdownConfig} />
-                                                                ) : (
-                                                                    <div className="w-full h-12 flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 rounded opacity-50">
-                                                                        <span className="text-xs text-slate-400">Timer Element</span>
+                                                            {el.type === 'countdown' && (
+                                                                <div className="w-full h-full flex items-center justify-center pointer-events-none">
+                                                                    <div style={{ width: '100%' }}>
+                                                                        {el.countdownConfig ? (
+                                                                            <CountdownTimer config={el.countdownConfig} />
+                                                                        ) : (
+                                                                            <div className="w-full h-12 flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 rounded opacity-50">
+                                                                                <span className="text-xs text-slate-400">Timer Element</span>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {el.type === 'rsvp_form' && (
-                                                        <div className="w-full h-full overflow-y-auto pointer-events-none">
-                                                            {el.rsvpFormConfig ? (
-                                                                <RSVPForm config={el.rsvpFormConfig} templateId={templateId} />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 opacity-50">
-                                                                    <span className="text-xs text-slate-400">RSVP Form</span>
                                                                 </div>
                                                             )}
-                                                        </div>
-                                                    )}
-                                                    {el.type === 'guest_wishes' && (
-                                                        <div className="w-full h-full overflow-y-auto pointer-events-none">
-                                                            {el.guestWishesConfig ? (
-                                                                <GuestWishes config={el.guestWishesConfig} wishes={[]} />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 opacity-50">
-                                                                    <span className="text-xs text-slate-400">Guest Wishes</span>
+                                                            {el.type === 'rsvp_form' && (
+                                                                <div className="w-full h-full overflow-y-auto pointer-events-none">
+                                                                    {el.rsvpFormConfig ? (
+                                                                        <RSVPForm config={el.rsvpFormConfig} templateId={templateId} />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 opacity-50">
+                                                                            <span className="text-xs text-slate-400">RSVP Form</span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             )}
-                                                        </div>
-                                                    )}
-                                                    {el.type === 'open_invitation_button' && (
-                                                        <div className="w-full h-full flex items-center justify-center pointer-events-none">
-                                                            {el.openInvitationConfig ? (
-                                                                <OpenInvitationButton
-                                                                    config={el.openInvitationConfig}
-                                                                    onClick={() => { }}
-                                                                    scale={1} // Editor uses 1:1 scale mostly, or could derive
-                                                                />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 opacity-50">
-                                                                    <span className="text-xs text-slate-400">Open Button</span>
+                                                            {el.type === 'guest_wishes' && (
+                                                                <div className="w-full h-full overflow-y-auto pointer-events-none">
+                                                                    {el.guestWishesConfig ? (
+                                                                        <GuestWishes config={el.guestWishesConfig} wishes={[]} />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 opacity-50">
+                                                                            <span className="text-xs text-slate-400">Guest Wishes</span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             )}
+                                                            {el.type === 'open_invitation_button' && (
+                                                                <div className="w-full h-full flex items-center justify-center pointer-events-none">
+                                                                    {el.openInvitationConfig ? (
+                                                                        <OpenInvitationButton
+                                                                            config={el.openInvitationConfig}
+                                                                            onClick={() => { }}
+                                                                            scale={1}
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center bg-slate-100 border border-dashed border-slate-300 opacity-50">
+                                                                            <span className="text-xs text-slate-400">Open Button</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            {/* Resize handles when selected */}
+                                                            {selectedElementId === el.id && <ResizeHandles elementId={el.id} sectionType={sectionType} />}
                                                         </div>
-                                                    )}
-                                                    {/* Resize handles when selected */}
-                                                    {selectedElementId === el.id && <ResizeHandles elementId={el.id} sectionType={sectionType} />}
-                                                </div>
-                                            ))}
+                                                    );
+                                                })}
+
                                             {sectionElements.length === 0 && (
                                                 <div className="absolute inset-0 flex items-center justify-center text-slate-500 pointer-events-none opacity-50">
                                                     Empty Section
