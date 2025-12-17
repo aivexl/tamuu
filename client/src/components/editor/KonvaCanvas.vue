@@ -1,0 +1,936 @@
+<script setup lang="ts">
+import { ref, computed, watch, nextTick, reactive, onUnmounted } from 'vue';
+import { type TemplateElement, type SectionType } from '@/lib/types';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/lib/constants';
+import { getProxiedImageUrl, isR2Url } from '@/lib/image-utils';
+import { iconPaths } from '@/lib/icon-paths';
+import { useTemplateStore } from '@/stores/template';
+
+interface Props {
+  sectionType: SectionType;
+  elements: TemplateElement[];
+  selectedElementId: string | null;
+  backgroundColor?: string;
+  backgroundUrl?: string;
+  overlayOpacity?: number;
+  scale?: number;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  backgroundColor: '#ffffff',
+  scale: 1,
+});
+
+const store = useTemplateStore();
+
+const emit = defineEmits([
+  'elementSelect',
+  'elementDrag',
+  'elementDragEnd',
+  'elementTransformEnd'
+]);
+
+// Canvas config
+const configStage = computed(() => ({
+  width: CANVAS_WIDTH * props.scale,
+  height: CANVAS_HEIGHT * props.scale,
+  scaleX: props.scale,
+  scaleY: props.scale,
+}));
+
+const configBackground = computed(() => ({
+  x: 0,
+  y: 0,
+  width: CANVAS_WIDTH,
+  height: CANVAS_HEIGHT,
+  fill: props.backgroundColor,
+  listening: false,
+}));
+
+const configOverlay = computed(() => ({
+  x: 0,
+  y: 0,
+  width: CANVAS_WIDTH,
+  height: CANVAS_HEIGHT, 
+  fill: `rgba(0,0,0,${props.overlayOpacity || 0})`,
+  listening: false,
+  visible: !!(props.overlayOpacity && props.overlayOpacity > 0),
+}));
+
+// Images state
+const loadedImages = reactive<Record<string, HTMLImageElement>>({});
+const imageErrors = reactive<Record<string, boolean>>({});
+
+const loadImages = () => {
+    // 1. Bg Image
+    if (props.backgroundUrl) {
+        loadImage(props.backgroundUrl);
+    }
+    // 2. Element Images
+    props.elements.forEach(el => {
+        if (el.type === 'image' && el.imageUrl) {
+            loadImage(el.imageUrl);
+        }
+    });
+}
+
+const loadImage = (url: string) => {
+    if (loadedImages[url] || imageErrors[url]) return; // Already loaded or failed
+
+    const proxiedUrl = getProxiedImageUrl(url);
+    const img = new Image();
+    
+    // CRITICAL: Only set crossOrigin for R2 URLs that go through our proxy
+    // External URLs (unsplash, etc) will fail CORS if we set crossOrigin
+    if (isR2Url(url)) {
+        img.crossOrigin = "Anonymous";
+    }
+    
+    img.src = proxiedUrl;
+    
+    img.onload = () => {
+        loadedImages[url] = img;
+    };
+    
+    img.onerror = () => {
+         // Retry once? Or just mark error
+         console.error(`Failed to load image: ${url}`);
+         imageErrors[url] = true;
+    }
+};
+
+watch(() => [props.backgroundUrl, props.elements], loadImages, { deep: true, immediate: true });
+
+const handleElementDblClick = (element: TemplateElement) => {
+    if (element.type === 'text' || element.type === 'button') {
+        const currentText = element.openInvitationConfig?.buttonText || element.content || '';
+        const newText = prompt('Edit Text:', currentText);
+        
+        if (newText !== null && newText !== currentText) {
+            let updates: Partial<TemplateElement> = { content: newText };
+            
+            // Special handling for open invitation button text
+            if (element.type === 'button' && element.openInvitationConfig) {
+                 updates = { 
+                     ...updates,
+                     openInvitationConfig: {
+                         ...element.openInvitationConfig,
+                         buttonText: newText
+                     }
+                 };
+            }
+
+            // Using store directly requires it to be initialized? 
+            // We need to confirm store is available. 
+            // The method logic relies on `store` variable which I need to make sure is available in scope.
+            // I added `const store = useTemplateStore()` in imports previously?
+            newText && store && store.updateElement(store.activeTemplateId!, props.sectionType, element.id, updates);
+        }
+    }
+};
+
+// Event Handlers
+const handleStageClick = (e: any) => {
+    // Deselect if clicked on empty stage
+    if (e.target === e.target.getStage()) {
+        emit('elementSelect', null);
+    }
+};
+
+const handleDragEnd = (e: any, element: TemplateElement) => {
+    const x = Math.round(e.target.x());
+    const y = Math.round(e.target.y());
+    emit('elementDragEnd', element.id, x, y);
+};
+
+const handleDragMove = (e: any, element: TemplateElement) => {
+    // Optional: emit drag move for real-time updates if needed
+};
+
+const handleElementClick = (elementId: string) => {
+    emit('elementSelect', elementId);
+};
+
+// Transformer Logic
+const transformer = ref<any>(null);
+const stage = ref<any>(null);
+
+// Watch for selection change to attach transformer
+watch(
+  () => props.selectedElementId,
+  async (newId) => {
+    if (!transformer.value || !stage.value) return;
+
+    await nextTick(); // Wait for DOM update
+    
+    const tr = transformer.value.getNode();
+    const stageNode = stage.value.getStage();
+    
+    if (!newId) {
+        tr.nodes([]);
+        tr.getLayer().batchDraw();
+        return;
+    }
+
+    // Ensure we find the node. Sometimes it needs a retry if v-for logic hasn't fully committed to Konva canvas structure
+    const selectedNode = stageNode.findOne('#' + newId);
+    if (selectedNode) {
+        tr.nodes([selectedNode]);
+        tr.getLayer().batchDraw();
+        tr.moveToTop(); // Ensure transformer is on top
+    } else {
+        tr.nodes([]);
+        tr.getLayer().batchDraw();
+    }
+  }, 
+  { flush: 'post' } 
+);
+
+const handleTransformEnd = (e: any) => {
+   const node = e.target;
+   const scaleX = node.scaleX();
+   const scaleY = node.scaleY();
+
+   // Reset scale to 1 and adjust width/height instead for consistent storage
+   const newWidth = Math.max(5, node.width() * scaleX);
+   const newHeight = Math.max(5, node.height() * scaleY);
+   
+   node.scaleX(1);
+   node.scaleY(1);
+   node.width(newWidth);
+   node.height(newHeight);
+   
+   emit('elementTransformEnd', {
+       id: props.selectedElementId,
+       x: Math.round(node.x()),
+       y: Math.round(node.y()),
+       width: Math.round(newWidth),
+       height: Math.round(newHeight),
+       rotation: Math.round(node.rotation())
+   });
+   emit('elementTransformEnd', {
+       id: props.selectedElementId,
+       x: Math.round(node.x()),
+       y: Math.round(node.y()),
+       width: Math.round(newWidth),
+       height: Math.round(newHeight),
+       rotation: Math.round(node.rotation())
+   });
+};
+
+// Countdown Logic
+const timeLeft = reactive<{ [key: string]: { days: string; hours: string; minutes: string; seconds: string } }>({});
+let intervalId: any = null;
+
+const calculateTimeLeft = () => {
+    props.elements.forEach(element => {
+        if (element.type === 'countdown' && element.countdownConfig?.targetDate) {
+            const difference = +new Date(element.countdownConfig.targetDate) - +new Date();
+            let timeLeftForElement = { days: '00', hours: '00', minutes: '00', seconds: '00' };
+
+            if (difference > 0) {
+                timeLeftForElement = {
+                    days: Math.floor(difference / (1000 * 60 * 60 * 24)).toString().padStart(2, '0'),
+                    hours: Math.floor((difference / (1000 * 60 * 60)) % 24).toString().padStart(2, '0'),
+                    minutes: Math.floor((difference / 1000 / 60) % 60).toString().padStart(2, '0'),
+                    seconds: Math.floor((difference / 1000) % 60).toString().padStart(2, '0')
+                };
+            }
+            timeLeft[element.id] = timeLeftForElement;
+        }
+    });
+};
+
+watch(() => props.elements, () => {
+    calculateTimeLeft();
+    if (!intervalId) {
+        intervalId = setInterval(calculateTimeLeft, 1000);
+    }
+}, { deep: true, immediate: true });
+
+onUnmounted(() => {
+    if (intervalId) clearInterval(intervalId);
+});
+
+// Helper to get visible countdown items based on config
+const getVisibleCountdownItems = (element: TemplateElement, customLabels?: { days: string; hours: string; minutes: string; seconds: string }) => {
+    const config = element.countdownConfig || {};
+    const tl = timeLeft[element.id] || { days: '00', hours: '00', minutes: '00', seconds: '00' };
+    const labels = customLabels || { days: 'Days', hours: 'Hours', minutes: 'Minutes', seconds: 'Seconds' };
+    
+    const items = [];
+    if (config.showDays !== false) items.push({ val: tl.days, label: labels.days, key: 'days' });
+    if (config.showHours !== false) items.push({ val: tl.hours, label: labels.hours, key: 'hours' });
+    if (config.showMinutes !== false) items.push({ val: tl.minutes, label: labels.minutes, key: 'minutes' });
+    if (config.showSeconds !== false) items.push({ val: tl.seconds, label: labels.seconds, key: 'seconds' });
+    
+    return items;
+};
+
+const getVisibleRSVPFields = (element: TemplateElement) => {
+    const config = element.rsvpFormConfig || {};
+    const fields = [];
+    if (config.showNameField !== false) fields.push({ name: 'name', label: config.nameLabel || 'Nama' });
+    if (config.showEmailField !== false) fields.push({ name: 'email', label: config.emailLabel || 'Email' });
+    if (config.showPhoneField !== false) fields.push({ name: 'phone', label: config.phoneLabel || 'Telepon' });
+    if (config.showAttendanceField !== false) fields.push({ name: 'attendance', label: config.attendanceLabel || 'Kehadiran' });
+    if (config.showMessageField !== false) fields.push({ name: 'message', label: config.messageLabel || 'Pesan' });
+    return fields;
+};
+
+// Helper for Classic style text
+const getClassicCountdownText = (element: TemplateElement) => {
+    const items = getVisibleCountdownItems(element); // Use default English labels (not shown in string anyway)
+    return items.map(item => item.val).join(' : ');
+};
+
+const getClassicLabelText = (element: TemplateElement) => {
+     const items = getVisibleCountdownItems(element);
+     return items.map(item => item.label).join('  ');
+};
+
+// --- STYLE HELPERS ---
+const getElementStyleConfig = (style: string, primaryColor: string, isDakMode: boolean = false) => {
+    const s = style || 'classic';
+    const config = {
+        fill: '#ffffff',
+        stroke: null as string | null,
+        strokeWidth: 0,
+        cornerRadius: 0,
+        shadowColor: 'black',
+        shadowBlur: 0,
+        shadowOpacity: 0,
+        shadowOffset: { x: 0, y: 0 },
+        opacity: 1
+    };
+
+    switch (s) {
+        case 'classic':
+            config.fill = '#ffffff';
+            config.stroke = '#e2e8f0';
+            config.strokeWidth = 1;
+            config.cornerRadius = 0;
+            break;
+        case 'minimal':
+            config.fill = '#ffffff';
+            config.stroke = null;
+            config.shadowBlur = 5;
+            config.shadowOpacity = 0.05;
+            break;
+        case 'modern':
+            config.fill = '#ffffff';
+            config.cornerRadius = 16;
+            config.shadowBlur = 20;
+            config.shadowOpacity = 0.1;
+            config.shadowOffset = { x: 0, y: 10 };
+            break;
+        case 'elegant':
+            config.fill = '#fdfbf7'; // Warm white
+            config.stroke = primaryColor;
+            config.strokeWidth = 1;
+            config.cornerRadius = 4;
+            break;
+        case 'rustic':
+            config.fill = '#fffaf0'; // Floral white
+            config.stroke = '#8b4513';
+            config.strokeWidth = 1;
+            // Konva doesn't support 'dashed' in simple config object easily without specific property, handled in render
+            break;
+        case 'romantic':
+            config.fill = '#fff0f5'; // Lavender blush
+            config.cornerRadius = 24;
+            config.shadowColor = '#ffb6c1';
+            config.shadowBlur = 10;
+            config.shadowOpacity = 0.3;
+            break;
+        case 'bold':
+            config.fill = '#ffffff';
+            config.stroke = '#000000';
+            config.strokeWidth = 4;
+            config.cornerRadius = 0;
+            config.shadowColor = '#000000';
+            config.shadowOffset = { x: 6, y: 6 };
+            config.shadowOpacity = 1;
+            break;
+        case 'vintage':
+            config.fill = '#f5f5dc'; // Beige
+            config.stroke = '#8b4513';
+            config.strokeWidth = 2;
+            config.cornerRadius = 2;
+            break;
+        case 'boho':
+            config.fill = '#fbf7f5';
+            config.cornerRadius = 30; // Very round
+            config.stroke = '#d2b48c'; // Tan
+            config.strokeWidth = 1;
+            break;
+        case 'luxury':
+            config.fill = '#1a1a1a';
+            config.stroke = '#ffd700'; // Gold
+            config.strokeWidth = 2;
+            config.cornerRadius = 8;
+            config.shadowColor = '#ffd700';
+            config.shadowBlur = 15;
+            config.shadowOpacity = 0.2;
+            break;
+        case 'dark':
+            config.fill = '#1e293b';
+            config.stroke = '#334155';
+            config.strokeWidth = 1;
+            config.cornerRadius = 12;
+            break;
+        case 'glass':
+            config.fill = 'rgba(255, 255, 255, 0.7)';
+            config.stroke = 'rgba(255, 255, 255, 0.5)';
+            config.strokeWidth = 1;
+            config.cornerRadius = 16;
+            config.shadowBlur = 10;
+            config.shadowOpacity = 0.1;
+            break;
+        case 'outline':
+            config.fill = 'transparent';
+            config.stroke = primaryColor;
+            config.strokeWidth = 2;
+            config.cornerRadius = 8;
+            break;
+        case 'geometric':
+            config.fill = '#ffffff';
+            config.stroke = '#000000';
+            config.strokeWidth = 2;
+            config.cornerRadius = 0;
+            break;
+        case 'floral':
+            config.fill = '#fff5f7';
+            config.stroke = '#ffc0cb';
+            config.strokeWidth = 1;
+            config.cornerRadius = 20;
+            break;
+        case 'pastel':
+            config.fill = '#f0f9ff'; // Alice blue
+            config.cornerRadius = 12;
+            config.shadowBlur = 5;
+            config.shadowColor = '#bae6fd';
+            config.shadowOpacity = 0.5;
+            break;
+        case 'monochrome':
+            config.fill = '#ffffff';
+            config.stroke = '#000000';
+            config.strokeWidth = 1;
+            config.cornerRadius = 0;
+            break;
+        case 'neon':
+            config.fill = '#000000';
+            config.stroke = primaryColor;
+            config.strokeWidth = 2;
+            config.shadowColor = primaryColor;
+            config.shadowBlur = 20;
+            config.shadowOpacity = 0.8;
+            config.cornerRadius = 8;
+            break;
+        case 'brutalist':
+            config.fill = '#e2e8f0';
+            config.stroke = '#000000';
+            config.strokeWidth = 3;
+            config.shadowColor = '#000000';
+            config.shadowOffset = { x: 8, y: 8 };
+            config.shadowOpacity = 1;
+            config.cornerRadius = 0;
+            break;
+        case 'cloud':
+            config.fill = '#ffffff';
+            config.cornerRadius = 50;
+            config.shadowBlur = 25;
+            config.shadowColor = '#cbd5e1';
+            config.shadowOpacity = 0.5;
+            config.shadowOffset = { x: 0, y: 5 };
+            break;
+    }
+    return config;
+};
+
+const getRSVPStyleConfig = (element: TemplateElement) => {
+    const config = element.rsvpFormConfig || { style: 'classic' };
+    const base = getElementStyleConfig(config.style as string, config.buttonColor || '#000000');
+    // Overrides
+    if (config.backgroundColor) base.fill = config.backgroundColor;
+    if (config.borderColor) base.stroke = config.borderColor;
+    
+    // Input field style derived from base
+    const inputStyle = {
+        fill: config.style === 'dark' || config.style === 'luxury' || config.style === 'neon' ? 'rgba(255,255,255,0.1)' : '#f8fafc',
+        stroke: base.stroke || '#e2e8f0',
+        cornerRadius: base.cornerRadius > 4 ? 8 : base.cornerRadius
+    };
+    
+    return { ...base, inputStyle };
+};
+
+const getGuestWishesStyleConfig = (element: TemplateElement) => {
+    const config = element.guestWishesConfig || { style: 'classic' };
+    const base = getElementStyleConfig(config.style as string, config.cardBorderColor || '#000000');
+    if (config.cardBackgroundColor) base.fill = config.cardBackgroundColor;
+    if (config.cardBorderColor) base.stroke = config.cardBorderColor;
+    return base;
+};
+
+</script>
+
+<template>
+  <div class="relative bg-white shadow-sm">
+    <v-stage 
+        ref="stage"
+        :config="configStage" 
+        @mousedown="handleStageClick" 
+        @touchstart="handleStageClick"
+    >
+      <v-layer>
+        <!-- Background Color -->
+        <v-rect :config="configBackground" />
+
+        <!-- Background Image -->
+        <v-image
+            v-if="backgroundUrl && loadedImages[backgroundUrl]"
+            :config="{
+                image: loadedImages[backgroundUrl],
+                width: CANVAS_WIDTH,
+                height: CANVAS_HEIGHT,
+                listening: false
+            }"
+        />
+
+        <!-- Overlay -->
+        <v-rect :config="configOverlay" />
+
+        <!-- Elements -->
+        <v-group
+          v-for="element in elements"
+          :key="element.id"
+          :config="{
+            x: element.position.x,
+            y: element.position.y,
+            width: element.size.width,
+            height: element.size.height,
+            rotation: element.rotation || 0,
+            scaleX: element.flipHorizontal ? -1 : 1,
+            scaleY: element.flipVertical ? -1 : 1,
+            offsetX: element.flipHorizontal ? element.size.width : 0,
+            offsetY: element.flipVertical ? element.size.height : 0,
+            draggable: true,
+            id: element.id,
+            name: 'element-' + element.id 
+          }"
+          @dragend="(e) => handleDragEnd(e, element)"
+          @dragmove="(e) => handleDragMove(e, element)"
+          @click="(e) => { e.cancelBubble = true; handleElementClick(element.id); }"
+          @tap="(e) => { e.cancelBubble = true; handleElementClick(element.id); }"
+          @dblclick="(e) => { e.cancelBubble = true; handleElementDblClick(element); }"
+          @transformend="handleTransformEnd"
+        >
+            <!-- CRITICAL: Hit area for click detection. Without this, clicks don't register because all other children have listening: false -->
+            <v-rect
+                :config="{
+                    width: element.size.width,
+                    height: element.size.height,
+                    fill: 'transparent',
+                    listening: true,
+                    perfectDrawEnabled: false
+                }"
+            />
+            
+            <!-- Image Element -->
+            <v-image
+                v-if="element.type === 'image' && element.imageUrl && loadedImages[element.imageUrl]"
+                :config="{
+                    image: loadedImages[element.imageUrl],
+                    width: element.size.width,
+                    height: element.size.height,
+                    crop: element.cropRect,
+                    opacity: element.opacity ?? 1,
+                    listening: false
+                }"
+             />
+             
+             <!-- Image Placeholder/Error -->
+             <v-group v-else-if="element.type === 'image'">
+                  <v-rect
+                    :config="{
+                        width: element.size.width,
+                        height: element.size.height,
+                        fill: '#f1f5f9',
+                        stroke: '#cbd5e1',
+                        strokeWidth: 1,
+                        dash: [5, 5],
+                        listening: false
+                    }"
+                 />
+                 <v-text
+                    :config="{
+                        text: imageErrors[element.imageUrl || ''] ? 'Failed to Load' : 'Loading Image...',
+                        width: element.size.width,
+                        height: element.size.height,
+                        align: 'center',
+                        verticalAlign: 'middle',
+                        fill: imageErrors[element.imageUrl || ''] ? '#ef4444' : '#64748b',
+                        fontSize: 12,
+                        listening: false
+                    }"
+                 />
+             </v-group>
+
+
+            <!-- Text Element -->
+            <v-text
+                v-if="element.type === 'text' && element.textStyle"
+                :config="{
+                    text: element.content || '',
+                    fontSize: element.textStyle.fontSize,
+                    fontFamily: element.textStyle.fontFamily,
+                    fontStyle: element.textStyle.fontStyle,
+                    fill: element.textStyle.color,
+                    align: element.textStyle.textAlign,
+                    width: element.size.width,
+                    height: element.size.height,
+                    verticalAlign: 'middle',
+                    listening: false,
+                    wrap: 'word'
+                }"
+            />
+
+            <!-- Countdown Element -->
+            <v-group v-if="element.type === 'countdown'">
+                <!-- Hit Area for selection -->
+                <v-rect :config="{ width: element.size.width, height: element.size.height, fill: 'transparent', listening: true }" />
+
+                <!-- 1. CLASSIC STYLE -->
+                <!-- 1. CLASSIC STYLE -->
+                <!-- 1. CLASSIC STYLE -->
+                <v-group v-if="!element.countdownConfig?.style || element.countdownConfig.style === 'classic'">
+                     <v-rect :config="{ width: element.size.width, height: element.size.height, fill: element.countdownConfig?.backgroundColor || '#f8fafc', stroke: '#e2e8f0', cornerRadius: 8, listening: false }" />
+                     <v-text :config="{ text: getClassicCountdownText(element), width: element.size.width, height: element.size.height, align: 'center', verticalAlign: 'middle', fontSize: element.countdownConfig?.fontSize || 24, fontFamily: element.countdownConfig?.fontFamily || 'Inter', fill: element.countdownConfig?.digitColor || '#334155', listening: false }" />
+                     <v-text :config="{ text: getClassicLabelText(element), width: element.size.width, y: element.size.height / 2 + (element.countdownConfig?.fontSize || 24), align: 'center', fontSize: 10, fontFamily: element.countdownConfig?.fontFamily || 'Inter', fill: element.countdownConfig?.labelColor || '#94a3b8', listening: false }" />
+                </v-group>
+
+                <!-- 2. MINIMAL STYLE -->
+                <!-- 2. MINIMAL STYLE -->
+                <v-group v-else-if="element.countdownConfig.style === 'minimal'">
+                    <v-group v-for="(item, i) in getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'})" :key="item.key" :config="{ x: i * (element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length), width: element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length }">
+                        <v-text :config="{ text: item.val || '00', width: element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length, y: element.size.height * 0.3, align: 'center', fontSize: element.countdownConfig?.fontSize || 28, fontFamily: element.countdownConfig?.fontFamily || 'Inter', fontStyle: 'bold', fill: element.countdownConfig?.digitColor || '#1e293b', listening: false }" />
+                        <v-text :config="{ text: item.label, width: element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length, y: element.size.height * 0.7, align: 'center', fontSize: 10, fontFamily: element.countdownConfig?.fontFamily || 'Inter', fill: element.countdownConfig?.labelColor || '#64748b', listening: false }" />
+                    </v-group>
+                </v-group>
+
+                <!-- 3. BOX STYLE (Card / Clean White Box) -->
+                <!-- 3. BOX STYLE (Card / Clean White Box) -->
+                <v-group v-else-if="element.countdownConfig.style === 'box' || element.countdownConfig.style === 'card'">
+                    <v-group v-for="(item, i) in getVisibleCountdownItems(element, {days:'HARI', hours:'JAM', minutes:'MENIT', seconds:'DETIK'})" :key="item.key" :config="{ x: i * (element.size.width / getVisibleCountdownItems(element).length), width: element.size.width / getVisibleCountdownItems(element).length }">
+                        <v-rect :config="{ x: 4, y: 0, width: (element.size.width / getVisibleCountdownItems(element).length) - 8, height: element.size.width / getVisibleCountdownItems(element).length, fill: element.countdownConfig?.backgroundColor || '#ffffff', cornerRadius: 10, shadowColor: 'black', shadowBlur: 10, shadowOpacity: 0.1, listening: false }" />
+                        <v-text :config="{ text: item.val || '00', x: 4, y: 2, width: (element.size.width / getVisibleCountdownItems(element).length) - 8, height: element.size.width / getVisibleCountdownItems(element).length, align: 'center', verticalAlign: 'middle', fontSize: element.countdownConfig?.fontSize || 28, fontFamily: element.countdownConfig?.fontFamily || 'Inter', fontStyle: 'bold', fill: element.countdownConfig?.digitColor || '#000000', listening: false }" />
+                        <v-text :config="{ text: item.label, width: element.size.width / getVisibleCountdownItems(element).length, y: (element.size.width / getVisibleCountdownItems(element).length) + 10, align: 'center', fontSize: 10, fontFamily: element.countdownConfig?.fontFamily || 'Inter', fontStyle: 'bold', fill: element.countdownConfig?.labelColor || '#ffffff', listening: false }" />
+                    </v-group>
+                </v-group>
+
+                <!-- 4. CIRCLE STYLE (Progress Ring) -->
+                <!-- 4. CIRCLE STYLE (Progress Ring) -->
+                <v-group v-else-if="element.countdownConfig.style === 'circle'">
+                    <v-group v-for="(item, i) in getVisibleCountdownItems(element, {days:'HARI', hours:'JAM', minutes:'MENIT', seconds:'DETIK'})" :key="item.key" :config="{ x: i * (element.size.width / getVisibleCountdownItems(element).length), width: element.size.width / getVisibleCountdownItems(element).length }">
+                        <!-- Ring Background -->
+                        <v-arc :config="{ x: (element.size.width / getVisibleCountdownItems(element).length) / 2, y: (element.size.width / getVisibleCountdownItems(element).length) / 2, innerRadius: ((element.size.width / getVisibleCountdownItems(element).length) / 2) - 4, outerRadius: ((element.size.width / getVisibleCountdownItems(element).length) / 2), angle: 360, fill: element.countdownConfig?.backgroundColor || '#ffffff', opacity: 1, listening: false }" />
+                        <!-- Ring Progress -->
+                        <v-arc :config="{ x: (element.size.width / getVisibleCountdownItems(element).length) / 2, y: (element.size.width / getVisibleCountdownItems(element).length) / 2, innerRadius: ((element.size.width / getVisibleCountdownItems(element).length) / 2) - 4, outerRadius: ((element.size.width / getVisibleCountdownItems(element).length) / 2), angle: 360 * (parseInt(item.val || '0') / 60), rotation: -90, fill: element.countdownConfig?.accentColor || '#000000', listening: false }" />
+                        
+                        <v-text :config="{ text: item.val || '00', x: 0, y: ((element.size.width / getVisibleCountdownItems(element).length) / 2) - ((element.countdownConfig?.fontSize || 20)/2) - 5, width: element.size.width / getVisibleCountdownItems(element).length, align: 'center', fontSize: element.countdownConfig?.fontSize || 20, fontFamily: element.countdownConfig?.fontFamily || 'Inter', fontStyle: 'bold', fill: element.countdownConfig?.digitColor || '#000000', listening: false }" />
+                        <v-text :config="{ text: item.label, x: 0, y: ((element.size.width / getVisibleCountdownItems(element).length) / 2) + ((element.countdownConfig?.fontSize || 20)/2), width: element.size.width / getVisibleCountdownItems(element).length, align: 'center', fontSize: 9, fontFamily: element.countdownConfig?.fontFamily || 'Inter', fontStyle: 'bold', fill: element.countdownConfig?.labelColor || '#ffffff', listening: false }" />
+                    </v-group>
+                </v-group>
+
+                <!-- 5. MODERN STYLE (Gradient/Soft Box) -->
+                <!-- 5. MODERN STYLE (Gradient/Soft Box) -->
+                <v-group v-else-if="element.countdownConfig.style === 'modern'">
+                     <v-group v-for="(item, i) in getVisibleCountdownItems(element, {days:'HARI', hours:'JAM', minutes:'MENIT', seconds:'DETIK'})" :key="item.key" :config="{ x: i * (element.size.width / getVisibleCountdownItems(element).length), width: element.size.width / getVisibleCountdownItems(element).length }">
+                        <v-rect :config="{ x: 4, y: 0, width: (element.size.width / getVisibleCountdownItems(element).length) - 8, height: element.size.width / getVisibleCountdownItems(element).length, fill: element.countdownConfig?.backgroundColor || '#ffffff', opacity: 0.1, cornerRadius: 10, listening: false }" />
+                        <v-rect :config="{ x: 4, y: 0, width: (element.size.width / getVisibleCountdownItems(element).length) - 8, height: element.size.width / getVisibleCountdownItems(element).length, fillLinearGradientStartPoint: { x: 0, y: 0 }, fillLinearGradientEndPoint: { x: (element.size.width / getVisibleCountdownItems(element).length) - 8, y: element.size.width / getVisibleCountdownItems(element).length }, fillLinearGradientColorStops: [0, 'rgba(255,255,255,0.7)', 1, 'rgba(255,255,255,0.2)'], cornerRadius: 10, shadowColor: 'black', shadowBlur: 5, shadowOpacity: 0.1, listening: false }" />
+                        
+                        <v-text :config="{ text: item.val || '00', x: 4, y: 2, width: (element.size.width / getVisibleCountdownItems(element).length) - 8, height: element.size.width / getVisibleCountdownItems(element).length, align: 'center', verticalAlign: 'middle', fontSize: element.countdownConfig?.fontSize || 30, fontFamily: element.countdownConfig?.fontFamily || 'Inter', fontStyle: 'bold', fill: element.countdownConfig?.digitColor || '#000000', listening: false }" />
+                        <v-text :config="{ text: item.label, width: element.size.width / getVisibleCountdownItems(element).length, y: (element.size.width / getVisibleCountdownItems(element).length) + 10, align: 'center', fontSize: 10, fontFamily: element.countdownConfig?.fontFamily || 'Inter', fontStyle: 'bold', fill: element.countdownConfig?.labelColor || '#ffffff', listening: false }" />
+                     </v-group>
+                </v-group>
+
+                <!-- 6. ELEGANT STYLE -->
+                <!-- 6. ELEGANT STYLE -->
+                <!-- 6. ELEGANT STYLE -->
+                <v-group v-else-if="element.countdownConfig.style === 'elegant'">
+                    <v-group v-for="(item, i) in getVisibleCountdownItems(element, {days:'Days', hours:'Hours', minutes:'Minutes', seconds:'Seconds'})" :key="item.key" :config="{ x: i * (element.size.width / getVisibleCountdownItems(element).length), width: element.size.width / getVisibleCountdownItems(element).length }">
+                         <v-rect v-if="i > 0" :config="{ x: 0, y: element.size.height * 0.25, width: 1, height: element.size.height * 0.5, fill: element.countdownConfig.accentColor || '#b8860b', opacity: 0.3, listening: false }" />
+                         <v-text :config="{ text: item.val || '00', width: element.size.width / getVisibleCountdownItems(element).length, y: element.size.height * 0.25, align: 'center', fontSize: element.countdownConfig?.fontSize || 26, fontFamily: element.countdownConfig?.fontFamily || 'Playfair Display', fontStyle: 'italic', fill: element.countdownConfig?.digitColor || '#b8860b', listening: false }" />
+                         <v-text :config="{ text: item.label, width: element.size.width / getVisibleCountdownItems(element).length, y: element.size.height * 0.75, align: 'center', fontSize: 10, fontFamily: element.countdownConfig?.fontFamily || 'Playfair Display', fill: element.countdownConfig?.labelColor || '#b8860b', listening: false }" />
+                    </v-group>
+                </v-group>
+
+                <!-- 7. NEON STYLE -->
+                <!-- 7. NEON STYLE -->
+                <v-group v-else-if="element.countdownConfig.style === 'neon'">
+                    <v-rect :config="{ width: element.size.width, height: element.size.height, fill: '#0f172a', cornerRadius: 8, listening: false }" />
+                    <v-group v-for="(item, i) in getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'})" :key="item.key" :config="{ x: i * (element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length), width: element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length }">
+                        <v-text :config="{ text: item.val || '00', width: element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length, y: element.size.height * 0.25, align: 'center', fontSize: 24, fontFamily: 'monospace', fill: '#00ff9d', shadowColor: '#00ff9d', shadowBlur: 10, listening: false }" />
+                        <v-text :config="{ text: item.label, width: element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length, y: element.size.height * 0.65, align: 'center', fontSize: 10, fill: '#00ff9d', opacity: 0.8, listening: false }" />
+                    </v-group>
+                </v-group>
+
+                <!-- 8. STICKER STYLE -->
+                <!-- 8. STICKER STYLE -->
+                <v-group v-else-if="element.countdownConfig.style === 'sticker'">
+                     <v-group v-for="(item, i) in getVisibleCountdownItems(element, {days:'Days', hours:'Hrs', minutes:'Mins', seconds:'Secs'})" :key="item.key" :config="{ x: i * (element.size.width / getVisibleCountdownItems(element, {days:'Days', hours:'Hrs', minutes:'Mins', seconds:'Secs'}).length), width: element.size.width / getVisibleCountdownItems(element, {days:'Days', hours:'Hrs', minutes:'Mins', seconds:'Secs'}).length }">
+                        <v-text :config="{ text: item.val || '00', x: 2, y: element.size.height * 0.2 + 2, width: element.size.width / getVisibleCountdownItems(element, {days:'Days', hours:'Hrs', minutes:'Mins', seconds:'Secs'}).length, align: 'center', fontSize: 22, fontFamily: 'Arial', fontStyle: 'bold', fill: '#000000', stroke: '#ffffff', strokeWidth: 4, lineJoin: 'round', listening: false }" />
+                        <v-text :config="{ text: item.val || '00', x: 2, y: element.size.height * 0.2 + 2, width: element.size.width / getVisibleCountdownItems(element, {days:'Days', hours:'Hrs', minutes:'Mins', seconds:'Secs'}).length, align: 'center', fontSize: 22, fontFamily: 'Arial', fontStyle: 'bold', fill: '#000000', listening: false }" />
+                        <v-text :config="{ text: item.label, width: element.size.width / getVisibleCountdownItems(element, {days:'Days', hours:'Hrs', minutes:'Mins', seconds:'Secs'}).length, y: element.size.height * 0.7, align: 'center', fontSize: 10, fill: '#000000', fontStyle: 'italic', listening: false }" />
+                     </v-group>
+                </v-group>
+
+                <!-- 9. TAPE STYLE -->
+                <!-- 9. TAPE STYLE -->
+                <v-group v-else-if="element.countdownConfig.style === 'tape'">
+                    <v-group v-for="(item, i) in getVisibleCountdownItems(element, {days:'DAYS', hours:'HRS', minutes:'MIN', seconds:'SEC'})" :key="item.key" :config="{ x: i * (element.size.width / getVisibleCountdownItems(element, {days:'DAYS', hours:'HRS', minutes:'MIN', seconds:'SEC'}).length), width: element.size.width / getVisibleCountdownItems(element, {days:'DAYS', hours:'HRS', minutes:'MIN', seconds:'SEC'}).length }">
+                        <v-rect :config="{ x: 5, y: element.size.height * 0.2, width: (element.size.width / getVisibleCountdownItems(element, {days:'DAYS', hours:'HRS', minutes:'MIN', seconds:'SEC'}).length) - 10, height: element.size.height * 0.5, fill: '#f1f5f9', opacity: 0.8, rotation: (i % 2 === 0 ? 2 : -2), shadowColor: 'black', shadowBlur: 2, listening: false }" />
+                        <v-text :config="{ text: item.val || '00', width: element.size.width / getVisibleCountdownItems(element, {days:'DAYS', hours:'HRS', minutes:'MIN', seconds:'SEC'}).length, y: element.size.height * 0.3, align: 'center', fontSize: 20, fontFamily: 'Courier New', fill: '#334155', rotation: (i % 2 === 0 ? 2 : -2), listening: false }" />
+                        <v-text :config="{ text: item.label, width: element.size.width / getVisibleCountdownItems(element, {days:'DAYS', hours:'HRS', minutes:'MIN', seconds:'SEC'}).length, y: element.size.height * 0.75, align: 'center', fontSize: 8, fill: '#94a3b8', spacing: 1, listening: false }" />
+                    </v-group>
+                </v-group>
+
+                <!-- 10. GLITCH STYLE -->
+                <!-- 10. GLITCH STYLE -->
+                <v-group v-else-if="element.countdownConfig.style === 'glitch'">
+                    <v-group v-for="(item, i) in getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'})" :key="item.key" :config="{ x: i * (element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length), width: element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length }">
+                         <v-text :config="{ text: item.val || '00', width: element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length, y: element.size.height * 0.25, align: 'center', fontSize: 28, fontFamily: 'Arial', fontStyle: 'bold', fill: '#ff00ff', x: 2, opacity: 0.7, listening: false }" />
+                         <v-text :config="{ text: item.val || '00', width: element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length, y: element.size.height * 0.25, align: 'center', fontSize: 28, fontFamily: 'Arial', fontStyle: 'bold', fill: '#00ffff', x: -2, opacity: 0.7, listening: false }" />
+                         <v-text :config="{ text: item.val || '00', width: element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length, y: element.size.height * 0.25, align: 'center', fontSize: 28, fontFamily: 'Arial', fontStyle: 'bold', fill: '#ffffff', listening: false }" />
+                         <v-text :config="{ text: item.label, width: element.size.width / getVisibleCountdownItems(element, {days:'D', hours:'H', minutes:'M', seconds:'S'}).length, y: element.size.height * 0.65, align: 'center', fontSize: 10, fill: '#ffffff', fontStyle: 'bold', listening: false }" />
+                    </v-group>
+                </v-group>
+
+                <!-- 11. FLIP STYLE (Split-Flap) -->
+                <!-- 11. FLIP STYLE (Split-Flap) -->
+                <v-group v-else-if="element.countdownConfig.style === 'flip'">
+                    <v-group v-for="(item, i) in getVisibleCountdownItems(element, {days:'HARI', hours:'JAM', minutes:'MENIT', seconds:'DETIK'})" :key="item.key" :config="{ x: i * (element.size.width / getVisibleCountdownItems(element).length), width: element.size.width / getVisibleCountdownItems(element).length }">
+                        <!-- Upper Flap: Round top corners only -->
+                        <v-rect :config="{ x: 4, y: 0, width: (element.size.width / getVisibleCountdownItems(element).length) - 8, height: (element.size.width / getVisibleCountdownItems(element).length) / 2, fill: element.countdownConfig?.backgroundColor || '#1e293b', cornerRadius: [6, 6, 0, 0], listening: false }" />
+                         <!-- Lower Flap: Round bottom corners only -->
+                        <v-rect :config="{ x: 4, y: ((element.size.width / getVisibleCountdownItems(element).length) / 2) + 1, width: (element.size.width / getVisibleCountdownItems(element).length) - 8, height: ((element.size.width / getVisibleCountdownItems(element).length) / 2) - 1, fill: element.countdownConfig?.backgroundColor || '#1e293b', cornerRadius: [0, 0, 6, 6], listening: false }" />
+                         
+                        <!-- Split Line -->
+                        <v-line :config="{ points: [4, (element.size.width / getVisibleCountdownItems(element).length) / 2, (element.size.width / getVisibleCountdownItems(element).length) - 4, (element.size.width / getVisibleCountdownItems(element).length) / 2], stroke: 'black', strokeWidth: 2, opacity: 0.5, listening: false }" />
+                        
+                        <v-text :config="{ text: item.val || '00', x: 4, y: 2, width: (element.size.width / getVisibleCountdownItems(element).length) - 8, height: element.size.width / getVisibleCountdownItems(element).length, align: 'center', verticalAlign: 'middle', fontSize: element.countdownConfig?.fontSize || 32, fontFamily: element.countdownConfig?.fontFamily || 'Inter', fontStyle: 'bold', fill: element.countdownConfig?.digitColor || '#ffffff', listening: false }" />
+                        <v-text :config="{ text: item.label, width: element.size.width / getVisibleCountdownItems(element).length, y: (element.size.width / getVisibleCountdownItems(element).length) + 10, align: 'center', fontSize: 10, fontFamily: element.countdownConfig?.fontFamily || 'Inter', fontStyle: 'bold', fill: element.countdownConfig?.labelColor || '#ffffff', listening: false }" />
+                    </v-group>
+                </v-group>
+            </v-group>
+             <!-- RSVP Form Element -->
+            <v-group v-if="element.type === 'rsvp-form' || element.type === 'rsvp_form'">
+                 <v-rect
+                    :config="{
+                        width: element.size.width,
+                        height: element.size.height,
+                        fill: getRSVPStyleConfig(element).fill,
+                        stroke: getRSVPStyleConfig(element).stroke,
+                        strokeWidth: getRSVPStyleConfig(element).strokeWidth,
+                        cornerRadius: getRSVPStyleConfig(element).cornerRadius,
+                        shadowColor: getRSVPStyleConfig(element).shadowColor,
+                        shadowBlur: getRSVPStyleConfig(element).shadowBlur,
+                        shadowOpacity: getRSVPStyleConfig(element).shadowOpacity,
+                        shadowOffset: getRSVPStyleConfig(element).shadowOffset,
+                        listening: false
+                    }"
+                />
+                <v-text
+                    :config="{
+                        text: element.rsvpFormConfig?.title || 'RSVP Form',
+                        x: 20,
+                        y: 15,
+                        width: element.size.width - 40,
+                        align: 'center',
+                        fontStyle: 'bold',
+                        fontSize: 16,
+                        fill: element.rsvpFormConfig?.textColor || '#475569',
+                        listening: false
+                    }"
+                />
+                <!-- Dynamic Input Fields -->
+                <v-group 
+                    v-for="(field, i) in getVisibleRSVPFields(element)" 
+                    :key="field.name"
+                    :config="{ x: 20, y: 50 + (i * 45) }"
+                >
+                     <!-- Input Box -->
+                    <v-rect :config="{ width: element.size.width - 40, height: 35, ...getRSVPStyleConfig(element).inputStyle, listening: false }" />
+                    
+                    <!-- Placeholder Label -->
+                    <v-text 
+                        :config="{ 
+                            text: field.label, 
+                            x: 10, 
+                            y: 10, 
+                            width: element.size.width - 60, 
+                            height: 35, 
+                            align: 'left', 
+                            verticalAlign: 'middle', 
+                            fill: element.rsvpFormConfig?.textColor || '#94a3b8', 
+                            opacity: 0.6,
+                            fontSize: 13, 
+                            listening: false 
+                        }" 
+                    />
+                    
+                     <!-- Dropdown Chevron for Attendance -->
+                     <v-path 
+                        v-if="field.name === 'attendance'"
+                        :config="{
+                            data: 'M6 9l6 6 6-6',
+                            x: element.size.width - 65, 
+                            y: 10,
+                            scaleX: 1.2,
+                            scaleY: 1.2,
+                            stroke: element.rsvpFormConfig?.textColor || '#64748b',
+                            strokeWidth: 2,
+                            lineCap: 'round',
+                            lineJoin: 'round',
+                            opacity: 1,
+                            listening: false
+                        }"
+                    />
+                </v-group>
+                
+                <!-- Button -->
+                <v-rect :config="{ x: 20, y: 50 + (getVisibleRSVPFields(element).length * 45) + 10, width: element.size.width - 40, height: 40, fill: element.rsvpFormConfig?.buttonColor || '#0f172a', cornerRadius: 6, listening: false }" />
+                <v-text :config="{ text: element.rsvpFormConfig?.submitButtonText || 'Submit', x: 20, y: 50 + (getVisibleRSVPFields(element).length * 45) + 22, width: element.size.width - 40, align: 'center', fill: element.rsvpFormConfig?.buttonTextColor || 'white', fontSize: 13, fontStyle: 'bold', listening: false }" />
+            </v-group>
+
+            <!-- Icon Element -->
+            <v-group v-if="element.type === 'icon'">
+                 <v-path
+                    :config="{
+                        x: 0,
+                        y: 0,
+                        width: element.size.width,
+                        height: element.size.height,
+                        data: iconPaths[element.iconStyle?.iconName || 'star'] || iconPaths['star'],
+                        fill: element.iconStyle?.iconColor || '#b8860b',
+                        scaleX: element.size.width / 24,
+                        scaleY: element.size.height / 24,
+                        listening: false
+                    }"
+                />
+            </v-group>
+
+            <!-- Guest Wishes Element -->
+             <v-group v-if="element.type === 'guest_wishes'">
+                 <v-rect
+                    :config="{
+                        width: element.size.width,
+                        height: element.size.height,
+                        fill: getGuestWishesStyleConfig(element).fill,
+                        stroke: getGuestWishesStyleConfig(element).stroke,
+                        strokeWidth: getGuestWishesStyleConfig(element).strokeWidth,
+                        cornerRadius: getGuestWishesStyleConfig(element).cornerRadius,
+                        shadowColor: getGuestWishesStyleConfig(element).shadowColor,
+                        shadowBlur: getGuestWishesStyleConfig(element).shadowBlur,
+                        shadowOpacity: getGuestWishesStyleConfig(element).shadowOpacity,
+                        shadowOffset: getGuestWishesStyleConfig(element).shadowOffset,
+                        listening: false
+                    }"
+                />
+                <v-text
+                    :config="{
+                        text: 'Guest Wishes',
+                        y: 10,
+                        width: element.size.width,
+                        align: 'center',
+                        fontSize: 14,
+                        fontStyle: 'bold',
+                        fill: element.guestWishesConfig?.textColor || '#475569',
+                        listening: false
+                    }"
+                />
+                <!-- Mock Cards -->
+                <v-rect :config="{ x: 10, y: 40, width: element.size.width - 20, height: 60, fill: element.guestWishesConfig?.cardBackgroundColor || '#ffffff', cornerRadius: 4, shadowColor: 'black', shadowBlur: 2, shadowOpacity: 0.05, stroke: element.guestWishesConfig?.cardBorderColor || 'transparent', strokeWidth: 1, listening: false }" />
+                <v-rect :config="{ x: 10, y: 110, width: element.size.width - 20, height: 60, fill: element.guestWishesConfig?.cardBackgroundColor || '#ffffff', cornerRadius: 4, shadowColor: 'black', shadowBlur: 2, shadowOpacity: 0.05, stroke: element.guestWishesConfig?.cardBorderColor || 'transparent', strokeWidth: 1, listening: false }" />
+            </v-group>
+
+             <!-- Button Element (Basic & Open Invitation) -->
+            <v-group v-if="element.type === 'button' || element.type === 'open_invitation_button'">
+                <!-- Open Invitation Button Styles -->
+                <v-group v-if="element.openInvitationConfig">
+                    <!-- Base Shape via Helper -->
+                     <v-rect
+                        :config="{
+                            width: element.size.width,
+                            height: element.size.height,
+                            ...getElementStyleConfig(element.openInvitationConfig.buttonStyle, element.openInvitationConfig.buttonColor || '#000000'),
+                            // Explicit overrides
+                            fill: (element.openInvitationConfig.buttonStyle === 'outline' || element.openInvitationConfig.buttonStyle === 'minimal') ? 'transparent' : (element.openInvitationConfig.buttonStyle === 'glass' ? 'rgba(255,255,255,0.2)' : (element.openInvitationConfig.buttonColor || '#000000')),
+                            stroke: element.openInvitationConfig.buttonColor || '#000000',
+                            strokeWidth: (element.openInvitationConfig.buttonStyle === 'outline' || element.openInvitationConfig.buttonStyle === 'minimal') ? 2 : 0,
+                            listening: false
+                        }"
+                    />
+                    <!-- Text -->
+                    <v-text
+                        :config="{
+                            text: element.openInvitationConfig.buttonText || element.content || 'Open Invitation',
+                            width: element.size.width,
+                            height: element.size.height,
+                            align: 'center',
+                            verticalAlign: 'middle',
+                            fill: element.openInvitationConfig.textColor || '#ffffff',
+                            fontSize: Number(element.openInvitationConfig.fontSize || 14),
+                            fontFamily: element.openInvitationConfig.fontFamily || 'Inter',
+                            listening: false
+                        }"
+                    />
+                </v-group>
+                <!-- Basic Button Fallback -->
+                 <v-group v-else>
+                     <v-rect
+                        :config="{
+                            width: element.size.width,
+                            height: element.size.height,
+                            fill: element.textStyle?.color || '#000000',
+                            cornerRadius: 4,
+                            listening: false
+                        }"
+                    />
+                    <v-text
+                        :config="{
+                            text: element.content || 'Button',
+                            width: element.size.width,
+                            height: element.size.height,
+                            align: 'center',
+                            verticalAlign: 'middle',
+                            fill: '#ffffff',
+                            fontSize: element.textStyle?.fontSize || 14,
+                            fontFamily: element.textStyle?.fontFamily,
+                            listening: false
+                        }"
+                    />
+                </v-group>
+            </v-group>
+        </v-group>
+
+        <!-- Transformer -->
+        <v-transformer
+            ref="transformer"
+            v-if="selectedElementId"
+            :config="{
+                nodes: [], // Will be set via updated hook or watcher
+                anchorStroke: '#3b82f6',
+                anchorFill: '#ffffff',
+                anchorSize: 10,
+                borderStroke: '#3b82f6',
+                borderDash: [4, 4],
+                keepRatio: true,
+                enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right']
+            }"
+        />
+      </v-layer>
+    </v-stage>
+  </div>
+</template>
