@@ -74,17 +74,22 @@ const handleUpdate = (updates: Partial<TemplateElement>) => {
 
 // Section update handler - updates local state AND persists to DB
 const handleSectionUpdate = async (updates: Partial<SectionDesign>) => {
+    console.log('[PropertyPanel] handleSectionUpdate called with:', updates);
+    
     if (props.activeSectionType && store.activeTemplateId) {
         const template = store.templates.find(t => t.id === store.activeTemplateId);
         if (template && template.sections[props.activeSectionType]) {
             // Optimistic local update
             Object.assign(template.sections[props.activeSectionType], updates);
+            console.log('[PropertyPanel] Local section after update:', template.sections[props.activeSectionType]);
             
             // Persist to database
             try {
+                console.log('[PropertyPanel] Calling API.updateSection...');
                 await CloudflareAPI.updateSection(store.activeTemplateId, props.activeSectionType, updates);
+                console.log('[PropertyPanel] API call successful');
             } catch (error) {
-                console.error('Failed to persist section update:', error);
+                console.error('[PropertyPanel] Failed to persist section update:', error);
             }
         }
     }

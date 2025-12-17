@@ -19,7 +19,13 @@ sectionsRouter.put('/:templateId/:type', async (c) => {
 
     const body = await c.req.json();
 
+    // DEBUG: Log incoming update request
+    console.log(`[SECTIONS API] PUT ${templateId}/${sectionType}`, JSON.stringify(body));
+
     const sectionId = await db.upsertSection(templateId, sectionType, body);
+
+    // DEBUG: Log successful update
+    console.log(`[SECTIONS API] Updated section ${sectionId} successfully`);
 
     // Invalidate template cache
     await cache.invalidateTemplate(templateId);
