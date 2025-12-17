@@ -977,3 +977,461 @@
     opacity: 0;
     pointer-events: none;
 }
+
+/* ========================================
+   PREMIUM EFFECTS (GSAP/Swiper/Anime.js Style)
+   ======================================== */
+
+/* 21. Split Screen */
+@keyframes pt-split-screen-in {
+    from {
+        clip-path: inset(50% 0 50% 0);
+        opacity: 0;
+    }
+
+    to {
+        clip-path: inset(0 0 0 0);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-split-screen-out {
+    from {
+        clip-path: inset(0 0 0 0);
+        opacity: 1;
+    }
+
+    to {
+        clip-path: inset(50% 0 50% 0);
+        opacity: 0;
+    }
+}
+
+.pt-split-screen-enter,
+.pt-split-screen-enter-active {
+    animation-name: pt-split-screen-in;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.pt-split-screen-enter-to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+}
+
+.pt-split-screen-leave,
+.pt-split-screen-leave-active {
+    animation-name: pt-split-screen-out;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.pt-split-screen-leave-to {
+    clip-path: inset(50% 0 50% 0);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* 22. Cube (3D Rotation) */
+@keyframes pt-cube-in {
+    from {
+        transform: perspective(1200px) rotateY(-90deg);
+        transform-origin: right center;
+        opacity: 0;
+    }
+
+    to {
+        transform: perspective(1200px) rotateY(0deg);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-cube-out {
+    from {
+        transform: perspective(1200px) rotateY(0deg);
+        transform-origin: left center;
+        opacity: 1;
+    }
+
+    to {
+        transform: perspective(1200px) rotateY(90deg);
+        opacity: 0;
+    }
+}
+
+.pt-cube-enter,
+.pt-cube-enter-active {
+    animation-name: pt-cube-in;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: ease-in-out;
+}
+
+.pt-cube-enter-to {
+    transform: perspective(1200px) rotateY(0deg);
+    opacity: 1;
+}
+
+.pt-cube-leave,
+.pt-cube-leave-active {
+    animation-name: pt-cube-out;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: ease-in-out;
+}
+
+.pt-cube-leave-to {
+    transform: perspective(1200px) rotateY(90deg);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* 23. Cards (Stacked Card Effect) */
+@keyframes pt-cards-in {
+    from {
+        transform: translateY(100%) scale(0.85) rotateX(10deg);
+        opacity: 0;
+        box-shadow: 0 50px 100px rgba(0, 0, 0, 0.3);
+    }
+
+    to {
+        transform: translateY(0) scale(1) rotateX(0deg);
+        opacity: 1;
+        box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+    }
+}
+
+@keyframes pt-cards-out {
+    from {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateY(-30%) scale(0.9);
+        opacity: 0;
+    }
+}
+
+.pt-cards-enter,
+.pt-cards-enter-active {
+    animation-name: pt-cards-in;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pt-cards-enter-to {
+    transform: translateY(0) scale(1) rotateX(0deg);
+    opacity: 1;
+}
+
+.pt-cards-leave,
+.pt-cards-leave-active {
+    animation-name: pt-cards-out;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pt-cards-leave-to {
+    transform: translateY(-30%) scale(0.9);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* 24. Slide Split (Anime.js Style) */
+@keyframes pt-slide-split-in {
+    0% {
+        clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+        opacity: 0;
+    }
+
+    50% {
+        clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
+        opacity: 0.5;
+    }
+
+    100% {
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-slide-split-out {
+    from {
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+        opacity: 1;
+    }
+
+    to {
+        clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%);
+        opacity: 0;
+    }
+}
+
+.pt-slide-split-enter,
+.pt-slide-split-enter-active {
+    animation-name: pt-slide-split-in;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.pt-slide-split-enter-to {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    opacity: 1;
+}
+
+.pt-slide-split-leave,
+.pt-slide-split-leave-active {
+    animation-name: pt-slide-split-out;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.pt-slide-split-leave-to {
+    clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* 25. Reveal (Motion One Style) */
+@keyframes pt-reveal-in {
+    from {
+        clip-path: circle(0% at 50% 50%);
+        opacity: 0;
+    }
+
+    to {
+        clip-path: circle(150% at 50% 50%);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-reveal-out {
+    from {
+        clip-path: circle(150% at 50% 50%);
+        opacity: 1;
+    }
+
+    to {
+        clip-path: circle(0% at 50% 50%);
+        opacity: 0;
+    }
+}
+
+.pt-reveal-enter,
+.pt-reveal-enter-active {
+    animation-name: pt-reveal-in;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pt-reveal-enter-to {
+    clip-path: circle(150% at 50% 50%);
+    opacity: 1;
+}
+
+.pt-reveal-leave,
+.pt-reveal-leave-active {
+    animation-name: pt-reveal-out;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pt-reveal-leave-to {
+    clip-path: circle(0% at 50% 50%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* 26. Smooth Reveal (Lenis Style) */
+@keyframes pt-smooth-reveal-in {
+    from {
+        transform: translateY(60px);
+        opacity: 0;
+        filter: blur(10px);
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
+@keyframes pt-smooth-reveal-out {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+        filter: blur(0);
+    }
+
+    to {
+        transform: translateY(-60px);
+        opacity: 0;
+        filter: blur(10px);
+    }
+}
+
+.pt-smooth-reveal-enter,
+.pt-smooth-reveal-enter-active {
+    animation-name: pt-smooth-reveal-in;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pt-smooth-reveal-enter-to {
+    transform: translateY(0);
+    opacity: 1;
+    filter: blur(0);
+}
+
+.pt-smooth-reveal-leave,
+.pt-smooth-reveal-leave-active {
+    animation-name: pt-smooth-reveal-out;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pt-smooth-reveal-leave-to {
+    transform: translateY(-60px);
+    opacity: 0;
+    filter: blur(10px);
+    pointer-events: none;
+}
+
+/* 27. Overlay (Barba.js/Highway.js Style) */
+@keyframes pt-overlay-in {
+    0% {
+        transform: scaleY(0);
+        transform-origin: top;
+        opacity: 0;
+    }
+
+    50% {
+        transform: scaleY(1);
+        transform-origin: top;
+        opacity: 1;
+    }
+
+    100% {
+        transform: scaleY(1);
+        transform-origin: bottom;
+        opacity: 1;
+    }
+}
+
+@keyframes pt-overlay-out {
+    0% {
+        transform: scaleY(1);
+        transform-origin: bottom;
+        opacity: 1;
+    }
+
+    100% {
+        transform: scaleY(0);
+        transform-origin: bottom;
+        opacity: 0;
+    }
+}
+
+.pt-overlay-enter,
+.pt-overlay-enter-active {
+    animation-name: pt-overlay-in;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.pt-overlay-enter-to {
+    transform: scaleY(1);
+    opacity: 1;
+}
+
+.pt-overlay-leave,
+.pt-overlay-leave-active {
+    animation-name: pt-overlay-out;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.pt-overlay-leave-to {
+    transform: scaleY(0);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* 28. Spring (VueUse/Motion Style with bounce) */
+@keyframes pt-spring-in {
+    0% {
+        transform: scale(0.3) translateY(100px);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(1.05) translateY(-10px);
+        opacity: 1;
+    }
+
+    70% {
+        transform: scale(0.98) translateY(5px);
+    }
+
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-spring-out {
+    0% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+
+    30% {
+        transform: scale(1.02) translateY(-5px);
+    }
+
+    100% {
+        transform: scale(0.3) translateY(-100px);
+        opacity: 0;
+    }
+}
+
+.pt-spring-enter,
+.pt-spring-enter-active {
+    animation-name: pt-spring-in;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pt-spring-enter-to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+.pt-spring-leave,
+.pt-spring-leave-active {
+    animation-name: pt-spring-out;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pt-spring-leave-to {
+    transform: scale(0.3) translateY(-100px);
+    opacity: 0;
+    pointer-events: none;
+}

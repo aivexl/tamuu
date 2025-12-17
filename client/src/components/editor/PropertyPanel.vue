@@ -960,26 +960,42 @@ const handleCopyToSection = async () => {
                         @change="(e: any) => handleSectionUpdate({ transitionEffect: e.target.value })"
                     >
                         <option value="none">None</option>
-                        <option value="fade">Fade</option>
-                        <option value="slide-up">Slide Up</option>
-                        <option value="slide-down">Slide Down</option>
-                        <option value="slide-left">Slide Left</option>
-                        <option value="slide-right">Slide Right</option>
-                        <option value="zoom-in">Zoom In</option>
-                        <option value="zoom-out">Zoom Out</option>
-                        <option value="rotate">Rotate</option>
-                        <option value="flip-x">Flip X</option>
-                        <option value="flip-y">Flip Y</option>
-                        <option value="blur">Blur</option>
-                        <option value="grayscale">Grayscale</option>
-                        <option value="sepia">Sepia</option>
-                        <option value="curtain">Curtain Open</option>
-                        <option value="door">Door Open</option>
-                        <option value="book">Book Flip</option>
-                        <option value="ripple">Ripple</option>
-                        <option value="glitch">Glitch</option>
-                        <option value="pixelate">Pixelate</option>
-                        <option value="swirl">Swirl</option>
+                        <optgroup label="Basic">
+                            <option value="fade">Fade</option>
+                            <option value="slide-up">Slide Up</option>
+                            <option value="slide-down">Slide Down</option>
+                            <option value="slide-left">Slide Left</option>
+                            <option value="slide-right">Slide Right</option>
+                        </optgroup>
+                        <optgroup label="Zoom & Rotate">
+                            <option value="zoom-in">Zoom In</option>
+                            <option value="zoom-out">Zoom Out</option>
+                            <option value="rotate">Rotate</option>
+                            <option value="flip-x">Flip X</option>
+                            <option value="flip-y">Flip Y</option>
+                        </optgroup>
+                        <optgroup label="Filter Effects">
+                            <option value="blur">Blur</option>
+                            <option value="grayscale">Grayscale</option>
+                            <option value="sepia">Sepia</option>
+                        </optgroup>
+                        <optgroup label="Premium Effects">
+                            <option value="curtain">Curtain Reveal</option>
+                            <option value="door">Door Open</option>
+                            <option value="book">Book Flip</option>
+                            <option value="ripple">Ripple</option>
+                            <option value="glitch">Glitch</option>
+                            <option value="pixelate">Pixelate</option>
+                            <option value="swirl">Swirl</option>
+                            <option value="split-screen">Split Screen</option>
+                            <option value="cube">Cube</option>
+                            <option value="cards">Cards</option>
+                            <option value="slide-split">Slide Split</option>
+                            <option value="reveal">Reveal</option>
+                            <option value="smooth-reveal">Smooth Reveal</option>
+                            <option value="overlay">Overlay</option>
+                            <option value="spring">Spring</option>
+                        </optgroup>
                     </select>
                 </div>
                 <div>
