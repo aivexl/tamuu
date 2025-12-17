@@ -1,10 +1,32 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, reactive, onUnmounted } from 'vue';
+import { ref, computed, watch, nextTick, reactive, onUnmounted, onMounted } from 'vue';
 import { type TemplateElement, type SectionType } from '@/lib/types';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/lib/constants';
 import { getProxiedImageUrl, isR2Url } from '@/lib/image-utils';
 import { iconPaths } from '@/lib/icon-paths';
 import { useTemplateStore } from '@/stores/template';
+
+// Track Shift key for bypassing boundaries
+const isShiftPressed = ref(false);
+
+const handleKeyDownGlobal = (e: KeyboardEvent) => {
+    if (e.key === 'Shift') isShiftPressed.value = true;
+};
+
+const handleKeyUpGlobal = (e: KeyboardEvent) => {
+    if (e.key === 'Shift') isShiftPressed.value = false;
+};
+
+onMounted(() => {
+    window.addEventListener('keydown', handleKeyDownGlobal);
+    window.addEventListener('keyup', handleKeyUpGlobal);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeyDownGlobal);
+    window.removeEventListener('keyup', handleKeyUpGlobal);
+    if (intervalId) clearInterval(intervalId);
+});
 
 interface Props {
   sectionType: SectionType;
@@ -144,7 +166,22 @@ const handleDragEnd = (e: any, element: TemplateElement) => {
 };
 
 const handleDragMove = (e: any, element: TemplateElement) => {
-    // Optional: emit drag move for real-time updates if needed
+    // Apply virtual boundaries unless Shift is pressed
+    if (!isShiftPressed.value) {
+        const node = e.target;
+        const x = node.x();
+        const y = node.y();
+        const width = node.width() || element.size.width;
+        const height = node.height() || element.size.height;
+        
+        // Clamp position within canvas bounds
+        let newX = Math.max(0, Math.min(x, CANVAS_WIDTH - width));
+        let newY = Math.max(0, Math.min(y, CANVAS_HEIGHT - height));
+        
+        // Apply constrained position
+        node.x(newX);
+        node.y(newY);
+    }
 };
 
 const handleElementClick = (elementId: string) => {
@@ -248,9 +285,7 @@ watch(() => props.elements, () => {
     }
 }, { deep: true, immediate: true });
 
-onUnmounted(() => {
-    if (intervalId) clearInterval(intervalId);
-});
+// Cleanup interval in the global onUnmounted (moved to top)
 
 // Helper to get visible countdown items based on config
 const getVisibleCountdownItems = (element: TemplateElement, customLabels?: { days: string; hours: string; minutes: string; seconds: string }) => {

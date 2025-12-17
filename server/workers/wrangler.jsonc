@@ -1,0 +1,32 @@
+{
+    "$schema": "node_modules/wrangler/config-schema.json",
+    "name": "tamuu-api",
+    "main": "src/index.ts",
+    "compatibility_date": "2025-02-04",
+    "observability": {
+        "enabled": true
+    },
+    "kv_namespaces": [
+        {
+            "binding": "KV",
+            "id": "9933e318840a491487bc934637718d5d"
+        }
+    ],
+    "d1_databases": [
+        {
+            "binding": "DB",
+            "database_name": "tamuu",
+            "database_id": "a44e51ed-cf24-47c6-bcaa-e593110c9cb3"
+        }
+    ],
+    "r2_buckets": [
+        {
+            "binding": "R2",
+            "bucket_name": "tamuu-storage"
+        }
+    ],
+    "vars": {
+        "ENVIRONMENT": "production",
+        "R2_PUBLIC_URL": "https://pub-1e0a9ae6152440268987d00a564a8da5.r2.dev"
+    }
+}

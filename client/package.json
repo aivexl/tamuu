@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.87.3",
     "@vueuse/core": "^14.1.0",
     "@vueuse/motion": "^3.0.3",
     "clsx": "^2.1.1",

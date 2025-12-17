@@ -54,7 +54,7 @@ const handleAddElement = async (type: ElementType) => {
         case 'image':
              newElement = {
                 ...newElement,
-                imageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400',
+                // No default image URL - user uploads their own
                 size: { width: 200, height: 200 },
                 id: newId
             };
@@ -131,24 +131,19 @@ const handleAddElement = async (type: ElementType) => {
                     fontStyle: 'normal',
                     textDecoration: 'none',
                 },
-                size: { width: 200, height: 48 },
-                type: 'button',
-                // Ensure openInvitationConfig is initialized if needed, or it might be handled elsewhere?
-                // Wait, type is 'button', so we need openInvitationConfig here?
-                // The previous code didn't have it in the switch case I read?
-                // I'll check if I need to add it.
-                // The previous code had:
-                /*
-                case 'open_invitation_button':
-                     newElement = {
-                        ...
-                        type: 'button'
-                    }
-                */
-                // It didn't have openInvitationConfig. If I add it, I should default it.
+                size: { width: 220, height: 50 },
+                type: 'open_invitation_button',
                 openInvitationConfig: {
                     buttonText: 'Buka Undangan',
-                    // Defaults...
+                    subText: '',
+                    buttonStyle: 'elegant',
+                    buttonShape: 'pill',
+                    fontFamily: 'Inter',
+                    fontSize: 16,
+                    buttonColor: '#722f37',
+                    textColor: '#ffffff',
+                    showIcon: true,
+                    iconName: 'mail-open'
                 },
                 id: newId
             };

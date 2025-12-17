@@ -1,0 +1,25 @@
+
+> client@0.0.0 build
+> vite build
+
+[36mvite v7.3.0 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 103 modules transformed.
+[31m✗[39m Build failed in 2.38s
+[31merror during build:
+[31m[vite:vue] [plugin vite:vue] src/components/editor/PropertyPanel.vue (959:5): Invalid end tag.[31m
+file: [36mC:/Users/62896/Documents/tamuuid/client/src/components/editor/PropertyPanel.vue:959:5[31m
+SyntaxError: [plugin vite:vue] src/components/editor/PropertyPanel.vue (959:5): Invalid end tag.
+    at createCompilerError (C:\Users\62896\Documents\tamuuid\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.prod.js:1360:17)
+    at emitError (C:\Users\62896\Documents\tamuuid\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.prod.js:2963:5)
+    at Object.onclosetag (C:\Users\62896\Documents\tamuuid\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.prod.js:2370:9)
+    at Tokenizer.stateInClosingTagName (C:\Users\62896\Documents\tamuuid\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.prod.js:785:16)
+    at Tokenizer.parse (C:\Users\62896\Documents\tamuuid\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.prod.js:1143:16)
+    at Object.baseParse (C:\Users\62896\Documents\tamuuid\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.prod.js:2995:13)
+    at Object.parse (C:\Users\62896\Documents\tamuuid\client\node_modules\@vue\compiler-dom\dist\compiler-dom.cjs.prod.js:665:23)
+    at Object.parse$1 [as parse] (C:\Users\62896\Documents\tamuuid\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:1801:24)
+    at createDescriptor (file:///C:/Users/62896/Documents/tamuuid/client/node_modules/@vitejs/plugin-vue/dist/index.mjs:54:42)
+    at transformMain (file:///C:/Users/62896/Documents/tamuuid/client/node_modules/@vitejs/plugin-vue/dist/index.mjs:1319:33)
+    at Object.handler (file:///C:/Users/62896/Documents/tamuuid/client/node_modules/@vitejs/plugin-vue/dist/index.mjs:1722:27)
+    at Object.handler (file:///C:/Users/62896/Documents/tamuuid/client/node_modules/vite/dist/node/chunks/config.js:33729:13)
+    at file:///C:/Users/62896/Documents/tamuuid/client/node_modules/rollup/dist/es/shared/node-entry.js:22494:40[39m

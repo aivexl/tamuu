@@ -1,19 +1,96 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { onMounted, onUnmounted, computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useTemplateStore } from '@/stores/template';
 import { PREDEFINED_SECTION_TYPES } from '@/lib/types';
 import KonvaCanvas from '@/components/editor/KonvaCanvas.vue';
 import PropertyPanel from '@/components/editor/PropertyPanel.vue';
 import AddElementPanel from '@/components/editor/AddElementPanel.vue';
 import Button from '@/components/ui/Button.vue';
-import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus } from 'lucide-vue-next';
+import Toast from '@/components/ui/Toast.vue';
+import * as CloudflareAPI from '@/services/cloudflare-api';
+import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, Maximize, Check } from 'lucide-vue-next';
 
 const route = useRoute();
+const router = useRouter();
 const store = useTemplateStore();
 
 const templateId = computed(() => route.params.id as string);
 const activeSection = ref<string>(''); // Will be set to first section on load
+
+// Editable template name/slug
+const isEditingName = ref(false);
+const editableName = ref('');
+const editableSlug = ref('');
+
+// Toast notification
+const showToast = ref(false);
+const toastMessage = ref('');
+const toastVariant = ref<'default' | 'success' | 'destructive'>('success');
+
+// Saving state
+const isSaving = ref(false);
+const lastSavedAt = ref<Date | null>(null);
+
+const showSaveToast = (message: string, variant: 'default' | 'success' | 'destructive' = 'success') => {
+    toastMessage.value = message;
+    toastVariant.value = variant;
+    showToast.value = true;
+    setTimeout(() => showToast.value = false, 3000);
+};
+
+const handleSave = async () => {
+    if (!currentTemplate.value || isSaving.value) return;
+    
+    isSaving.value = true;
+    try {
+        // Update template name and slug if edited
+        const updates: any = {};
+        if (editableName.value && editableName.value !== currentTemplate.value.name) {
+            updates.name = editableName.value;
+            currentTemplate.value.name = editableName.value;
+        }
+        
+        if (Object.keys(updates).length > 0) {
+            await CloudflareAPI.updateTemplate(templateId.value, updates);
+        }
+        
+        lastSavedAt.value = new Date();
+        showSaveToast('Template berhasil disimpan!', 'success');
+    } catch (error) {
+        console.error('Save failed:', error);
+        showSaveToast('Gagal menyimpan template', 'destructive');
+    } finally {
+        isSaving.value = false;
+    }
+};
+
+const startEditName = () => {
+    editableName.value = currentTemplate.value?.name || '';
+    isEditingName.value = true;
+};
+
+const saveTemplateName = async () => {
+    isEditingName.value = false;
+    if (editableName.value && currentTemplate.value && editableName.value !== currentTemplate.value.name) {
+        try {
+            await CloudflareAPI.updateTemplate(templateId.value, { name: editableName.value });
+            currentTemplate.value.name = editableName.value;
+            showSaveToast('Nama template diperbarui', 'success');
+        } catch (error) {
+            console.error('Failed to update name:', error);
+        }
+    }
+};
+
+const formattedLastSaved = computed(() => {
+    if (!lastSavedAt.value) return 'Not saved yet';
+    const now = new Date();
+    const diff = now.getTime() - lastSavedAt.value.getTime();
+    if (diff < 60000) return 'Saved just now';
+    if (diff < 3600000) return `Saved ${Math.floor(diff / 60000)} min ago`;
+    return `Saved ${lastSavedAt.value.toLocaleTimeString()}`;
+});
 
 // Section management
 const editingSection = ref<string | null>(null);
@@ -185,8 +262,24 @@ const handleElementTransformEnd = (payload: any) => {
                      <ArrowLeft class="w-5 h-5" />
                  </Button>
                  <div>
-                    <h1 class="font-bold text-lg text-slate-800">{{ currentTemplate?.name || 'Loading...' }}</h1>
-                    <p class="text-xs text-slate-500">Last saved just now</p>
+                    <!-- Editable Template Name -->
+                    <div class="flex items-center gap-2">
+                        <input 
+                            v-if="isEditingName"
+                            v-model="editableName"
+                            class="font-bold text-lg text-slate-800 bg-transparent border-b-2 border-teal-500 outline-none px-1"
+                            @blur="saveTemplateName"
+                            @keyup.enter="saveTemplateName"
+                            autofocus
+                        />
+                        <h1 v-else class="font-bold text-lg text-slate-800 cursor-pointer hover:text-teal-600" @click="startEditName">
+                            {{ currentTemplate?.name || 'Loading...' }}
+                        </h1>
+                        <button v-if="!isEditingName" class="p-1 hover:bg-slate-100 rounded" @click="startEditName">
+                            <Pencil class="w-3 h-3 text-slate-400" />
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-500">{{ formattedLastSaved }}</p>
                  </div>
              </div>
              
@@ -194,9 +287,14 @@ const handleElementTransformEnd = (payload: any) => {
                 <Button variant="ghost" size="icon"><Undo class="w-4 h-4" /></Button>
                 <Button variant="ghost" size="icon"><Redo class="w-4 h-4" /></Button>
                 <div class="w-px h-6 bg-slate-200 mx-2"></div>
-                <Button class="flex items-center gap-2 bg-teal-600 hover:bg-teal-700">
-                    <Save class="w-4 h-4" />
-                    Save
+                <Button variant="outline" class="flex items-center gap-2" @click="router.push(`/preview/${templateId}`)">
+                    <Maximize class="w-4 h-4" />
+                    Preview
+                </Button>
+                <Button class="flex items-center gap-2 bg-teal-600 hover:bg-teal-700" @click="handleSave" :disabled="isSaving">
+                    <Save v-if="!isSaving" class="w-4 h-4" />
+                    <span v-if="isSaving" class="animate-spin">⏳</span>
+                    {{ isSaving ? 'Saving...' : 'Save' }}
                 </Button>
             </div>
         </header>
@@ -412,5 +510,31 @@ const handleElementTransformEnd = (payload: any) => {
                 </div>
             </div>
         </div>
+    </Teleport>
+
+    <!-- Toast Notification -->
+    <Teleport to="body">
+        <Transition
+            enter-active-class="transition duration-300 ease-out"
+            enter-from-class="translate-y-4 opacity-0"
+            enter-to-class="translate-y-0 opacity-100"
+            leave-active-class="transition duration-200 ease-in"
+            leave-from-class="translate-y-0 opacity-100"
+            leave-to-class="translate-y-4 opacity-0"
+        >
+            <div v-if="showToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+                <div 
+                    class="flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl border"
+                    :class="{
+                        'bg-green-50 border-green-200 text-green-800': toastVariant === 'success',
+                        'bg-red-50 border-red-200 text-red-800': toastVariant === 'destructive',
+                        'bg-white border-slate-200 text-slate-800': toastVariant === 'default'
+                    }"
+                >
+                    <Check v-if="toastVariant === 'success'" class="w-5 h-5 text-green-600" />
+                    <span class="font-medium">{{ toastMessage }}</span>
+                </div>
+            </div>
+        </Transition>
     </Teleport>
 </template>

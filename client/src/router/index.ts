@@ -5,6 +5,7 @@ const HomeView = () => import("../views/HomeView.vue");
 const DashboardView = () => import("../views/DashboardView.vue");
 const EditorView = () => import("../views/EditorView.vue");
 const AdminView = () => import("../views/AdminView.vue");
+const PreviewView = () => import("../views/PreviewView.vue");
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -23,6 +24,11 @@ const router = createRouter({
             path: "/editor/:id",
             name: "editor",
             component: EditorView,
+        },
+        {
+            path: "/preview/:id",
+            name: "preview",
+            component: PreviewView,
         },
         {
             path: "/admin/templates",

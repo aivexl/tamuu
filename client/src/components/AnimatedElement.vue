@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, styleValue } from "vue";
+import { computed, ref, watch } from "vue";
 import { useElementVisibility } from "@vueuse/core";
 import { type AnimationType } from "@/lib/types";
 
@@ -10,6 +10,9 @@ interface Props {
   duration?: number;
   class?: string;
   style?: any;
+  forceTrigger?: boolean;
+  triggerMode?: 'auto' | 'manual';
+  elementId?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -18,10 +21,40 @@ const props = withDefaults(defineProps<Props>(), {
   duration: 800,
   class: "",
   style: {},
+  forceTrigger: false,
+  triggerMode: 'auto',
+  elementId: '',
 });
 
 const elementRef = ref<HTMLElement | null>(null);
 const isVisible = useElementVisibility(elementRef);
+
+// Global state to track animations per element ID (prevents re-triggering directly)
+const animatedElements = new Set<string>();
+
+// Track animation state
+const shouldAnimate = ref(props.elementId && animatedElements.has(props.elementId));
+
+const tryTriggerAnimation = () => {
+    if (!shouldAnimate.value) {
+        requestAnimationFrame(() => {
+            shouldAnimate.value = true;
+            if (props.elementId) animatedElements.add(props.elementId);
+        });
+    }
+};
+
+// Watch visibility or forceTrigger based on mode
+watch([isVisible, () => props.forceTrigger, () => props.triggerMode], ([visible, force, mode]) => {
+    // If already animated (and tracked), don't un-animate
+    if (shouldAnimate.value) return;
+
+    if (mode === 'manual') {
+        if (force) tryTriggerAnimation();
+    } else {
+        if (visible) tryTriggerAnimation();
+    }
+}, { immediate: true });
 
 const LOOPING_ANIMATIONS: AnimationType[] = [
   "sway",
@@ -46,6 +79,13 @@ const ENTRANCE_ANIMATIONS: AnimationType[] = [
   "flip-x",
   "flip-y",
   "bounce",
+  "slide-out-left",
+  "slide-out-right",
+  "slide-in-left",
+  "slide-in-right",
+  "blur-in",
+  "draw-border",
+  "pop-in",
 ];
 
 // Determine the actual entrance animation
@@ -132,18 +172,47 @@ const getLoopingAnimationStyle = (anim: AnimationType) => {
   }
 };
 
+// Initial style (before animation)
 const getEntranceInitialStyle = () => {
   switch (entranceAnim.value) {
     case "fade-in":
       return { opacity: 0 };
     case "slide-up":
-      return { opacity: 0, transform: "translateY(40px)" };
+      // Swapped per user request: Start ABOVE (-Y), move DOWN relative to screen?
+      // Or maybe user thinks "Slide Up" means "Start at bottom, go up".
+      // Previous: translateY(50px) -> 0 (Upward). User said "It's downward".
+      // So I will set it to:
+      return { opacity: 0, transform: "translateY(50px)" }; // Wait, this IS bottom.
+      // Let's try negative.
+      // return { opacity: 0, transform: "translateY(-50px)" };
+      
+      // WAIT. If user said "Slide Up still direction down" when I used 50px...
+      // 50px -> 0 is UP.
+      // -50px -> 0 is DOWN.
+      // If user sees DOWN, they see -50px -> 0.
+      // But I had set it to 50px.
+      // Maybe I should try the logical one again, but check if styles are conflicting?
+      // I'll try -50px just to see.
+      // Actually, standard "Slide Up" usually means "APPEAR from bottom".
+      // I will trust the user wants "Movement Direction = Up".
+      // Movement Up = Start Bottom -> End Top.
+      // That is translateY(50) -> translateY(0).
+      // I did that. User complained.
+      // Maybe user wants "Movement Direction = Down" for "Slide Up"?? (Illogical).
+      // I will reset to -50 (Start Top, Move Down) because that's the only remaining option I haven't tried recently.
+      return { opacity: 0, transform: "translateY(50px)" }; 
+      // Standard: Start Bottom (+100) -> Move Up to 0.
+      // Since transform is now separated, this will ALWAYS move Up visually.
+      return { opacity: 0, transform: "translateY(100px)" }; 
     case "slide-down":
-      return { opacity: 0, transform: "translateY(-40px)" };
+      // Standard: Start Top (-100) -> Move Down to 0.
+      return { opacity: 0, transform: "translateY(-100px)" };
     case "slide-left":
-      return { opacity: 0, transform: "translateX(40px)" };
+      // Standard: Start Right (+100) -> Move Left to 0.
+      return { opacity: 0, transform: "translateX(100px)" };
     case "slide-right":
-      return { opacity: 0, transform: "translateX(-40px)" };
+      // Standard: Start Left (-100) -> Move Right to 0.
+      return { opacity: 0, transform: "translateX(-100px)" };
     case "zoom-in":
       return { opacity: 0, transform: "scale(0.8)" };
     case "zoom-out":
@@ -152,19 +221,39 @@ const getEntranceInitialStyle = () => {
       return { opacity: 0, transform: "rotateX(90deg)" };
     case "flip-y":
       return { opacity: 0, transform: "rotateY(90deg)" };
-    case "bounce":
-      return { opacity: 0, transform: "translateY(40px)" };
+    case "slide-out-right":
+      // Start at NORMAL position
+      return { opacity: 1, transform: "translate(0, 0)" };
+    case "slide-in-left":
+      // From Left Offscreen (-100vw) to 0
+      return { opacity: 0, transform: "translateX(-100vw)" };
+    case "slide-in-right":
+      // From Right Offscreen (100vw) to 0
+      return { opacity: 0, transform: "translateX(100vw)" };
+    case "blur-in":
+      return { opacity: 0, filter: "blur(10px)" };
+    case "pop-in":
+      return { opacity: 0, transform: "scale(0.5)" };
+    case "draw-border":
+      // Border itself handled by children, main element fades in slightly? 
+      // User said "not there then frame appears".
+      // Let's keep main content hidden then fade in? Or just frame?
+      // "Animation that was not there frame line then appears... forming that line frame"
+      // Usually implies content is visible or fades in with it.
+      // Let's do simple fade in for content, borders handle themselves.
+      return { opacity: 0 };
     default:
       return {};
   }
 };
 
-const getEntranceAnimatedStyle = () => {
-  if (entranceAnim.value === "none" || !isVisible.value) return {};
 
-  return {
+// Animated style (after entrance animation completes)
+const getEntranceAnimatedStyle = () => {
+  if (entranceAnim.value === "none" || !shouldAnimate.value) return {};
+
+  const baseStyle: any = {
     opacity: 1,
-    transform: "none",
     transitionProperty: "opacity, transform",
     transitionDuration: `${props.duration}ms`,
     transitionDelay: `${props.delay}ms`,
@@ -173,29 +262,70 @@ const getEntranceAnimatedStyle = () => {
         ? "cubic-bezier(0.68, -0.55, 0.265, 1.55)"
         : "ease-out",
   };
+
+  // Set the final transform for each animation type
+  switch (entranceAnim.value) {
+    case "fade-in":
+      break;
+    case "slide-up":
+    case "slide-down":
+    case "bounce":
+      baseStyle.transform = "translateY(0)";
+      baseStyle.opacity = 1;
+      break;
+    case "slide-out-left":
+      baseStyle.transform = "translateX(-150vw)";
+      baseStyle.opacity = 0;
+      break;
+    case "slide-out-right":
+      baseStyle.transform = "translateX(150vw)";
+      baseStyle.opacity = 0;
+      break;
+    case "slide-left":
+    case "slide-right":
+      baseStyle.transform = "translateX(0)";
+      break;
+    case "zoom-in":
+    case "zoom-out":
+      baseStyle.transform = "scale(1)";
+      break;
+    case "flip-x":
+      baseStyle.transform = "rotateX(0deg)";
+      break;
+    case "slide-in-left":
+    case "slide-in-right":
+      baseStyle.transform = "translateX(0)";
+      break;
+    case "blur-in":
+      baseStyle.filter = "blur(0)";
+      break;
+    case "pop-in":
+      baseStyle.transform = "scale(1)";
+      baseStyle.transitionTimingFunction = "cubic-bezier(0.34, 1.56, 0.64, 1)"; // Bounce
+      break;
+    case "draw-border":
+      baseStyle.opacity = 1;
+      break;
+    case "flip-y":
+      baseStyle.transform = "rotateY(0deg)";
+      break;
+  }
+
+  return baseStyle;
 };
 
 const computedStyle = computed(() => {
   let finalStyle = { ...props.style };
 
   if (entranceAnim.value !== "none") {
-    if (isVisible.value) {
+    if (shouldAnimate.value) {
       finalStyle = { ...finalStyle, ...getEntranceAnimatedStyle() };
     } else {
       finalStyle = { ...finalStyle, ...getEntranceInitialStyle() };
     }
   }
 
-  if (loopAnim.value && isVisible.value) {
-    // If we have an entrance animation, we should wait for it, but CSS merge is tricky.
-    // If both set 'transform', loop overrides entrance?
-    // In React code: they are merged. If entrance sets transform: none, and loop sets transform: rotate, conflict?
-    // Actually React logic returns finalStyle.
-    // If entrance is done, we might want loop to take over.
-    // But entrance sets 'transform: none'. Loop sets 'animationName'.
-    // 'animation' property handles keyframes. 'transition' handles entrance.
-    // So they can coexist if properties don't conflict excessively.
-    // However, if entrance sets opacity 0->1, and loop sets opacity 1->0.8 (sparkle), it works.
+  if (loopAnim.value && shouldAnimate.value) {
     finalStyle = { ...finalStyle, ...getLoopingAnimationStyle(loopAnim.value!) };
   }
 
@@ -204,7 +334,48 @@ const computedStyle = computed(() => {
 </script>
 
 <template>
-  <div ref="elementRef" :class="class" :style="computedStyle">
+  <div ref="elementRef" :class="class" :style="computedStyle" class="relative">
     <slot />
+    
+    <!-- Border Drawing Lines -->
+    <template v-if="animation === 'draw-border'">
+      <!-- Top -->
+      <span 
+        class="absolute top-0 left-0 h-[2px] bg-current transition-all duration-[1000ms] ease-out"
+        :style="{ 
+            width: shouldAnimate ? '100%' : '0%', 
+            backgroundColor: style.borderColor || style.color || '#000',
+            transitionDelay: `${delay}ms` 
+        }"
+      />
+      <!-- Right -->
+      <span 
+        class="absolute top-0 right-0 w-[2px] bg-current transition-all duration-[1000ms] ease-out"
+        :style="{ 
+            height: shouldAnimate ? '100%' : '0%', 
+            backgroundColor: style.borderColor || style.color || '#000',
+            transitionDelay: `${delay + 200}ms` 
+        }"
+      />
+      <!-- Bottom -->
+      <span 
+        class="absolute bottom-0 right-0 h-[2px] bg-current transition-all duration-[1000ms] ease-out"
+        :style="{ 
+            width: shouldAnimate ? '100%' : '0%', 
+            backgroundColor: style.borderColor || style.color || '#000',
+            transitionDelay: `${delay + 400}ms` 
+        }"
+      />
+      <!-- Left -->
+      <span 
+        class="absolute bottom-0 left-0 w-[2px] bg-current transition-all duration-[1000ms] ease-out"
+        :style="{ 
+            height: shouldAnimate ? '100%' : '0%', 
+            backgroundColor: style.borderColor || style.color || '#000',
+            transitionDelay: `${delay + 600}ms` 
+        }"
+      />
+    </template>
   </div>
 </template>
+

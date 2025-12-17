@@ -4,6 +4,9 @@ const R2_DOMAINS = [
     "r2.cloudflarestorage.com",
 ];
 
+// API URL for proxying (uses environment variable or defaults)
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://tamuu-api.shafania57.workers.dev";
+
 /**
  * Converts an R2 URL to a proxied URL
  *
@@ -27,8 +30,8 @@ export function getProxiedImageUrl(url: string | null | undefined): string {
         );
 
         if (needsProxy) {
-            // In the client, we use the relative API path which will be proxied by Vite or Express
-            return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+            // Use the Workers API for proxying
+            return `${API_BASE_URL}/api/upload/proxy?url=${encodeURIComponent(url)}`;
         }
     } catch {
         // Invalid URL, return as-is
@@ -36,6 +39,7 @@ export function getProxiedImageUrl(url: string | null | undefined): string {
 
     return url;
 }
+
 
 /**
  * Checks if a URL is from R2 storage

@@ -1,0 +1,20 @@
+{
+    "name": "tamuu-workers",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "wrangler dev",
+        "deploy": "wrangler deploy",
+        "db:migrate": "wrangler d1 execute tamuu --file=./schema.sql",
+        "db:migrate:local": "wrangler d1 execute tamuu --local --file=./schema.sql"
+    },
+    "dependencies": {
+        "hono": "^4.6.0"
+    },
+    "devDependencies": {
+        "@cloudflare/workers-types": "^4.20241205.0",
+        "typescript": "^5.7.2",
+        "wrangler": "^4.55.0"
+    }
+}

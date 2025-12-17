@@ -5,8 +5,9 @@ import type {
     TemplateElement,
     AnimationType,
 } from "@/lib/types";
-import * as SupabaseService from "@/services/supabase";
+import * as CloudflareAPI from "@/services/cloudflare-api";
 import { PREDEFINED_SECTION_TYPES } from "@/lib/types";
+
 
 interface State {
     templates: Template[];
@@ -41,7 +42,7 @@ export const useTemplateStore = defineStore("template", {
             }
 
             try {
-                const templates = await SupabaseService.getTemplates();
+                const templates = await CloudflareAPI.getTemplates();
                 this.templates = templates;
                 this.isLoading = false;
             } catch (error: any) {
@@ -55,7 +56,7 @@ export const useTemplateStore = defineStore("template", {
             this.error = null;
 
             try {
-                const template = await SupabaseService.getTemplate(id);
+                const template = await CloudflareAPI.getTemplate(id);
                 if (template) {
                     // Remove existing if present to avoid duplication
                     this.templates = this.templates.filter((t) => t.id !== id);
@@ -94,7 +95,7 @@ export const useTemplateStore = defineStore("template", {
                             {} as Record<string, SectionDesign>
                         );
 
-                const newTemplate = await SupabaseService.createTemplate({
+                const newTemplate = await CloudflareAPI.createTemplate({
                     ...templateData,
                     sections,
                 });
@@ -134,7 +135,7 @@ export const useTemplateStore = defineStore("template", {
 
             if (!elementId.startsWith("el-")) {
                 try {
-                    await SupabaseService.updateElement(elementId, updates);
+                    await CloudflareAPI.updateElement(elementId, updates, templateId);
                 } catch (error: any) {
                     console.error("Failed to update element:", error);
                 }
@@ -155,7 +156,7 @@ export const useTemplateStore = defineStore("template", {
             }
 
             try {
-                const createdElement = await SupabaseService.createElement(templateId, sectionType, element);
+                const createdElement = await CloudflareAPI.createElement(templateId, sectionType, element);
 
                 // Sync ID
                 const t = this.templates.find((t) => t.id === templateId);
@@ -199,7 +200,7 @@ export const useTemplateStore = defineStore("template", {
             // Sync to DB (only if it's not a temp ID)
             if (!elementId.startsWith('el-')) {
                 try {
-                    await SupabaseService.deleteElement(elementId);
+                    await CloudflareAPI.deleteElement(elementId, templateId);
                 } catch (error) {
                     console.error("Failed to delete element from DB:", error);
                 }
@@ -230,7 +231,7 @@ export const useTemplateStore = defineStore("template", {
 
             // Sync to DB
             try {
-                const created = await SupabaseService.createElement(templateId, sectionType, duplicate);
+                const created = await CloudflareAPI.createElement(templateId, sectionType, duplicate);
                 duplicate.id = created.id;
                 this.selectedElementId = created.id;
             } catch (error) {
@@ -269,7 +270,7 @@ export const useTemplateStore = defineStore("template", {
             this.selectedElementId = newElement.id;
 
             try {
-                const created = await SupabaseService.createElement(templateId, sectionType, newElement);
+                const created = await CloudflareAPI.createElement(templateId, sectionType, newElement);
                 newElement.id = created.id;
                 this.selectedElementId = created.id;
 
@@ -300,7 +301,7 @@ export const useTemplateStore = defineStore("template", {
             template.sections[toSectionType].elements.push(newElement);
 
             try {
-                const created = await SupabaseService.createElement(templateId, toSectionType, newElement);
+                const created = await CloudflareAPI.createElement(templateId, toSectionType, newElement);
                 // Update ID
                 newElement.id = created.id;
             } catch (error) {
@@ -315,7 +316,29 @@ export const useTemplateStore = defineStore("template", {
             const template = this.templates.find((t) => t.id === templateId);
             if (!template || !template.sections[fromSectionType] || !template.sections[toSectionType]) return;
 
-            const sourceElements = template.sections[fromSectionType].elements;
+            const sourceSection = template.sections[fromSectionType];
+            const targetSection = template.sections[toSectionType];
+            const sourceElements = sourceSection.elements;
+
+            // Copy section styles (backgroundColor, backgroundUrl, overlayOpacity, textColor)
+            const stylesToCopy = {
+                backgroundColor: sourceSection.backgroundColor,
+                backgroundUrl: sourceSection.backgroundUrl,
+                overlayOpacity: sourceSection.overlayOpacity,
+                textColor: sourceSection.textColor,
+            };
+
+            // Apply styles to target section locally
+            Object.assign(targetSection, stylesToCopy);
+
+            // Persist section style updates to database
+            try {
+                await CloudflareAPI.updateSection(templateId, toSectionType, stylesToCopy);
+            } catch (error) {
+                console.error("Failed to copy section styles:", error);
+            }
+
+            // Copy elements if any
             if (sourceElements.length === 0) return;
 
             const copiedElements: TemplateElement[] = [];
@@ -329,17 +352,17 @@ export const useTemplateStore = defineStore("template", {
                 };
 
                 // Optimistic Add
-                template.sections[toSectionType].elements.push(newElement);
+                targetSection.elements.push(newElement);
                 copiedElements.push(newElement);
 
                 try {
-                    const created = await SupabaseService.createElement(templateId, toSectionType, newElement);
+                    const created = await CloudflareAPI.createElement(templateId, toSectionType, newElement);
                     newElement.id = created.id;
                 } catch (error) {
                     console.error("Failed to copy element to section:", error);
                     // Revert this element
-                    const idx = template.sections[toSectionType].elements.indexOf(newElement);
-                    if (idx !== -1) template.sections[toSectionType].elements.splice(idx, 1);
+                    const idx = targetSection.elements.indexOf(newElement);
+                    if (idx !== -1) targetSection.elements.splice(idx, 1);
                 }
             }
         },
@@ -447,7 +470,7 @@ export const useTemplateStore = defineStore("template", {
 
             try {
                 // 1. Create Section Row
-                await SupabaseService.updateSection(templateId, newSectionKey, {
+                await CloudflareAPI.updateSection(templateId, newSectionKey, {
                     isVisible: true,
                     animation: 'none',
                     pageTitle: newSectionTitle,
@@ -455,7 +478,7 @@ export const useTemplateStore = defineStore("template", {
                 });
 
                 // 2. Update Order Intact
-                await SupabaseService.updateTemplate(templateId, {
+                await CloudflareAPI.updateTemplate(templateId, {
                     sectionOrder: template.sectionOrder
                 });
             } catch (error) {
@@ -473,7 +496,7 @@ export const useTemplateStore = defineStore("template", {
             template.sections[sectionKey].title = newTitle;
 
             try {
-                await SupabaseService.updateSection(templateId, sectionKey, {
+                await CloudflareAPI.updateSection(templateId, sectionKey, {
                     pageTitle: newTitle
                 });
             } catch (error) {
@@ -490,7 +513,7 @@ export const useTemplateStore = defineStore("template", {
             section.isVisible = !section.isVisible;
 
             try {
-                await SupabaseService.updateSection(templateId, sectionType, {
+                await CloudflareAPI.updateSection(templateId, sectionType, {
                     isVisible: section.isVisible
                 });
             } catch (error) {
@@ -535,7 +558,7 @@ export const useTemplateStore = defineStore("template", {
 
             try {
                 // 1. Create the Section Row
-                await SupabaseService.updateSection(templateId, newSectionKey, {
+                await CloudflareAPI.updateSection(templateId, newSectionKey, {
                     isVisible: newSection.isVisible,
                     animation: newSection.animation,
                     pageTitle: newSection.title,
@@ -548,12 +571,12 @@ export const useTemplateStore = defineStore("template", {
                 // 2. Create Elements
                 for (const el of duplicatedElements) {
                     if (el.type) {
-                        await SupabaseService.createElement(templateId, newSectionKey, el);
+                        await CloudflareAPI.createElement(templateId, newSectionKey, el);
                     }
                 }
 
                 // 3. Update Order
-                await SupabaseService.updateTemplate(templateId, { sectionOrder: template.sectionOrder });
+                await CloudflareAPI.updateTemplate(templateId, { sectionOrder: template.sectionOrder });
 
             } catch (error) {
                 console.error("Failed to duplicate section:", error);
@@ -574,12 +597,12 @@ export const useTemplateStore = defineStore("template", {
 
             try {
                 // 1. Update Order First
-                await SupabaseService.updateTemplate(templateId, {
+                await CloudflareAPI.updateTemplate(templateId, {
                     sectionOrder: template.sectionOrder
                 });
 
                 // 2. Delete Section Row
-                await SupabaseService.deleteSection(templateId, sectionType);
+                await CloudflareAPI.deleteSection(templateId, sectionType);
             } catch (error) {
                 console.error("Failed to delete section:", error);
             }
@@ -611,7 +634,7 @@ export const useTemplateStore = defineStore("template", {
             });
 
             try {
-                await SupabaseService.updateTemplate(templateId, {
+                await CloudflareAPI.updateTemplate(templateId, {
                     sectionOrder: template.sectionOrder
                 });
             } catch (error) {
@@ -645,7 +668,7 @@ export const useTemplateStore = defineStore("template", {
             });
 
             try {
-                await SupabaseService.updateTemplate(templateId, {
+                await CloudflareAPI.updateTemplate(templateId, {
                     sectionOrder: template.sectionOrder
                 });
             } catch (error) {

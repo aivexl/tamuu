@@ -184,6 +184,8 @@ export type AnimationType =
     | 'slide-down'
     | 'slide-left'
     | 'slide-right'
+    | 'slide-out-left'
+    | 'slide-out-right'
     | 'zoom-in'
     | 'zoom-out'
     | 'flip-x'
@@ -196,6 +198,11 @@ export type AnimationType =
     | 'sparkle'       // Twinkling/glowing effect
     | 'spin'          // Continuous rotation
     | 'shake'         // Subtle vibration
+    | 'slide-in-left'
+    | 'slide-in-right'
+    | 'blur-in'
+    | 'draw-border'
+    | 'pop-in'
     | 'swing'         // Pendulum swing
     | 'heartbeat'     // Love heartbeat effect
     | 'glow';         // Soft glowing aura
@@ -325,6 +332,7 @@ export interface SectionDesign {
     order?: number; // For manual ordering
     isVisible?: boolean;
     openInvitationConfig?: OpenInvitationConfig;
+    animationTrigger?: 'scroll' | 'click' | 'open_btn';
 }
 
 export interface OpenInvitationConfig {

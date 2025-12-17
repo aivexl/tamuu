@@ -3,6 +3,8 @@ import { computed, ref } from 'vue';
 import { useTemplateStore } from '@/stores/template';
 import { type TemplateElement, type SectionDesign, type CountdownConfig, type RSVPFormConfig, type IconStyle, type ElementStyle } from '@/lib/types';
 import { iconPaths } from '@/lib/icon-paths';
+import { uploadFile } from '@/services/cloudflare-api';
+import * as CloudflareAPI from '@/services/cloudflare-api';
 import Input from '@/components/ui/Input.vue';
 import Label from '@/components/ui/Label.vue';
 import Button from '@/components/ui/Button.vue';
@@ -37,6 +39,11 @@ const selectedElement = computed(() => {
 const element = computed(() => selectedElement.value?.element);
 const currentSection = computed(() => props.activeSection);
 
+const elementAnimation = computed({
+    get: () => element.value?.animation || 'none',
+    set: (val: any) => handleUpdate({ animation: val })
+});
+
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/lib/constants';
 
 // Canvas constants for alignment imported from constants
@@ -60,13 +67,98 @@ const handleUpdate = (updates: Partial<TemplateElement>) => {
     }
 };
 
-// Section update handler
-const handleSectionUpdate = (updates: Partial<SectionDesign>) => {
+// Section update handler - updates local state AND persists to DB
+const handleSectionUpdate = async (updates: Partial<SectionDesign>) => {
     if (props.activeSectionType && store.activeTemplateId) {
         const template = store.templates.find(t => t.id === store.activeTemplateId);
         if (template && template.sections[props.activeSectionType]) {
+            // Optimistic local update
             Object.assign(template.sections[props.activeSectionType], updates);
+            
+            // Persist to database
+            try {
+                await CloudflareAPI.updateSection(store.activeTemplateId, props.activeSectionType, updates);
+            } catch (error) {
+                console.error('Failed to persist section update:', error);
+            }
         }
+    }
+};
+
+// Image upload handler
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const isUploading = ref(false);
+
+const triggerImageUpload = () => {
+    fileInputRef.value?.click();
+};
+
+const handleImageUpload = async (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    
+    isUploading.value = true;
+    try {
+        const result = await uploadFile(file);
+        if (result.url) {
+            // Create image to get natural dimensions
+            const img = new Image();
+            img.onload = () => {
+                const maxWidth = 500; // CANVAS_WIDTH
+                let newWidth = img.naturalWidth;
+                let newHeight = img.naturalHeight;
+
+                // Scale down if too wide
+                if (newWidth > maxWidth) {
+                    const ratio = maxWidth / newWidth;
+                    newWidth = maxWidth;
+                    newHeight = Math.round(newHeight * ratio);
+                } else if (newWidth < 100) {
+                     // Scale up if too tiny? Optional.
+                     // For now just keep natural if small, or maybe min-width logic.
+                }
+
+                handleUpdate({ 
+                    imageUrl: result.url,
+                    size: { width: newWidth, height: newHeight }
+                });
+            };
+            img.src = result.url;
+        }
+    } catch (error) {
+        console.error('Upload failed:', error);
+    } finally {
+        isUploading.value = false;
+        // Reset input
+        if (input) input.value = '';
+    }
+};
+
+// Background image upload handler for sections
+const bgFileInputRef = ref<HTMLInputElement | null>(null);
+const isUploadingBg = ref(false);
+
+const triggerBgImageUpload = () => {
+    bgFileInputRef.value?.click();
+};
+
+const handleBgImageUpload = async (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    
+    isUploadingBg.value = true;
+    try {
+        const result = await uploadFile(file);
+        if (result.url) {
+            handleSectionUpdate({ backgroundUrl: result.url });
+        }
+    } catch (error) {
+        console.error('Background upload failed:', error);
+    } finally {
+        isUploadingBg.value = false;
+        if (input) input.value = '';
     }
 };
 
@@ -333,8 +425,7 @@ const handleCopyToSection = async () => {
                 <Label class="text-xs text-slate-500">Animation</Label>
                 <select 
                     class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white"
-                    :value="element.animation || 'none'"
-                    @change="(e: any) => handleUpdate({ animation: e.target.value })"
+                    v-model="elementAnimation"
                 >
                     <option value="none">None</option>
                     <option value="fade-in">Fade In</option>
@@ -342,6 +433,13 @@ const handleCopyToSection = async () => {
                     <option value="slide-down">Slide Down</option>
                     <option value="slide-left">Slide Left</option>
                     <option value="slide-right">Slide Right</option>
+                    <option value="slide-out-left">Slide Out Left (Exit)</option>
+                    <option value="slide-out-right">Slide Out Right (Exit)</option>
+                    <option value="slide-in-left">Slide In Left (Enter)</option>
+                    <option value="slide-in-right">Slide In Right (Enter)</option>
+                    <option value="blur-in">Blur In</option>
+                    <option value="draw-border">Frame Draw</option>
+                    <option value="pop-in">Pop In</option>
                     <option value="zoom-in">Zoom In</option>
                     <option value="zoom-out">Zoom Out</option>
                     <option value="flip-x">Flip X</option>
@@ -429,8 +527,9 @@ const handleCopyToSection = async () => {
             <!-- IMAGE SETTINGS -->
             <div v-if="element.type === 'image'" class="space-y-3 pt-3 border-t">
                 <Label class="text-xs font-semibold text-slate-500 uppercase">Image</Label>
-                <Button variant="outline" class="w-full justify-center gap-2">
-                    <Upload class="w-4 h-4" /> Upload Image
+                <input type="file" ref="fileInputRef" class="hidden" accept="image/*" @change="handleImageUpload" />
+                <Button variant="outline" class="w-full justify-center gap-2" @click="triggerImageUpload" :disabled="isUploading">
+                    <Upload class="w-4 h-4" /> {{ isUploading ? 'Uploading...' : 'Upload Image' }}
                 </Button>
                 <Input :model-value="element.imageUrl || ''" @update:model-value="val => handleUpdate({ imageUrl: val })" placeholder="Or paste URL..." />
                 <div>
@@ -706,7 +805,7 @@ const handleCopyToSection = async () => {
             </div>
 
             <!-- OPEN INVITATION SETTINGS -->
-            <div v-if="element.type === 'open_invitation_button'" class="space-y-3 pt-3 border-t">
+            <div v-if="element.type === 'open_invitation_button' || element.type === 'button'" class="space-y-3 pt-3 border-t">
                 <Label class="text-xs font-semibold text-slate-500 uppercase">Open Invitation Settings</Label>
                 <div>
                     <span class="text-xs text-slate-400">Button Text</span>
@@ -823,15 +922,26 @@ const handleCopyToSection = async () => {
                     </div>
                 </div>
                 <div>
-                    <span class="text-xs text-slate-400">Background Image URL</span>
-                    <Input :model-value="currentSection.backgroundUrl || ''" @update:model-value="val => handleSectionUpdate({ backgroundUrl: val })" placeholder="https://..." />
+                    <span class="text-xs text-slate-400">Background Image</span>
+                    <div class="flex gap-2 mt-1">
+                        <input type="file" ref="bgFileInputRef" class="hidden" accept="image/*" @change="handleBgImageUpload" />
+                        <Button variant="outline" size="sm" class="flex-1 justify-center gap-1" @click="triggerBgImageUpload" :disabled="isUploadingBg">
+                            <Upload class="w-3 h-3" /> {{ isUploadingBg ? 'Uploading...' : 'Upload Image' }}
+                        </Button>
+                    </div>
+                    <Input class="mt-2" :model-value="currentSection.backgroundUrl || ''" @update:model-value="val => handleSectionUpdate({ backgroundUrl: val })" placeholder="Or paste URL..." />
                 </div>
                 <div>
-                    <span class="text-xs text-slate-400">Overlay Opacity</span>
-                    <div class="flex items-center gap-2">
-                        <input type="range" min="0" max="0.9" step="0.1" :value="currentSection.overlayOpacity || 0" @input="(e: any) => handleSectionUpdate({ overlayOpacity: Number(e.target.value) })" class="flex-1 h-2 bg-slate-200 rounded-lg" />
-                        <span class="text-xs w-10 text-right">{{ Math.round((currentSection.overlayOpacity || 0) * 100) }}%</span>
-                    </div>
+                    <span class="text-xs text-slate-400">Animation Trigger</span>
+                    <select 
+                        class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" 
+                        :value="currentSection.animationTrigger || 'scroll'" 
+                        @change="(e: any) => handleSectionUpdate({ animationTrigger: e.target.value })"
+                    >
+                        <option value="scroll">Scroll (Default)</option>
+                        <option value="click">Click Section</option>
+                        <option value="open_btn">Open Button (After Open)</option>
+                    </select>
                 </div>
             </div>
             <div class="p-4 bg-slate-50 rounded-lg text-center text-slate-400 text-sm">
