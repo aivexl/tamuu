@@ -84,14 +84,31 @@ const handleOpenInvitation = (_element?: any) => {
 };
 
 const shouldShowSection = (index: number) => {
-    const effect = activeTransitionEffect.value;
-    if (effect === 'none' || effect === 'scroll') {
-        return index === 0 || isOpened.value; // Classic behavior
+    // Cover (index 0): Always show initially, hide after open with transition
+    // Content (index > 0): Show only after opened
+    if (index === 0) {
+        return true; // Always render cover, visibility controlled by CSS
     }
-    // Visual Transition:
-    // Index 0 (Cover): Visible only if NOT opened
-    // Index > 0 (Content): Visible only if opened
-    return index === 0 ? !isOpened.value : isOpened.value;
+    return isOpened.value;
+};
+
+const getSectionClass = (index: number) => {
+    const section = orderedSections.value[index];
+    const effect = section?.transitionEffect || 'none';
+    
+    if (index === 0) {
+        // Cover section - apply exit transition when opened
+        if (isOpened.value && effect !== 'none' && effect !== 'scroll') {
+            return `pt-${effect}-leave-active pt-${effect}-leave-to`;
+        }
+        return '';
+    } else {
+        // Content sections - apply enter transition when opened
+        if (isOpened.value && effect !== 'none' && effect !== 'scroll') {
+            return `pt-${effect}-enter-active pt-${effect}-enter-to`;
+        }
+        return '';
+    }
 };
 
 // Helper to generate button styles
@@ -346,14 +363,15 @@ const goBack = () => {
                         <Maximize2 class="w-5 h-5" />
                     </button>
                 </div>
-                <!-- Sections -->
+                <!-- Sections Container -->
                 <div class="page-transition-wrapper flex flex-col items-center w-full">
                     <div 
                         v-for="(section, index) in orderedSections" 
                         :key="section.key"
                         v-show="shouldShowSection(index)"
                         :ref="(el) => setSectionRef(el, index)"
-                        class="relative overflow-hidden flex-shrink-0"
+                        class="relative overflow-hidden flex-shrink-0 page-section"
+                        :class="getSectionClass(index)"
                         @click="handleSectionClick(index)"
                         :style="{
                             width: `${CANVAS_WIDTH}px`,
@@ -362,6 +380,7 @@ const goBack = () => {
                             backgroundImage: section.backgroundUrl ? `url(${section.backgroundUrl})` : 'none',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
+                            '--transition-duration': `${section.transitionDuration || 1000}ms`,
                         }"
                     >
                         <!-- Overlay -->
