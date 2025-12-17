@@ -44,6 +44,11 @@ const elementAnimation = computed({
     set: (val: any) => handleUpdate({ animation: val })
 });
 
+const elementAnimationTrigger = computed({
+    get: () => element.value?.animationTrigger || 'scroll',
+    set: (val: any) => handleUpdate({ animationTrigger: val })
+});
+
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/lib/constants';
 
 // Canvas constants for alignment imported from constants
@@ -445,6 +450,19 @@ const handleCopyToSection = async () => {
                     <option value="flip-x">Flip X</option>
                     <option value="flip-y">Flip Y</option>
                     <option value="bounce">Bounce</option>
+                </select>
+            </div>
+
+            <!-- Animation Trigger (New Element Level) -->
+            <div class="space-y-1">
+                <Label class="text-xs text-slate-500">Animation Trigger</Label>
+                <select 
+                    class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white"
+                    v-model="elementAnimationTrigger"
+                >
+                    <option value="scroll">Scroll (Default)</option>
+                    <option value="click">Click Element (Manual)</option>
+                    <option value="open_btn">Open Button (After Open)</option>
                 </select>
             </div>
 
@@ -930,18 +948,6 @@ const handleCopyToSection = async () => {
                         </Button>
                     </div>
                     <Input class="mt-2" :model-value="currentSection.backgroundUrl || ''" @update:model-value="val => handleSectionUpdate({ backgroundUrl: val })" placeholder="Or paste URL..." />
-                </div>
-                <div>
-                    <span class="text-xs text-slate-400">Animation Trigger</span>
-                    <select 
-                        class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" 
-                        :value="currentSection.animationTrigger || 'scroll'" 
-                        @change="(e: any) => handleSectionUpdate({ animationTrigger: e.target.value })"
-                    >
-                        <option value="scroll">Scroll (Default)</option>
-                        <option value="click">Click Section</option>
-                        <option value="open_btn">Open Button (After Open)</option>
-                    </select>
                 </div>
             </div>
             <div class="p-4 bg-slate-50 rounded-lg text-center text-slate-400 text-sm">

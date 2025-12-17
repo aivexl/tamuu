@@ -343,10 +343,10 @@ const goBack = () => {
                             :delay="el.animationDelay || 0"
                             :duration="el.animationDuration || 800"
                             :class="'w-full h-full'"
-                            :trigger-mode="(!section.animationTrigger || section.animationTrigger === 'scroll') ? 'auto' : 'manual'"
+                            :trigger-mode="(!el.animationTrigger || el.animationTrigger === 'scroll') ? 'auto' : 'manual'"
                             :force-trigger="
-                                section.animationTrigger === 'click' ? (sectionClicked[index] || false) :
-                                section.animationTrigger === 'open_btn' ? isOpened :
+                                el.animationTrigger === 'click' ? (sectionClicked[index] || false) :
+                                el.animationTrigger === 'open_btn' ? isOpened :
                                 false
                             "
                             :element-id="el.id"

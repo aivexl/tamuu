@@ -385,12 +385,12 @@ export class DatabaseService {
             .prepare(`
         INSERT INTO template_elements (
           id, section_id, type, name, position_x, position_y, width, height, z_index,
-          animation, loop_animation, animation_delay, animation_speed, animation_duration,
+          animation, loop_animation, animation_delay, animation_speed, animation_duration, animation_trigger,
           content, image_url, text_style, icon_style, countdown_config,
           rsvp_form_config, guest_wishes_config, open_invitation_config,
           rotation, flip_horizontal, flip_vertical, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
             .bind(
                 id,
@@ -407,6 +407,7 @@ export class DatabaseService {
                 element.animationDelay ?? 0,
                 element.animationSpeed ?? 500,
                 element.animationDuration ?? 1000,
+                element.animationTrigger || 'scroll',
                 element.content || null,
                 element.imageUrl || null,
                 element.textStyle ? JSON.stringify(element.textStyle) : null,
@@ -474,6 +475,10 @@ export class DatabaseService {
         if (updates.animationDuration !== undefined) {
             sets.push('animation_duration = ?');
             values.push(updates.animationDuration);
+        }
+        if (updates.animationTrigger !== undefined) {
+            sets.push('animation_trigger = ?');
+            values.push(updates.animationTrigger);
         }
         if (updates.content !== undefined) {
             sets.push('content = ?');

@@ -317,7 +317,9 @@ export interface TemplateElement {
     countdownConfig?: CountdownConfig;
     rsvpFormConfig?: RSVPFormConfig;
     guestWishesConfig?: GuestWishesConfig;
+    guestWishesConfig?: GuestWishesConfig;
     openInvitationConfig?: OpenInvitationConfig;
+    animationTrigger?: 'scroll' | 'click' | 'open_btn';
 }
 
 export interface SectionDesign {

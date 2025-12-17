@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS template_elements (
     animation_delay INTEGER DEFAULT 0,
     animation_speed INTEGER DEFAULT 500,
     animation_duration INTEGER DEFAULT 1000,
+    animation_trigger TEXT DEFAULT 'scroll',
     content TEXT,
     image_url TEXT,
     text_style TEXT, -- JSON object
