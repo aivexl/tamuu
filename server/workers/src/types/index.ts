@@ -47,6 +47,9 @@ export interface DBTemplateSection {
     page_title: string | null;
     open_invitation_config: string | null; // JSON string
     animation_trigger: string | null;
+    transition_effect: string | null;
+    transition_duration: number | null;
+    transition_trigger: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -123,6 +126,9 @@ export interface SectionDesign {
     order?: number;
     openInvitationConfig?: OpenInvitationConfig;
     animationTrigger?: 'scroll' | 'click' | 'open_btn';
+    transitionEffect?: string;
+    transitionDuration?: number;
+    transitionTrigger?: 'scroll' | 'click' | 'open_btn';
     elements: TemplateElement[];
 }
 

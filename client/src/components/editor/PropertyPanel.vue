@@ -74,20 +74,21 @@ const handleUpdate = (updates: Partial<TemplateElement>) => {
 
 // Section update handler - updates local state AND persists to DB
 const handleSectionUpdate = async (updates: Partial<SectionDesign>) => {
-    console.log('[PropertyPanel] handleSectionUpdate called with:', updates);
-    
     if (props.activeSectionType && store.activeTemplateId) {
         const template = store.templates.find(t => t.id === store.activeTemplateId);
         if (template && template.sections[props.activeSectionType]) {
-            // Optimistic local update
+            // 1. Optimistic local update (merge updates into the store's object)
             Object.assign(template.sections[props.activeSectionType], updates);
-            console.log('[PropertyPanel] Local section after update:', template.sections[props.activeSectionType]);
+            
+            // 2. Get the FULL merged section data for persistence
+            // This ensures that even if 'updates' is a delta (e.g. just one field), 
+            // the DB receives all currently hydrated fields (essential for INSERT cases)
+            const fullSectionData = template.sections[props.activeSectionType];
             
             // Persist to database
             try {
-                console.log('[PropertyPanel] Calling API.updateSection...');
-                await CloudflareAPI.updateSection(store.activeTemplateId, props.activeSectionType, updates);
-                console.log('[PropertyPanel] API call successful');
+                // We send the fullSectionData so the backend can correctly handle New Section (INSERT) cases
+                await CloudflareAPI.updateSection(store.activeTemplateId, props.activeSectionType, fullSectionData);
             } catch (error) {
                 console.error('[PropertyPanel] Failed to persist section update:', error);
             }
@@ -953,6 +954,18 @@ const handleCopyToSection = async () => {
                         </Button>
                     </div>
                     <Input class="mt-2" :model-value="currentSection.backgroundUrl || ''" @update:model-value="val => handleSectionUpdate({ backgroundUrl: val })" placeholder="Or paste URL..." />
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400">Animation Trigger</span>
+                    <select 
+                        class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white"
+                        :value="currentSection.animationTrigger || 'scroll'"
+                        @change="(e: any) => handleSectionUpdate({ animationTrigger: e.target.value })"
+                    >
+                        <option value="scroll">On Scroll (Default)</option>
+                        <option value="click">Click Page</option>
+                        <option value="open_btn">Click Open Button</option>
+                    </select>
                 </div>
             </div>
             <div class="space-y-3 pt-3 border-t">

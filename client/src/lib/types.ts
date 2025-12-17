@@ -323,6 +323,7 @@ export interface TemplateElement {
 }
 
 export interface SectionDesign {
+    id?: string;
     backgroundUrl?: string;
     backgroundColor?: string;
     animation: AnimationType;

@@ -126,7 +126,7 @@ export const useTemplateStore = defineStore("template", {
                 if (section) {
                     const index = section.elements.findIndex((el) => el.id === elementId);
                     if (index !== -1) {
-                        section.elements[index] = { ...section.elements[index], ...updates };
+                        section.elements[index] = { ...section.elements[index], ...updates } as TemplateElement;
                     }
                 }
             }
@@ -692,6 +692,11 @@ export const useTemplateStore = defineStore("template", {
                         elements: [],
                         isVisible: true,
                         animation: 'none',
+                        animationTrigger: 'scroll',
+                        backgroundColor: '#ffffff',
+                        transitionEffect: 'none',
+                        transitionDuration: 1000,
+                        transitionTrigger: 'scroll',
                         title: s.title,
                         order: s.order
                     };
@@ -708,7 +713,7 @@ export const useTemplateStore = defineStore("template", {
 
         // Legacy helper syncing sections json - redundant now?
         // Retaining for any other calls, but renamed or deprecated.
-        async syncSections(templateId: string, sections: Record<string, SectionDesign>) {
+        async syncSections(_templateId: string, _sections: Record<string, SectionDesign>) {
             // NO-OP or handle legacy. 
             // We should NOT rely on this for section updates anymore.
         }

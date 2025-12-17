@@ -8,7 +8,7 @@ interface Props {
   isLoading?: boolean;
   disabled?: boolean;
   type?: "button" | "submit" | "reset";
-  class?: string;
+  class?: any;
 }
 
 const props = withDefaults(defineProps<Props>(), {
