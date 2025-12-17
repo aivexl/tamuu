@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { useTemplateStore } from '@/stores/template';
 import { PREDEFINED_SECTION_TYPES, type SectionDesign } from '@/lib/types';
 import KonvaCanvas from '@/components/editor/KonvaCanvas.vue';
+import PropertyPanel from '@/components/editor/PropertyPanel.vue';
+import AddElementPanel from '@/components/editor/AddElementPanel.vue';
 import Button from '@/components/ui/Button.vue';
 import * as CloudflareAPI from '@/services/cloudflare-api';
 import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, Maximize, Check } from 'lucide-vue-next';

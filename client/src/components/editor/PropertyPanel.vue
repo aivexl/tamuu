@@ -947,6 +947,8 @@ const handleCopyToSection = async () => {
                             <Upload class="w-3 h-3" /> {{ isUploadingBg ? 'Uploading...' : 'Upload Image' }}
                         </Button>
                     </div>
+                    <Input class="mt-2" :model-value="currentSection.backgroundUrl || ''" @update:model-value="val => handleSectionUpdate({ backgroundUrl: val })" placeholder="Or paste URL..." />
+                </div>
             </div>
             <div class="space-y-3 pt-3 border-t">
                 <Label class="text-xs font-semibold text-slate-500 uppercase">Page Transition</Label>
