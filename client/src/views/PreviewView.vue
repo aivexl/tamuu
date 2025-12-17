@@ -32,6 +32,8 @@ const isOpened = ref(false);
 const openBtnTriggered = ref(false);
 const sectionRefs = ref<HTMLElement[]>([]);
 const sectionClicked = ref<boolean[]>([]);
+const isCoverVisible = ref(true); // Track cover visibility after transition
+const coverTransitionDone = ref(false); // Track if cover transition completed
 
 const setSectionRef = (el: any, index: number) => {
     if (el) sectionRefs.value[index] = el;
@@ -69,42 +71,53 @@ const handleOpenInvitation = (_element?: any) => {
     setTimeout(() => {
         isOpened.value = true;
         
-        // 4. Scroll logic (only if not using a "replace" transition)
-        // If transition is 'scroll' or 'none', we scroll manually.
-        // If it's a visual transition (fade, etc), the cover disappears so scrolling might be instant/unnecessary.
-        const effect = activeTransitionEffect.value;
-        if (effect === 'none' || effect === 'scroll') {
-             setTimeout(() => {
-                if (sectionRefs.value[1]) {
-                    sectionRefs.value[1].scrollIntoView({ behavior: 'smooth' });
-                }
-             }, 100);
+        // 4. Get cover section's transition effect and duration
+        const coverSection = orderedSections.value[0];
+        const coverEffect = coverSection?.transitionEffect || 'none';
+        const coverDuration = coverSection?.transitionDuration || 1000;
+        
+        // 5. After cover transition completes, mark it done and hide cover
+        if (coverEffect !== 'none' && coverEffect !== 'scroll') {
+            setTimeout(() => {
+                coverTransitionDone.value = true;
+                isCoverVisible.value = false;
+            }, coverDuration + 100); // Small buffer
+        } else {
+            // No transition effect - scroll behavior
+            if (sectionRefs.value[1]) {
+                sectionRefs.value[1].scrollIntoView({ behavior: 'smooth' });
+            }
         }
     }, maxDelay);
 };
 
 const shouldShowSection = (index: number) => {
-    // Cover (index 0): Always show initially, hide after open with transition
-    // Content (index > 0): Show only after opened
     if (index === 0) {
-        return true; // Always render cover, visibility controlled by CSS
+        // Cover: visible until transition animation completes
+        return isCoverVisible.value;
     }
+    // Content sections: only show after isOpened
     return isOpened.value;
 };
 
 const getSectionClass = (index: number) => {
-    const section = orderedSections.value[index];
-    const effect = section?.transitionEffect || 'none';
+    // Use cover section's effect for the transition
+    const coverSection = orderedSections.value[0];
+    const effect = coverSection?.transitionEffect || 'none';
+    
+    if (effect === 'none' || effect === 'scroll') {
+        return '';
+    }
     
     if (index === 0) {
         // Cover section - apply exit transition when opened
-        if (isOpened.value && effect !== 'none' && effect !== 'scroll') {
+        if (isOpened.value && !coverTransitionDone.value) {
             return `pt-${effect}-leave-active pt-${effect}-leave-to`;
         }
         return '';
     } else {
         // Content sections - apply enter transition when opened
-        if (isOpened.value && effect !== 'none' && effect !== 'scroll') {
+        if (isOpened.value) {
             return `pt-${effect}-enter-active pt-${effect}-enter-to`;
         }
         return '';
