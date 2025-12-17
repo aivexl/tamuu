@@ -36,7 +36,10 @@ const isCoverVisible = ref(true); // Track cover visibility after transition
 const coverTransitionDone = ref(false); // Track if cover transition completed
 
 const setSectionRef = (el: any, index: number) => {
-    if (el) sectionRefs.value[index] = el;
+    if (el) {
+        sectionRefs.value[index] = el;
+        if (observer) observer.observe(el);
+    }
 };
 
 const handleSectionClick = (index: number) => {
@@ -45,9 +48,24 @@ const handleSectionClick = (index: number) => {
     }
 };
 
-const activeTransitionEffect = computed(() => {
-    if (!orderedSections.value.length) return 'none';
-    return orderedSections.value[0].transitionEffect || 'none';
+const visibleSections = ref<Set<number>>(new Set());
+
+// Use IntersectionObserver to track which sections are in view for scroll transitions
+let observer: IntersectionObserver | null = null;
+
+onMounted(() => {
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const index = parseInt((entry.target as HTMLElement).dataset.index || '-1');
+      if (entry.isIntersecting && index !== -1) {
+        visibleSections.value.add(index);
+      }
+    });
+  }, { threshold: 0.1 });
+});
+
+onUnmounted(() => {
+  if (observer) observer.disconnect();
 });
 
 // Handle Open Invitation Click (Sequencing)
@@ -123,9 +141,11 @@ const shouldShowSection = (index: number) => {
 };
 
 const getSectionClass = (index: number) => {
-    // Use cover section's effect for the transition
-    const coverSection = orderedSections.value[0];
-    const effect = coverSection?.transitionEffect || 'none';
+    const section = orderedSections.value[index];
+    if (!section) return '';
+    
+    const effect = section.transitionEffect || 'none';
+    const trigger = section.transitionTrigger || 'scroll';
     
     if (effect === 'none' || effect === 'scroll') {
         return '';
@@ -138,8 +158,13 @@ const getSectionClass = (index: number) => {
         }
         return '';
     } else {
-        // Content sections - apply enter transition when opened
-        if (isOpened.value) {
+        // Content sections - apply enter transition
+        const shouldAnimate = 
+            (trigger === 'open_btn' && isOpened.value) || 
+            (trigger === 'scroll' && visibleSections.value.has(index)) ||
+            (trigger === 'click' && sectionClicked.value[index]);
+
+        if (shouldAnimate) {
             return `pt-${effect}-enter-active pt-${effect}-enter-to`;
         }
         return '';
@@ -405,7 +430,8 @@ const goBack = () => {
                         :key="section.key"
                         v-show="shouldShowSection(index)"
                         :ref="(el) => setSectionRef(el, index)"
-                        class="relative overflow-hidden flex-shrink-0 page-section"
+                        :data-index="index"
+                        class="relative overflow-hidden flex-shrink-0 page-section transition-all duration-300"
                         :class="getSectionClass(index)"
                         @click="handleSectionClick(index)"
                         :style="{
@@ -415,6 +441,11 @@ const goBack = () => {
                             backgroundImage: section.backgroundUrl ? `url(${section.backgroundUrl})` : 'none',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
+                            zIndex: index === 0 ? 50 : 10,
+                            position: (index === 0 && isOpened.value && !coverTransitionDone.value) ? 'absolute' : 'relative',
+                            top: 0,
+                            left: '50%',
+                            transform: (index === 0 && isOpened.value && !coverTransitionDone.value) ? 'translateX(-50%)' : 'none',
                             '--transition-duration': `${section.transitionDuration || 1000}ms`,
                         }"
                     >

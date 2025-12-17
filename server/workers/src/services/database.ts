@@ -292,40 +292,59 @@ export class DatabaseService {
         const now = new Date().toISOString();
 
         if (existing) {
-            // Update existing section
-            await this.db
-                .prepare(`
-          UPDATE template_sections SET
-            is_visible = ?,
-            background_color = ?,
-            background_url = ?,
-            overlay_opacity = ?,
-            animation = ?,
-            page_title = ?,
-            animation_trigger = ?,
-            open_invitation_config = ?,
-            transition_effect = ?,
-            transition_duration = ?,
-            transition_trigger = ?,
-            updated_at = ?
-          WHERE id = ?
-        `)
-                .bind(
-                    updates.isVisible !== undefined ? (updates.isVisible ? 1 : 0) : 1,
-                    updates.backgroundColor || null,
-                    updates.backgroundUrl || null,
-                    updates.overlayOpacity ?? 0.3,
-                    updates.animation || 'fade-in',
-                    updates.pageTitle || null,
-                    updates.animationTrigger || 'scroll',
-                    updates.openInvitationConfig ? JSON.stringify(updates.openInvitationConfig) : null,
-                    updates.transitionEffect || 'none',
-                    updates.transitionDuration || 1000,
-                    updates.transitionTrigger || 'scroll',
-                    now,
-                    existing.id
-                )
-                .run();
+            // Update existing section - DYNAMIC UPDATE to prevent overwriting missing fields
+            const sets: string[] = ['updated_at = ?'];
+            const values: any[] = [now];
+
+            if (updates.isVisible !== undefined) {
+                sets.push('is_visible = ?');
+                values.push(updates.isVisible ? 1 : 0);
+            }
+            if (updates.backgroundColor !== undefined) {
+                sets.push('background_color = ?');
+                values.push(updates.backgroundColor || null);
+            }
+            if (updates.backgroundUrl !== undefined) {
+                sets.push('background_url = ?');
+                values.push(updates.backgroundUrl || null);
+            }
+            if (updates.overlayOpacity !== undefined) {
+                sets.push('overlay_opacity = ?');
+                values.push(updates.overlayOpacity);
+            }
+            if (updates.animation !== undefined) {
+                sets.push('animation = ?');
+                values.push(updates.animation);
+            }
+            if (updates.pageTitle !== undefined) {
+                sets.push('page_title = ?');
+                values.push(updates.pageTitle || null);
+            }
+            if (updates.animationTrigger !== undefined) {
+                sets.push('animation_trigger = ?');
+                values.push(updates.animationTrigger);
+            }
+            if (updates.openInvitationConfig !== undefined) {
+                sets.push('open_invitation_config = ?');
+                values.push(JSON.stringify(updates.openInvitationConfig));
+            }
+            if (updates.transitionEffect !== undefined) {
+                sets.push('transition_effect = ?');
+                values.push(updates.transitionEffect);
+            }
+            if (updates.transitionDuration !== undefined) {
+                sets.push('transition_duration = ?');
+                values.push(updates.transitionDuration);
+            }
+            if (updates.transitionTrigger !== undefined) {
+                sets.push('transition_trigger = ?');
+                values.push(updates.transitionTrigger);
+            }
+
+            if (sets.length > 1) {
+                const query = `UPDATE template_sections SET ${sets.join(', ')} WHERE id = ?`;
+                await this.db.prepare(query).bind(...values, existing.id).run();
+            }
 
             return existing.id;
         } else {
@@ -333,7 +352,12 @@ export class DatabaseService {
             const id = generateUUID();
             await this.db
                 .prepare(`
-          INSERT INTO template_sections (id, template_id, type, is_visible, background_color, background_url, overlay_opacity, animation, page_title, animation_trigger, open_invitation_config, transition_effect, transition_duration, transition_trigger, created_at, updated_at)
+          INSERT INTO template_sections (
+            id, template_id, type, is_visible, background_color, background_url, 
+            overlay_opacity, animation, page_title, animation_trigger, 
+            open_invitation_config, transition_effect, transition_duration, transition_trigger,
+            created_at, updated_at
+          )
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
                 .bind(
@@ -343,7 +367,7 @@ export class DatabaseService {
                     updates.isVisible !== undefined ? (updates.isVisible ? 1 : 0) : 1,
                     updates.backgroundColor || null,
                     updates.backgroundUrl || null,
-                    updates.overlayOpacity ?? 0.3,
+                    updates.overlayOpacity ?? 0,
                     updates.animation || 'fade-in',
                     updates.pageTitle || null,
                     updates.animationTrigger || 'scroll',
