@@ -30,10 +30,14 @@ CREATE TABLE IF NOT EXISTS template_sections (
     is_visible INTEGER DEFAULT 1, -- SQLite uses INTEGER for boolean
     background_color TEXT,
     background_url TEXT,
-    overlay_opacity REAL DEFAULT 0.3,
+    overlay_opacity REAL DEFAULT 0,
     animation TEXT DEFAULT 'fade-in',
     page_title TEXT,
     animation_trigger TEXT DEFAULT 'scroll',
+    transition_effect TEXT DEFAULT 'none',
+    transition_duration INTEGER DEFAULT 1000,
+    transition_trigger TEXT DEFAULT 'scroll',
+    content TEXT, -- deprecated, moving to blocks BUT keeping for legacy simple sections
     open_invitation_config TEXT, -- JSON object
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),

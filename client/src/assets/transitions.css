@@ -1,0 +1,663 @@
+/* Page Transitions */
+
+/* Variables */
+:root {
+    --transition-duration: 1000ms;
+    --transition-timing: ease-in-out;
+}
+
+/* Base Wrapper Class */
+.page-transition-wrapper {
+    animation-duration: var(--transition-duration);
+    animation-timing-function: var(--transition-timing);
+    animation-fill-mode: both;
+}
+
+/* 1. Fade */
+@keyframes pt-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pt-fade-out {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+.pt-fade-enter {
+    animation-name: pt-fade-in;
+}
+
+.pt-fade-leave {
+    animation-name: pt-fade-out;
+}
+
+/* 2. Slide Up */
+@keyframes pt-slide-up-in {
+    from {
+        transform: translateY(100vh);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes pt-slide-up-out {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(-100vh);
+    }
+}
+
+.pt-slide-up-enter {
+    animation-name: pt-slide-up-in;
+}
+
+.pt-slide-up-leave {
+    animation-name: pt-slide-up-out;
+}
+
+/* 3. Slide Down */
+@keyframes pt-slide-down-in {
+    from {
+        transform: translateY(-100vh);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes pt-slide-down-out {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(100vh);
+    }
+}
+
+.pt-slide-down-enter {
+    animation-name: pt-slide-down-in;
+}
+
+.pt-slide-down-leave {
+    animation-name: pt-slide-down-out;
+}
+
+/* 4. Slide Left */
+@keyframes pt-slide-left-in {
+    from {
+        transform: translateX(100vw);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes pt-slide-left-out {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-100vw);
+    }
+}
+
+.pt-slide-left-enter {
+    animation-name: pt-slide-left-in;
+}
+
+.pt-slide-left-leave {
+    animation-name: pt-slide-left-out;
+}
+
+/* 5. Slide Right */
+@keyframes pt-slide-right-in {
+    from {
+        transform: translateX(-100vw);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes pt-slide-right-out {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(100vw);
+    }
+}
+
+.pt-slide-right-enter {
+    animation-name: pt-slide-right-in;
+}
+
+.pt-slide-right-leave {
+    animation-name: pt-slide-right-out;
+}
+
+/* 6. Zoom In */
+@keyframes pt-zoom-in-enter {
+    from {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-zoom-in-leave {
+    from {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    to {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+.pt-zoom-in-enter {
+    animation-name: pt-zoom-in-enter;
+}
+
+.pt-zoom-in-leave {
+    animation-name: pt-zoom-in-leave;
+}
+
+/* 7. Zoom Out */
+@keyframes pt-zoom-out-enter {
+    from {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-zoom-out-leave {
+    from {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    to {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+}
+
+.pt-zoom-out-enter {
+    animation-name: pt-zoom-out-enter;
+}
+
+.pt-zoom-out-leave {
+    animation-name: pt-zoom-out-leave;
+}
+
+/* 8. Rotate */
+@keyframes pt-rotate-in {
+    from {
+        transform: rotate(-90deg) scale(0.5);
+        opacity: 0;
+    }
+
+    to {
+        transform: rotate(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-rotate-out {
+    from {
+        transform: rotate(0) scale(1);
+        opacity: 1;
+    }
+
+    to {
+        transform: rotate(90deg) scale(0.5);
+        opacity: 0;
+    }
+}
+
+.pt-rotate-enter {
+    animation-name: pt-rotate-in;
+}
+
+.pt-rotate-leave {
+    animation-name: pt-rotate-out;
+}
+
+/* 9. Flip X */
+@keyframes pt-flip-x-in {
+    from {
+        transform: perspective(400px) rotateX(90deg);
+        opacity: 0;
+    }
+
+    to {
+        transform: perspective(400px) rotateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-flip-x-out {
+    from {
+        transform: perspective(400px) rotateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: perspective(400px) rotateX(-90deg);
+        opacity: 0;
+    }
+}
+
+.pt-flip-x-enter {
+    animation-name: pt-flip-x-in;
+    backface-visibility: hidden;
+}
+
+.pt-flip-x-leave {
+    animation-name: pt-flip-x-out;
+    backface-visibility: hidden;
+}
+
+/* 10. Flip Y */
+@keyframes pt-flip-y-in {
+    from {
+        transform: perspective(400px) rotateY(90deg);
+        opacity: 0;
+    }
+
+    to {
+        transform: perspective(400px) rotateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-flip-y-out {
+    from {
+        transform: perspective(400px) rotateY(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: perspective(400px) rotateY(-90deg);
+        opacity: 0;
+    }
+}
+
+.pt-flip-y-enter {
+    animation-name: pt-flip-y-in;
+    backface-visibility: hidden;
+}
+
+.pt-flip-y-leave {
+    animation-name: pt-flip-y-out;
+    backface-visibility: hidden;
+}
+
+/* 11. Blur */
+@keyframes pt-blur-in {
+    from {
+        filter: blur(20px);
+        opacity: 0;
+    }
+
+    to {
+        filter: blur(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-blur-out {
+    from {
+        filter: blur(0);
+        opacity: 1;
+    }
+
+    to {
+        filter: blur(20px);
+        opacity: 0;
+    }
+}
+
+.pt-blur-enter {
+    animation-name: pt-blur-in;
+}
+
+.pt-blur-leave {
+    animation-name: pt-blur-out;
+}
+
+/* 12. Grayscale */
+@keyframes pt-grayscale-in {
+    from {
+        filter: grayscale(1);
+        opacity: 0;
+    }
+
+    to {
+        filter: grayscale(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-grayscale-out {
+    from {
+        filter: grayscale(0);
+        opacity: 1;
+    }
+
+    to {
+        filter: grayscale(1);
+        opacity: 0;
+    }
+}
+
+.pt-grayscale-enter {
+    animation-name: pt-grayscale-in;
+}
+
+.pt-grayscale-leave {
+    animation-name: pt-grayscale-out;
+}
+
+/* 13. Sepia */
+@keyframes pt-sepia-in {
+    from {
+        filter: sepia(1);
+        opacity: 0;
+    }
+
+    to {
+        filter: sepia(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-sepia-out {
+    from {
+        filter: sepia(0);
+        opacity: 1;
+    }
+
+    to {
+        filter: sepia(1);
+        opacity: 0;
+    }
+}
+
+.pt-sepia-enter {
+    animation-name: pt-sepia-in;
+}
+
+.pt-sepia-leave {
+    animation-name: pt-sepia-out;
+}
+
+/* 14. Curtain (Split) - Requires structural change, simulating with scaleX */
+@keyframes pt-curtain-in {
+    from {
+        transform: scaleX(0);
+        transform-origin: center;
+        opacity: 0;
+    }
+
+    to {
+        transform: scaleX(1);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-curtain-out {
+    from {
+        transform: scaleX(1);
+        opacity: 1;
+    }
+
+    to {
+        transform: scaleX(0);
+        transform-origin: center;
+        opacity: 0;
+    }
+}
+
+.pt-curtain-enter {
+    animation-name: pt-curtain-in;
+}
+
+.pt-curtain-leave {
+    animation-name: pt-curtain-out;
+}
+
+/* 15. Door (Swing) */
+@keyframes pt-door-in {
+    from {
+        transform: perspective(1000px) rotateY(-90deg);
+        transform-origin: left;
+        opacity: 0;
+    }
+
+    to {
+        transform: perspective(1000px) rotateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-door-out {
+    from {
+        transform: perspective(1000px) rotateY(0);
+        transform-origin: left;
+        opacity: 1;
+    }
+
+    to {
+        transform: perspective(1000px) rotateY(90deg);
+        opacity: 0;
+    }
+}
+
+.pt-door-enter {
+    animation-name: pt-door-in;
+}
+
+.pt-door-leave {
+    animation-name: pt-door-out;
+}
+
+/* 16. Book Flip */
+@keyframes pt-book-in {
+    from {
+        transform: perspective(1000px) rotateY(-180deg);
+        transform-origin: left;
+        opacity: 0;
+    }
+
+    to {
+        transform: perspective(1000px) rotateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-book-out {
+    from {
+        transform: perspective(1000px) rotateY(0);
+        transform-origin: left;
+        opacity: 1;
+    }
+
+    to {
+        transform: perspective(1000px) rotateY(180deg);
+        opacity: 0;
+    }
+}
+
+.pt-book-enter {
+    animation-name: pt-book-in;
+}
+
+.pt-book-leave {
+    animation-name: pt-book-out;
+}
+
+/* 17. Ripple (Scale with fade) */
+@keyframes pt-ripple-in {
+    from {
+        transform: scale(1.1);
+        filter: brightness(2);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        filter: brightness(1);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-ripple-out {
+    from {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    to {
+        transform: scale(0.9);
+        filter: brightness(0.5);
+        opacity: 0;
+    }
+}
+
+.pt-ripple-enter {
+    animation-name: pt-ripple-in;
+}
+
+.pt-ripple-leave {
+    animation-name: pt-ripple-out;
+}
+
+/* 18. Glitch */
+@keyframes pt-glitch-in {
+    0% {
+        transform: translate(0);
+        opacity: 0;
+    }
+
+    20% {
+        transform: translate(-2px, 2px);
+        opacity: 0.5;
+    }
+
+    40% {
+        transform: translate(-2px, -2px);
+        opacity: 1;
+    }
+
+    60% {
+        transform: translate(2px, 2px);
+    }
+
+    80% {
+        transform: translate(2px, -2px);
+    }
+
+    100% {
+        transform: translate(0);
+        opacity: 1;
+    }
+}
+
+.pt-glitch-enter {
+    animation-name: pt-glitch-in;
+}
+
+.pt-glitch-leave {
+    animation-name: pt-fade-out;
+}
+
+/* Simple fade out */
+
+/* 19. Pixelate (Simulated with blur/contrast) */
+@keyframes pt-pixelate-in {
+    from {
+        filter: blur(10px) contrast(200%);
+        opacity: 0;
+    }
+
+    to {
+        filter: blur(0) contrast(100%);
+        opacity: 1;
+    }
+}
+
+.pt-pixelate-enter {
+    animation-name: pt-pixelate-in;
+}
+
+.pt-pixelate-leave {
+    animation-name: pt-fade-out;
+}
+
+/* 20. Swirl */
+@keyframes pt-swirl-in {
+    from {
+        transform: rotate(-540deg) scale(0);
+        opacity: 0;
+    }
+
+    to {
+        transform: rotate(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes pt-swirl-out {
+    from {
+        transform: rotate(0) scale(1);
+        opacity: 1;
+    }
+
+    to {
+        transform: rotate(540deg) scale(0);
+        opacity: 0;
+    }
+}
+
+.pt-swirl-enter {
+    animation-name: pt-swirl-in;
+}
+
+.pt-swirl-leave {
+    animation-name: pt-swirl-out;
+}

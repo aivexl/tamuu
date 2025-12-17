@@ -18,8 +18,18 @@ const previewContainer = ref<HTMLElement | null>(null);
 
 const currentTemplate = computed(() => store.templates.find(t => t.id === templateId.value));
 
+const orderedSections = computed(() => {
+    if (!currentTemplate.value) return [];
+    const sectionsObj = currentTemplate.value.sections || {};
+    return Object.entries(sectionsObj)
+        .map(([key, data]) => ({ key, ...data }))
+        .filter(s => s.isVisible !== false)
+        .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+});
+
 // New State
 const isOpened = ref(false);
+const openBtnTriggered = ref(false);
 const sectionRefs = ref<HTMLElement[]>([]);
 const sectionClicked = ref<boolean[]>([]);
 
@@ -33,17 +43,55 @@ const handleSectionClick = (index: number) => {
     }
 };
 
-// Handle Open Invitation Click
+const activeTransitionEffect = computed(() => {
+    if (!orderedSections.value.length) return 'none';
+    return orderedSections.value[0].transitionEffect || 'none';
+});
+
+// Handle Open Invitation Click (Sequencing)
 const handleOpenInvitation = (_element?: any) => {
-    isOpened.value = true;
+    // 1. Trigger "Open Button" animations
+    openBtnTriggered.value = true;
     
-    // Allow state update to unlock overflow before scrolling
+    // 2. Determine max animation duration of elements with trigger='open_btn'
+    let maxDelay = 0;
+    if (orderedSections.value[0]) { // Opening Section
+        const elements = orderedSections.value[0].elements || [];
+        elements.forEach((el: any) => {
+            if (el.animationTrigger === 'open_btn') {
+                const total = (el.animationDelay || 0) + (el.animationDuration || 1000);
+                if (total > maxDelay) maxDelay = total;
+            }
+        });
+    }
+
+    // 3. Wait for animations, then trigger Page Transition
     setTimeout(() => {
-        // Find the second section (index 1) to scroll to
-        if (sectionRefs.value[1]) {
-            sectionRefs.value[1].scrollIntoView({ behavior: 'smooth' });
+        isOpened.value = true;
+        
+        // 4. Scroll logic (only if not using a "replace" transition)
+        // If transition is 'scroll' or 'none', we scroll manually.
+        // If it's a visual transition (fade, etc), the cover disappears so scrolling might be instant/unnecessary.
+        const effect = activeTransitionEffect.value;
+        if (effect === 'none' || effect === 'scroll') {
+             setTimeout(() => {
+                if (sectionRefs.value[1]) {
+                    sectionRefs.value[1].scrollIntoView({ behavior: 'smooth' });
+                }
+             }, 100);
         }
-    }, 100);
+    }, maxDelay);
+};
+
+const shouldShowSection = (index: number) => {
+    const effect = activeTransitionEffect.value;
+    if (effect === 'none' || effect === 'scroll') {
+        return index === 0 || isOpened.value; // Classic behavior
+    }
+    // Visual Transition:
+    // Index 0 (Cover): Visible only if NOT opened
+    // Index > 0 (Content): Visible only if opened
+    return index === 0 ? !isOpened.value : isOpened.value;
 };
 
 // Helper to generate button styles
@@ -111,14 +159,7 @@ const getButtonStyle = (element: any) => {
 };
 
 // Get visible ordered sections
-const orderedSections = computed(() => {
-    if (!currentTemplate.value) return [];
-    const sectionsObj = currentTemplate.value.sections || {};
-    return Object.entries(sectionsObj)
-        .map(([key, data]) => ({ key, ...data }))
-        .filter(s => s.isVisible !== false)
-        .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
-});
+
 
 const windowWidth = ref(0);
 const windowHeight = ref(0);
@@ -305,106 +346,108 @@ const goBack = () => {
                         <Maximize2 class="w-5 h-5" />
                     </button>
                 </div>
-                <!-- Sections - each at CANVAS dimensions (except cover) -->
-                <div 
-                    v-for="(section, index) in orderedSections" 
-                    :key="section.key"
-                    v-show="index === 0 || isOpened"
-                    :ref="(el) => setSectionRef(el, index)"
-                    class="relative overflow-hidden flex-shrink-0"
-                    @click="handleSectionClick(index)"
-                    :style="{
-                        width: `${CANVAS_WIDTH}px`,
-                        height: index === 0 ? `${coverHeight}px` : `${CANVAS_HEIGHT}px`,
-                        backgroundColor: section.backgroundColor || '#ffffff',
-                        backgroundImage: section.backgroundUrl ? `url(${section.backgroundUrl})` : 'none',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                    }"
-                >
-                    <!-- Overlay -->
+                <!-- Sections -->
+                <div class="page-transition-wrapper flex flex-col items-center w-full">
                     <div 
-                        v-if="section.overlayOpacity"
-                        class="absolute inset-0 bg-black pointer-events-none" 
-                        :style="{ opacity: section.overlayOpacity }"
-                    />
-                    
-                    <!-- Elements - positioned exactly as in editor -->
-                    <div 
-                        v-for="el in section.elements || []"
-                        :key="el.id"
-                        class="absolute"
-                        :style="getElementStyle(el, index)"
+                        v-for="(section, index) in orderedSections" 
+                        :key="section.key"
+                        v-show="shouldShowSection(index)"
+                        :ref="(el) => setSectionRef(el, index)"
+                        class="relative overflow-hidden flex-shrink-0"
+                        @click="handleSectionClick(index)"
+                        :style="{
+                            width: `${CANVAS_WIDTH}px`,
+                            height: index === 0 ? `${coverHeight}px` : `${CANVAS_HEIGHT}px`,
+                            backgroundColor: section.backgroundColor || '#ffffff',
+                            backgroundImage: section.backgroundUrl ? `url(${section.backgroundUrl})` : 'none',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                        }"
                     >
-                        <!-- AnimatedElement wrapper for scroll animations (World Space) -->
-                        <AnimatedElement
-                            :animation="el.animation || 'none'"
-                            :loop-animation="el.loopAnimation"
-                            :delay="el.animationDelay || 0"
-                            :duration="el.animationDuration || 800"
-                            :class="'w-full h-full'"
-                            :trigger-mode="(!el.animationTrigger || el.animationTrigger === 'scroll') ? 'auto' : 'manual'"
-                            :force-trigger="
-                                el.animationTrigger === 'click' ? (sectionClicked[index] || false) :
-                                el.animationTrigger === 'open_btn' ? isOpened :
-                                false
-                            "
-                            :element-id="el.id"
+                        <!-- Overlay -->
+                        <div 
+                            v-if="section.overlayOpacity"
+                            class="absolute inset-0 bg-black pointer-events-none" 
+                            :style="{ opacity: section.overlayOpacity }"
+                        />
+                        
+                        <!-- Elements - positioned exactly as in editor -->
+                        <div 
+                            v-for="el in section.elements || []"
+                            :key="el.id"
+                            class="absolute"
+                            :style="getElementStyle(el, index)"
                         >
-                            <!-- Transform Wrapper (Element Space: Rotate/Flip) -->
-                            <div 
-                                class="w-full h-full"
-                                :style="{
-                                    transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})`,
-                                }"
+                            <!-- AnimatedElement wrapper for scroll animations (World Space) -->
+                            <AnimatedElement
+                                :animation="el.animation || 'none'"
+                                :loop-animation="el.loopAnimation"
+                                :delay="el.animationDelay || 0"
+                                :duration="el.animationDuration || 800"
+                                :class="'w-full h-full'"
+                                :trigger-mode="(!el.animationTrigger || el.animationTrigger === 'scroll') ? 'auto' : 'manual'"
+                                :force-trigger="
+                                    el.animationTrigger === 'click' ? (sectionClicked[index] || false) :
+                                    el.animationTrigger === 'open_btn' ? openBtnTriggered :
+                                    false
+                                "
+                                :element-id="el.id"
                             >
-                                <!-- Image -->
-                                <img 
-                                    v-if="el.type === 'image' && el.imageUrl" 
-                                    :src="el.imageUrl" 
-                                    class="w-full h-full object-fill"
-                                    :style="{ opacity: el.opacity ?? 1 }"
-                                    draggable="false"
-                                />
-                                
-                                <!-- Text -->
+                                <!-- Transform Wrapper (Element Space: Rotate/Flip) -->
                                 <div 
-                                    v-else-if="el.type === 'text' && el.textStyle"
-                                    class="w-full h-full flex items-center"
+                                    class="w-full h-full"
                                     :style="{
-                                        fontSize: `${el.textStyle.fontSize}px`,
-                                        fontFamily: el.textStyle.fontFamily,
-                                        fontStyle: el.textStyle.fontStyle,
-                                        color: el.textStyle.color,
-                                        textAlign: el.textStyle.textAlign,
+                                        transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})`,
                                     }"
                                 >
-                                    {{ el.content }}
-                                </div>
+                                    <!-- Image -->
+                                    <img 
+                                        v-if="el.type === 'image' && el.imageUrl" 
+                                        :src="el.imageUrl" 
+                                        class="w-full h-full object-fill"
+                                        :style="{ opacity: el.opacity ?? 1 }"
+                                        draggable="false"
+                                    />
+                                    
+                                    <!-- Text -->
+                                    <div 
+                                        v-else-if="el.type === 'text' && el.textStyle"
+                                        class="w-full h-full flex items-center"
+                                        :style="{
+                                            fontSize: `${el.textStyle.fontSize}px`,
+                                            fontFamily: el.textStyle.fontFamily,
+                                            fontStyle: el.textStyle.fontStyle,
+                                            color: el.textStyle.color,
+                                            textAlign: el.textStyle.textAlign,
+                                        }"
+                                    >
+                                        {{ el.content }}
+                                    </div>
 
-                                <!-- Icon -->
-                                <div 
-                                    v-else-if="el.type === 'icon' && el.iconStyle"
-                                    class="w-full h-full flex items-center justify-center"
-                                    :style="{ color: el.iconStyle.iconColor }"
-                                >
-                                    <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="100%" height="100%" style="display: block;">
-                                        <path :d="iconPaths[el.iconStyle.iconName] || iconPaths['heart']" />
-                                    </svg>
-                                </div>
+                                    <!-- Icon -->
+                                    <div 
+                                        v-else-if="el.type === 'icon' && el.iconStyle"
+                                        class="w-full h-full flex items-center justify-center"
+                                        :style="{ color: el.iconStyle.iconColor }"
+                                    >
+                                        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="100%" height="100%" style="display: block;">
+                                            <path :d="iconPaths[el.iconStyle.iconName] || iconPaths['heart']" />
+                                        </svg>
+                                    </div>
 
-                                <!-- Button (Open Invitation / Regular) -->
-                                <button
-                                    v-else-if="el.type === 'button' || el.type === 'open_invitation_button'"
-                                    :style="getButtonStyle(el)"
-                                    class="hover:opacity-90 active:scale-95 transition-all duration-700"
-                                    :class="{ 'opacity-0 pointer-events-none': isOpened && (el.type === 'open_invitation_button' || el.openInvitationConfig) }"
-                                    @click="handleOpenInvitation(el)"
-                                >
-                                    {{ el.openInvitationConfig?.buttonText || el.content || 'Open Invitation' }}
-                                </button>
-                            </div>
-                        </AnimatedElement>
+                                    <!-- Button (Open Invitation / Regular) -->
+                                    <button
+                                        v-else-if="el.type === 'button' || el.type === 'open_invitation_button'"
+                                        :style="getButtonStyle(el)"
+                                        class="hover:opacity-90 active:scale-95 transition-all duration-700"
+                                        :class="{ 'opacity-0 pointer-events-none': isOpened && (el.type === 'open_invitation_button' || el.openInvitationConfig) }"
+                                        @click="handleOpenInvitation(el)"
+                                    >
+                                        {{ el.openInvitationConfig?.buttonText || el.content || 'Open Invitation' }}
+                                    </button>
+                                </div>
+                            </AnimatedElement>
+                        </div>
                     </div>
                 </div>
             </div>

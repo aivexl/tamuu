@@ -149,6 +149,9 @@ export class DatabaseService {
                 order,
                 openInvitationConfig: safeParseJSON(section.open_invitation_config, undefined),
                 animationTrigger: (section.animation_trigger as any) || 'scroll',
+                transitionEffect: (section.transition_effect as string) || 'none',
+                transitionDuration: (section.transition_duration as number) || 1000,
+                transitionTrigger: (section.transition_trigger as any) || 'scroll',
                 elements: sectionElements.map((el) => this.mapElementToResponse(el)),
             };
         });
@@ -480,6 +483,20 @@ export class DatabaseService {
             sets.push('animation_trigger = ?');
             values.push(updates.animationTrigger);
         }
+        if (updates.transitionEffect !== undefined) {
+            sets.push('transition_effect = ?');
+            values.push(updates.transitionEffect);
+        }
+        if (updates.transitionDuration !== undefined) {
+            sets.push('transition_duration = ?');
+            values.push(updates.transitionDuration);
+        }
+        if (updates.transitionTrigger !== undefined) {
+            sets.push('transition_trigger = ?');
+            values.push(updates.transitionTrigger);
+        }
+
+        if (sets.length === 1 && sets[0] === 'updated_at = ?') return; // No updates
         if (updates.content !== undefined) {
             sets.push('content = ?');
             values.push(updates.content || null);

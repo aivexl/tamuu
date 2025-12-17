@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref, watch } from 'vue';
+import { onMounted, onUnmounted, computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useTemplateStore } from '@/stores/template';
-import { PREDEFINED_SECTION_TYPES } from '@/lib/types';
+import { PREDEFINED_SECTION_TYPES, type SectionDesign } from '@/lib/types';
 import KonvaCanvas from '@/components/editor/KonvaCanvas.vue';
-import PropertyPanel from '@/components/editor/PropertyPanel.vue';
-import AddElementPanel from '@/components/editor/AddElementPanel.vue';
 import Button from '@/components/ui/Button.vue';
-import Toast from '@/components/ui/Toast.vue';
 import * as CloudflareAPI from '@/services/cloudflare-api';
 import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, Maximize, Check } from 'lucide-vue-next';
 
@@ -21,7 +18,6 @@ const activeSection = ref<string>(''); // Will be set to first section on load
 // Editable template name/slug
 const isEditingName = ref(false);
 const editableName = ref('');
-const editableSlug = ref('');
 
 // Toast notification
 const showToast = ref(false);
@@ -153,7 +149,10 @@ onMounted(async () => {
 
         // Set initial active section
         if (orderedSections.value.length > 0 && !activeSection.value) {
-            activeSection.value = orderedSections.value[0].key;
+            const first = orderedSections.value[0];
+            if (first) {
+                activeSection.value = first.key;
+            }
         }
     }
     // Add keyboard shortcuts
@@ -226,26 +225,33 @@ const handleKeyDown = (e: KeyboardEvent) => {
     }
 };
 
+const fallbackSection: SectionDesign = { animation: 'none', elements: [] };
+
 const currentSectionData = computed(() => 
-    currentTemplate.value?.sections[activeSection.value] || { animation: 'none', elements: [] }
+    currentTemplate.value?.sections[activeSection.value] || fallbackSection
 );
 
 // Helper to get section data by type
 const getSectionData = (sectionType: string) => {
-    return currentTemplate.value?.sections[sectionType] || { animation: 'none', elements: [] };
+    return currentTemplate.value?.sections[sectionType] || fallbackSection;
 };
 
 const handleElementSelect = (id: string | null) => {
     store.setSelectedElement(id);
 };
 
-const handleElementDragEnd = (id: string, x: number, y: number) => {
-    store.updateElement(templateId.value, activeSection.value, id, { position: { x, y } });
+const handleElementDrag = (sectionKey: string, id: string, pos: { x: number, y: number }) => {
+    // Update local state immediately for smoothness (Optimistic/Skip DB)
+    store.updateElement(templateId.value, sectionKey, id, { position: pos }, { skipDb: true });
 };
 
-const handleElementTransformEnd = (payload: any) => {
-    const { id, x, y, width, height, rotation } = payload;
-    store.updateElement(templateId.value, activeSection.value, id, { 
+const handleElementDragEnd = async (sectionKey: string, id: string, pos: { x: number, y: number }) => {
+    await store.updateElement(templateId.value, sectionKey, id, { position: pos });
+};
+
+const handleElementTransformEnd = async (sectionKey: string, id: string, props: { x: number, y: number, width: number, height: number, rotation: number }) => {
+    const { x, y, width, height, rotation } = props;
+    await store.updateElement(templateId.value, sectionKey, id, { 
         position: { x, y },
         size: { width, height },
         rotation
@@ -431,14 +437,6 @@ const handleElementTransformEnd = (payload: any) => {
                         </div>
 
                         <!-- Canvas Konva -->
-                        <!-- If section is hidden, we might want to hide it or dim it? -->
-                        <!-- Requirements say "Unified Section Preview". Usually hidden means not in final, maybe just opacity reduced here? Or hidden? -->
-                        <!-- Assuming we still show it in editor but maybe marked 'Hidden' or just hide it? 
-                             Usually Editor shows everything or has 'Preview Mode'. 
-                             Let's show it with opacity if hidden for now to allow editing hidden sections? 
-                             Or strictly hide?
-                             Given 'Toggle Visibility' usually means "active in production", better to clearly visualize it's hidden. 
-                             Let's add opacity-50 if hidden. -->
                         <div :class="{'opacity-40 grayscale': section.isVisible === false}" class="transition-all duration-300">
                              <KonvaCanvas 
                                 :section-type="section.key"
@@ -448,14 +446,14 @@ const handleElementTransformEnd = (payload: any) => {
                                 :background-url="getSectionData(section.key).backgroundUrl"
                                 :overlay-opacity="getSectionData(section.key).overlayOpacity"
                                 @elementSelect="(id) => { activeSection = section.key; handleElementSelect(id); }"
-                                @elementDragEnd="handleElementDragEnd"
-                                @elementTransformEnd="handleElementTransformEnd"
-                            />
+                                @elementDrag="(id, pos) => handleElementDrag(section.key, id, pos)"
+                                @elementDragEnd="(id, pos) => handleElementDragEnd(section.key, id, pos)"
+                                @elementTransformEnd="(id, props) => handleElementTransformEnd(section.key, id, props)"
+                             />
                         </div>
                     </div>
                 </div>
             </main>
-
 
             <!-- Sidebar Right (Properties) -->
             <aside class="w-80 border-l bg-white flex flex-col z-10">
@@ -470,6 +468,8 @@ const handleElementTransformEnd = (payload: any) => {
                 </div>
             </aside>
         </div>
+
+        <!-- Modals -->
     </div>
 
     <!-- Copy to Section Modal -->

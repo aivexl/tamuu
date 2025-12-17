@@ -947,7 +947,68 @@ const handleCopyToSection = async () => {
                             <Upload class="w-3 h-3" /> {{ isUploadingBg ? 'Uploading...' : 'Upload Image' }}
                         </Button>
                     </div>
-                    <Input class="mt-2" :model-value="currentSection.backgroundUrl || ''" @update:model-value="val => handleSectionUpdate({ backgroundUrl: val })" placeholder="Or paste URL..." />
+            </div>
+            <div class="space-y-3 pt-3 border-t">
+                <Label class="text-xs font-semibold text-slate-500 uppercase">Page Transition</Label>
+                <div>
+                    <span class="text-xs text-slate-400">Transition Effect</span>
+                    <select 
+                        class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white"
+                        :value="currentSection.transitionEffect || 'none'"
+                        @change="(e: any) => handleSectionUpdate({ transitionEffect: e.target.value })"
+                    >
+                        <option value="none">None</option>
+                        <option value="fade">Fade</option>
+                        <option value="slide-up">Slide Up</option>
+                        <option value="slide-down">Slide Down</option>
+                        <option value="slide-left">Slide Left</option>
+                        <option value="slide-right">Slide Right</option>
+                        <option value="zoom-in">Zoom In</option>
+                        <option value="zoom-out">Zoom Out</option>
+                        <option value="rotate">Rotate</option>
+                        <option value="flip-x">Flip X</option>
+                        <option value="flip-y">Flip Y</option>
+                        <option value="blur">Blur</option>
+                        <option value="grayscale">Grayscale</option>
+                        <option value="sepia">Sepia</option>
+                        <option value="curtain">Curtain Open</option>
+                        <option value="door">Door Open</option>
+                        <option value="book">Book Flip</option>
+                        <option value="ripple">Ripple</option>
+                        <option value="glitch">Glitch</option>
+                        <option value="pixelate">Pixelate</option>
+                        <option value="swirl">Swirl</option>
+                    </select>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400">Transition Trigger</span>
+                    <select 
+                        class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white"
+                        :value="currentSection.transitionTrigger || 'scroll'"
+                        @change="(e: any) => handleSectionUpdate({ transitionTrigger: e.target.value })"
+                    >
+                        <option value="scroll">On Scroll (Default)</option>
+                        <option value="click">Click Page</option>
+                        <option value="open_btn">Click Open Button</option>
+                    </select>
+                    <p class="text-xs text-slate-400 mt-1" v-if="currentSection.transitionTrigger === 'open_btn'">
+                        This transition will play when the "Open Invitation" button is clicked.
+                    </p>
+                </div>
+                <div>
+                    <div class="flex justify-between">
+                        <span class="text-xs text-slate-400">Duration</span>
+                        <span class="text-xs text-slate-500">{{ currentSection.transitionDuration || 1000 }}ms</span>
+                    </div>
+                    <input 
+                        type="range" 
+                        min="500" 
+                        max="3000" 
+                        step="100" 
+                        :value="currentSection.transitionDuration || 1000"
+                        @input="(e: any) => handleSectionUpdate({ transitionDuration: Number(e.target.value) })"
+                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                    />
                 </div>
             </div>
             <div class="p-4 bg-slate-50 rounded-lg text-center text-slate-400 text-sm">

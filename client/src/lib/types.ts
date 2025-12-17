@@ -317,7 +317,7 @@ export interface TemplateElement {
     countdownConfig?: CountdownConfig;
     rsvpFormConfig?: RSVPFormConfig;
     guestWishesConfig?: GuestWishesConfig;
-    guestWishesConfig?: GuestWishesConfig;
+
     openInvitationConfig?: OpenInvitationConfig;
     animationTrigger?: 'scroll' | 'click' | 'open_btn';
 }
@@ -335,6 +335,9 @@ export interface SectionDesign {
     isVisible?: boolean;
     openInvitationConfig?: OpenInvitationConfig;
     animationTrigger?: 'scroll' | 'click' | 'open_btn';
+    transitionEffect?: string;
+    transitionDuration?: number;
+    transitionTrigger?: 'scroll' | 'click' | 'open_btn';
 }
 
 export interface OpenInvitationConfig {
