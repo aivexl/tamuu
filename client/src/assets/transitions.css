@@ -173,12 +173,27 @@
     }
 }
 
-.pt-slide-left-enter {
+.pt-slide-left-enter,
+.pt-slide-left-enter-active {
     animation-name: pt-slide-left-in;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
 }
 
-.pt-slide-left-leave {
+.pt-slide-left-enter-to {
+    transform: translateX(0);
+}
+
+.pt-slide-left-leave,
+.pt-slide-left-leave-active {
     animation-name: pt-slide-left-out;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+}
+
+.pt-slide-left-leave-to {
+    transform: translateX(-100vw);
+    pointer-events: none;
 }
 
 /* 5. Slide Right */
@@ -202,133 +217,200 @@
     }
 }
 
-.pt-slide-right-enter {
+.pt-slide-right-enter,
+.pt-slide-right-enter-active {
     animation-name: pt-slide-right-in;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
 }
 
-.pt-slide-right-leave {
+.pt-slide-right-enter-to {
+    transform: translateX(0);
+}
+
+.pt-slide-right-leave,
+.pt-slide-right-leave-active {
     animation-name: pt-slide-right-out;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
 }
 
-/* 6. Zoom In */
-@keyframes pt-zoom-in-enter {
+.pt-slide-right-leave-to {
+    transform: translateX(100vw);
+    pointer-events: none;
+}
+
+/* 5. Zoom In */
+@keyframes pt-zoom-in-in {
     from {
-        transform: scale(0.5);
         opacity: 0;
+        transform: scale(0.8);
     }
 
     to {
-        transform: scale(1);
         opacity: 1;
+        transform: scale(1);
     }
 }
 
-@keyframes pt-zoom-in-leave {
+@keyframes pt-zoom-in-out {
     from {
-        transform: scale(1);
         opacity: 1;
+        transform: scale(1);
     }
 
     to {
-        transform: scale(1.5);
         opacity: 0;
+        transform: scale(1.2);
     }
 }
 
-.pt-zoom-in-enter {
-    animation-name: pt-zoom-in-enter;
+.pt-zoom-in-enter,
+.pt-zoom-in-enter-active {
+    animation-name: pt-zoom-in-in;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
 }
 
-.pt-zoom-in-leave {
-    animation-name: pt-zoom-in-leave;
+.pt-zoom-in-enter-to {
+    opacity: 1;
+    transform: scale(1);
 }
 
-/* 7. Zoom Out */
-@keyframes pt-zoom-out-enter {
+.pt-zoom-in-leave,
+.pt-zoom-in-leave-active {
+    animation-name: pt-zoom-in-out;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+}
+
+.pt-zoom-in-leave-to {
+    opacity: 0;
+    transform: scale(1.2);
+    pointer-events: none;
+}
+
+/* 6. Zoom Out */
+@keyframes pt-zoom-out-in {
     from {
-        transform: scale(1.5);
         opacity: 0;
+        transform: scale(1.2);
     }
 
     to {
-        transform: scale(1);
         opacity: 1;
+        transform: scale(1);
     }
 }
 
-@keyframes pt-zoom-out-leave {
+@keyframes pt-zoom-out-out {
     from {
-        transform: scale(1);
         opacity: 1;
+        transform: scale(1);
     }
 
     to {
-        transform: scale(0.5);
         opacity: 0;
+        transform: scale(0.8);
     }
 }
 
-.pt-zoom-out-enter {
-    animation-name: pt-zoom-out-enter;
+.pt-zoom-out-enter,
+.pt-zoom-out-enter-active {
+    animation-name: pt-zoom-out-in;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
 }
 
-.pt-zoom-out-leave {
-    animation-name: pt-zoom-out-leave;
+.pt-zoom-out-enter-to {
+    opacity: 1;
+    transform: scale(1);
 }
 
-/* 8. Rotate */
+.pt-zoom-out-leave,
+.pt-zoom-out-leave-active {
+    animation-name: pt-zoom-out-out;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
+}
+
+.pt-zoom-out-leave-to {
+    opacity: 0;
+    transform: scale(0.8);
+    pointer-events: none;
+}
+
+/* 7. Rotate */
 @keyframes pt-rotate-in {
     from {
-        transform: rotate(-90deg) scale(0.5);
         opacity: 0;
+        transform: rotate(-90deg) scale(0.5);
     }
 
     to {
-        transform: rotate(0) scale(1);
         opacity: 1;
+        transform: rotate(0) scale(1);
     }
 }
 
 @keyframes pt-rotate-out {
     from {
-        transform: rotate(0) scale(1);
         opacity: 1;
+        transform: rotate(0) scale(1);
     }
 
     to {
-        transform: rotate(90deg) scale(0.5);
         opacity: 0;
+        transform: rotate(90deg) scale(0.5);
     }
 }
 
-.pt-rotate-enter {
+.pt-rotate-enter,
+.pt-rotate-enter-active {
     animation-name: pt-rotate-in;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
 }
 
-.pt-rotate-leave {
+.pt-rotate-enter-to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+}
+
+.pt-rotate-leave,
+.pt-rotate-leave-active {
     animation-name: pt-rotate-out;
+    animation-duration: var(--transition-duration, 1000ms);
+    animation-fill-mode: both;
 }
 
-/* 9. Flip X */
+.pt-rotate-leave-to {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.5);
+    pointer-events: none;
+}
+
+/* 8. Flip X */
 @keyframes pt-flip-x-in {
     from {
-        transform: perspective(400px) rotateX(90deg);
         opacity: 0;
+        transform: perspective(400px) rotateX(90deg);
     }
 
     to {
-        transform: perspective(400px) rotateX(0);
         opacity: 1;
+        transform: perspective(400px) rotateX(0deg);
     }
 }
 
 @keyframes pt-flip-x-out {
     from {
-        transform: perspective(400px) rotateX(0);
         opacity: 1;
+        transform: perspective(400px) rotateX(0deg);
     }
 
     to {
+        opacity: 0;
         transform: perspective(400px) rotateX(-90deg);
         opacity: 0;
     }

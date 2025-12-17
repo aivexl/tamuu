@@ -304,6 +304,9 @@ export class DatabaseService {
             page_title = ?,
             animation_trigger = ?,
             open_invitation_config = ?,
+            transition_effect = ?,
+            transition_duration = ?,
+            transition_trigger = ?,
             updated_at = ?
           WHERE id = ?
         `)
@@ -316,6 +319,9 @@ export class DatabaseService {
                     updates.pageTitle || null,
                     updates.animationTrigger || 'scroll',
                     updates.openInvitationConfig ? JSON.stringify(updates.openInvitationConfig) : null,
+                    updates.transitionEffect || 'none',
+                    updates.transitionDuration || 1000,
+                    updates.transitionTrigger || 'scroll',
                     now,
                     existing.id
                 )
@@ -327,8 +333,8 @@ export class DatabaseService {
             const id = generateUUID();
             await this.db
                 .prepare(`
-          INSERT INTO template_sections (id, template_id, type, is_visible, background_color, background_url, overlay_opacity, animation, page_title, animation_trigger, open_invitation_config, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO template_sections (id, template_id, type, is_visible, background_color, background_url, overlay_opacity, animation, page_title, animation_trigger, open_invitation_config, transition_effect, transition_duration, transition_trigger, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
                 .bind(
                     id,
@@ -342,6 +348,9 @@ export class DatabaseService {
                     updates.pageTitle || null,
                     updates.animationTrigger || 'scroll',
                     updates.openInvitationConfig ? JSON.stringify(updates.openInvitationConfig) : null,
+                    updates.transitionEffect || 'none',
+                    updates.transitionDuration || 1000,
+                    updates.transitionTrigger || 'scroll',
                     now,
                     now
                 )

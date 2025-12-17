@@ -51,21 +51,43 @@ const activeTransitionEffect = computed(() => {
 });
 
 // Handle Open Invitation Click (Sequencing)
-const handleOpenInvitation = (_element?: any) => {
-    // 1. Trigger "Open Button" animations
+const handleOpenInvitation = (clickedElement: any) => {
     openBtnTriggered.value = true;
     
-    // 2. Determine max animation duration of elements with trigger='open_btn'
-    let maxDelay = 0;
-    if (orderedSections.value[0]) { // Opening Section
-        const elements = orderedSections.value[0].elements || [];
-        elements.forEach((el: any) => {
-            if (el.animationTrigger === 'open_btn') {
-                const total = (el.animationDelay || 0) + (el.animationDuration || 1000);
-                if (total > maxDelay) maxDelay = total;
+    // 1. Calculate max animation duration to wait
+    let triggerDelay = 0;
+    let foundSlideOut = false;
+
+    // Check all elements in the cover section (index 0)
+    const coverSection = orderedSections.value[0];
+    const elements = coverSection?.elements || [];
+
+    elements.forEach((el: any) => {
+        if (el.animationTrigger === 'open_btn') {
+            const duration = el.animationDuration || 1000;
+            const delay = el.animationDelay || 0;
+            const total = duration + delay;
+            
+            // Heuristic: If it's a slide-out animation, we want to time it exactly
+            // to when it leaves the frame (roughly the duration)
+            if (el.animation?.includes('slide-out')) {
+                foundSlideOut = true;
+                // If multiple slide-outs, take the longest one
+                if (total > triggerDelay) triggerDelay = total;
+            } else if (!foundSlideOut) {
+                // Keep tracking max duration of other animations as fallback
+                if (total > triggerDelay) triggerDelay = total;
             }
-        });
-    }
+        }
+    });
+    
+    // If no specific open_btn animations found but button clicked, 
+    // maybe wait a tiny bit or just 0.
+    // If we found a slide-out, we trust its duration.
+    // User wants "immediately when out of frame", which matches duration end for CSS animations.
+    
+    // 2. Play Sound (if any)
+    // ...
 
     // 3. Wait for animations, then trigger Page Transition
     setTimeout(() => {
@@ -88,7 +110,7 @@ const handleOpenInvitation = (_element?: any) => {
                 sectionRefs.value[1].scrollIntoView({ behavior: 'smooth' });
             }
         }
-    }, maxDelay);
+    }, triggerDelay);
 };
 
 const shouldShowSection = (index: number) => {
