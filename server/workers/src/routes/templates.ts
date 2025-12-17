@@ -39,14 +39,27 @@ templatesRouter.get('/:id', async (c) => {
     // Try cache first
     const cached = await cache.getTemplate(id);
     if (cached) {
+        console.log(`[TEMPLATES API] Returning CACHED template for ${id}`);
         return c.json(cached);
     }
 
+    console.log(`[TEMPLATES API] Fetching template ${id} from DB`);
     // Fetch from database
     const template = await db.getTemplate(id);
 
     if (!template) {
         return c.json({ error: 'Template not found' }, 404);
+    }
+
+    // DEBUG: Log first section's transition settings to verify if they exist in DB
+    const firstSectionType = Object.keys(template.sections)[0];
+    if (firstSectionType) {
+        const s = template.sections[firstSectionType];
+        console.log(`[TEMPLATES API] DB Return for ${firstSectionType}:`, {
+            bg: s.backgroundColor,
+            transition: s.transitionEffect,
+            trigger: s.transitionTrigger
+        });
     }
 
     // Cache the result
