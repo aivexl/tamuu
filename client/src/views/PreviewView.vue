@@ -338,7 +338,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
     <div ref="mainViewport" class="h-screen w-screen bg-black flex flex-col items-center overflow-hidden" :class="flowMode ? 'justify-start' : 'justify-center'">
         
         <!-- MAIN SCROLL ENGINE -->
-        <div ref="scrollContainer" class="scroll-container w-full" :class="flowMode ? 'flex-1 h-full overflow-y-auto overflow-x-hidden' : 'h-auto overflow-hidden'" :style="!flowMode ? { maxHeight: `${coverHeightComputed * scaleFactor}px` } : {}">
+        <div ref="scrollContainer" class="scroll-container w-full flex-1" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'" :style="{ height: flowMode ? '100%' : `${coverHeightComputed * scaleFactor}px` }">
                 <div 
                     class="invitation-parent relative mx-auto" 
                     :style="{ 
