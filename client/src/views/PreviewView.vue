@@ -112,7 +112,7 @@ onUnmounted(() => {
 });
 
 /**
- * DEFINITIVE ATOMIC Z-STACK REVEAL
+ * SIMPLE REVEAL - No animations, just switch to Flow Mode
  */
 const handleOpenInvitation = async () => {
     if (openBtnTriggered.value) return;
@@ -129,71 +129,30 @@ const handleOpenInvitation = async () => {
         }
     });
     
-    setTimeout(async () => {
-        // STAGE 1: Start split animation
-        isRevealing.value = true;
-        shutterVisible.value = true;
-
-        await nextTick();
+    setTimeout(() => {
+        // Switch directly to Flow Mode - no animations
+        isOpened.value = true;
+        flowMode.value = true;
+        isRevealing.value = false;
+        shutterVisible.value = false;
         
-        // GSAP Timeline
-        const tl = gsap.timeline({
-            onComplete: finalizeAndUnlock
-        });
-
-        const leftShutter = document.querySelector('.mirror-shutter-left');
-        const rightShutter = document.querySelector('.mirror-shutter-right');
-        const coverEl = document.querySelector('.atomic-cover-layer');
-
-        if (leftShutter && rightShutter) {
-            // Splitting doors
-            tl.to(leftShutter, { xPercent: -101, duration: 1.5, ease: "power2.inOut" }, 0);
-            tl.to(rightShutter, { xPercent: 101, duration: 1.5, ease: "power2.inOut" }, 0);
-            
-            // Hide only the cover content, keep the red section behind visible
-            if (coverEl) {
-                tl.to(coverEl, { opacity: 0, duration: 0.8, ease: "power2.out" }, 0.2);
-            }
-        } else {
-            // Fallback
-            tl.to(coverEl || {}, { opacity: 0, duration: 1 });
+        // Calculate scroll position to Section 2
+        const section1ScaledHeight = coverHeightComputed.value * scaleFactor.value;
+        const scrollOffset = 50 * scaleFactor.value;
+        const targetScroll = Math.max(0, section1ScaledHeight - scrollOffset);
+        
+        // Destroy Lenis to prevent interference
+        if (lenis) {
+            lenis.destroy();
+            lenis = null;
         }
-
-        function finalizeAndUnlock() {
-            // STAGE 2: Switch to Natural Flow
-            isOpened.value = true;
-            flowMode.value = true;
-            isRevealing.value = false;
-            shutterVisible.value = false;
-            
-            // Calculate scroll position to Section 2 boundary
-            const section1ScaledHeight = coverHeightComputed.value * scaleFactor.value;
-            const scrollOffset = 50 * scaleFactor.value;
-            const targetScroll = Math.max(0, section1ScaledHeight - scrollOffset);
-            
-            // Restore Lenis for smooth scrolling
-            if (lenis) {
-                lenis.destroy();
-                lenis = null;
+        
+        // Set scroll position directly
+        nextTick(() => {
+            if (scrollContainer.value) {
+                scrollContainer.value.scrollTop = targetScroll;
             }
-            
-            // Use setTimeout to wait for full layout completion
-            // Set scroll position multiple times to prevent jump
-            const setScrollPosition = () => {
-                if (scrollContainer.value) {
-                    scrollContainer.value.scrollTop = targetScroll;
-                }
-            };
-            
-            // Immediately set
-            nextTick(() => {
-                setScrollPosition();
-                // Set again after 50ms
-                setTimeout(setScrollPosition, 50);
-                // Set again after 100ms to lock it in
-                setTimeout(setScrollPosition, 100);
-            });
-        };
+        });
     }, triggerDelay);
 };
 
