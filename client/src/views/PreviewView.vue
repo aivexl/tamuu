@@ -172,22 +172,16 @@ const handleOpenInvitation = async () => {
             const targetScroll = Math.max(0, section1ScaledHeight - scrollOffset);
             
             nextTick(() => {
-                // Step 1: Set scroll position directly (no Lenis)
+                // Disable Lenis completely - just use native scrolling
+                if (lenis) {
+                    lenis.destroy();
+                    lenis = null;
+                }
+                
+                // Set scroll position directly with native scrolling
                 if (scrollContainer.value) {
                     scrollContainer.value.scrollTop = targetScroll;
                 }
-                
-                // Step 2: Wait for next frame then start Lenis
-                // This ensures scroll position is "locked in" before Lenis takes over
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        if (lenis) {
-                            // Force Lenis to recognize current scroll position
-                            lenis.resize();
-                            lenis.start();
-                        }
-                    });
-                });
             });
         };
     }, triggerDelay);
