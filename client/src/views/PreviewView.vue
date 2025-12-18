@@ -33,16 +33,22 @@ const orderedSections = computed((): (any)[] => {
 // Filter out buttons from Section 1 when invitation is opened
 const filteredSections = computed((): (any)[] => {
     return orderedSections.value.map((section, index) => {
+        // Standardize zIndex sorting: Ascending (last drawn = topmost)
+        const sortedElements = [...(section.elements || [])].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+
         if (index === 0 && isOpened.value) {
             // Remove button elements from Section 1 after "Open" is clicked
             return {
                 ...section,
-                elements: (section.elements || []).filter((el: any) => 
+                elements: sortedElements.filter((el: any) => 
                     el.type !== 'button' && el.type !== 'open_invitation_button'
                 )
             };
         }
-        return section;
+        return {
+            ...section,
+            elements: sortedElements
+        };
     });
 });
 

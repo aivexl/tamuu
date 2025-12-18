@@ -123,6 +123,10 @@ const loadImage = (url: string) => {
 
 watch(() => [props.backgroundUrl, props.elements], loadImages, { deep: true, immediate: true });
 
+const sortedElements = computed(() => {
+    return [...props.elements].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+});
+
 const handleElementDblClick = (element: TemplateElement) => {
     if (element.type === 'text' || element.type === 'button') {
         const currentText = element.openInvitationConfig?.buttonText || element.content || '';
@@ -556,7 +560,7 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
 
         <!-- Elements -->
         <v-group
-          v-for="element in elements"
+          v-for="element in sortedElements"
           :key="element.id"
           :config="{
             x: element.position.x,
