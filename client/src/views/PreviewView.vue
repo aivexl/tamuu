@@ -382,7 +382,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :loop-animation="el.loopAnimation" 
                                         :delay="el.animationDelay" 
                                         :duration="el.animationDuration" 
-                                        class="w-full h-full" 
+                                        class="absolute inset-0" 
                                         :immediate="index === 0"
                                         :trigger-mode="'auto'"
                                         :element-id="el.id"
@@ -421,7 +421,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             <div v-if="orderedSections[1].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[1].overlayOpacity }" />
                             <div class="relative w-full h-full">
                                 <template v-for="el in orderedSections[1].elements" :key="el.id">
-                                    <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="w-full h-full" :trigger-mode="'manual'" :force-trigger="isRevealing || isOpened" :element-id="el.id">
+                                    <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="absolute inset-0" :trigger-mode="'manual'" :force-trigger="isRevealing || isOpened" :element-id="el.id">
                                         <img v-if="el.type === 'image'" :src="el.imageUrl" :style="getElementStyle(el, 1)" class="pointer-events-none select-none" />
                                         <div v-else-if="el.type === 'text'" :style="[getElementStyle(el, 1), getTextStyle(el)]">{{ el.content }}</div>
                                         <div v-else-if="el.type === 'icon'" :style="[getElementStyle(el, 1), { color: el.iconStyle?.iconColor }]" class="w-full h-full flex items-center justify-center">
@@ -443,7 +443,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             <div v-if="orderedSections[0].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
                             <div class="relative w-full h-full">
                                 <template v-for="el in orderedSections[0].elements" :key="el.id">
-                                    <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="w-full h-full" :immediate="true" :element-id="el.id">
+                                    <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="absolute inset-0" :immediate="true" :element-id="el.id">
                                         <img v-if="el.type === 'image'" :src="el.imageUrl" :style="getElementStyle(el, 0)" class="pointer-events-none select-none" />
                                         <div v-else-if="el.type === 'text'" :style="[getElementStyle(el, 0), getTextStyle(el)]">{{ el.content }}</div>
                                         <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" @click="handleOpenInvitation()">
