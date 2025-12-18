@@ -315,7 +315,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             >
                                 <div v-if="orderedSections[0].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
                                 <div v-for="el in orderedSections[0].elements || []" :key="el.id" class="absolute" :style="getElementStyle(el, 0)">
-                                    <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="w-full h-full" trigger-mode="auto" :element-id="el.id">
+                                    <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="w-full h-full" trigger-mode="manual" :force-trigger="true" :element-id="el.id">
                                         <div class="w-full h-full" :style="{ transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})` }">
                                             <img v-if="el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity }" />
                                             <div v-else-if="el.type === 'text'" class="w-full h-full flex items-center" :style="{ fontSize: el.textStyle?.fontSize+'px', fontFamily: el.textStyle?.fontFamily, color: el.textStyle?.color, textAlign: el.textStyle?.textAlign }">{{ el.content }}</div>
