@@ -418,14 +418,14 @@ const goBack = () => {
 
 <template>
     <div 
-        ref="previewContainer" 
+        ref="mainViewport" 
         class="h-screen w-screen bg-black flex flex-col items-center justify-center overflow-hidden"
     >
-        <!-- Preview Container - Scrollable invitation -->
+        <!-- Scrollable Container - REFACTORED REF TO AVOID CONFLICT -->
         <div 
+            ref="scrollContainer"
             class="flex-1 flex justify-center w-full h-full"
             :class="coverTransitionDone ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'"
-            ref="previewContainer"
         >
             <!-- Invitation wrapper - Scaled dynamically -->
             <div 
@@ -437,11 +437,10 @@ const goBack = () => {
                     transformOrigin: 'top center',
                 }"
             >
-                <!-- Integrated Header Controls (Overlay on Invitation) -->
-                <!-- Only visible in non-fullscreen or if desired. User said 'buttons above invitation'. -->
+                <!-- Integrated Header Controls -->
                 <div 
                     v-if="!isFullscreen"
-                    class="absolute top-3 left-0 w-full px-3 flex items-start justify-between z-[60] pointer-events-none"
+                    class="absolute top-3 left-0 w-full px-3 flex items-start justify-between z-[80] pointer-events-none"
                 >
                     <button 
                         class="p-2 text-white/80 hover:text-white bg-black/20 hover:bg-black/40 rounded-full backdrop-blur-sm transition-all shadow-sm pointer-events-auto" 
@@ -459,17 +458,16 @@ const goBack = () => {
                         <Maximize2 class="w-5 h-5" />
                     </button>
                 </div>
-                <!-- Sections Container - REFACTORED FOR PERFECT ALIGNMENT -->
+
+                <!-- Sections Container -->
                 <div 
                     class="page-transition-wrapper relative w-full"
                     :style="{ minHeight: isOpened ? '100dvh' : 'auto' }"
                 >
                     <!-- Layer 1: CONTENT (Sections 1 to N) -->
-                    <!-- Rendered always but hidden from interaction until opened -->
                     <div 
-                        class="content-layer flex flex-col items-center w-full"
-                        :class="{ 'pointer-events-none': !isOpened }"
-                        :style="{ opacity: isOpened ? 1 : 0 }"
+                        class="content-layer flex flex-col items-center w-full transition-all duration-700 ease-in-out"
+                        :class="isOpened ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'"
                     >
                         <div 
                             v-for="(section, index) in orderedSections.slice(1)" 
@@ -479,7 +477,7 @@ const goBack = () => {
                             class="relative overflow-hidden flex-shrink-0 page-section w-full"
                             @click="handleSectionClick(index + 1)"
                             :style="{
-                                height: `${CANVAS_HEIGHT}px`,
+                                height: `${index === 0 ? coverHeight : CANVAS_HEIGHT}px`,
                                 backgroundColor: section.backgroundColor || '#ffffff',
                                 backgroundImage: section.backgroundUrl ? `url(${section.backgroundUrl})` : 'none',
                                 backgroundSize: 'cover',
@@ -489,7 +487,6 @@ const goBack = () => {
                         >
                             <div v-if="section.overlayOpacity" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: section.overlayOpacity }" />
                             
-                            <!-- Elements Layer -->
                             <div v-for="el in section.elements || []" :key="el.id" class="absolute pointer-events-auto" :style="getElementStyle(el, index + 1)">
                                 <AnimatedElement
                                     :animation="el.animation || 'none'"
@@ -523,7 +520,6 @@ const goBack = () => {
                     </div>
 
                     <!-- Layer 2: COVER (Section 0) -->
-                    <!-- Absolute overlay sitting on top of the Content Layer -->
                     <div 
                         v-if="isCoverVisible && orderedSections[0]"
                         :ref="(el) => setSectionRef(el, 0)"
@@ -536,7 +532,7 @@ const goBack = () => {
                             backgroundImage: orderedSections[0].backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
-                            zIndex: 60,
+                            zIndex: 100,
                         }"
                     >
                         <div v-if="orderedSections[0].overlayOpacity" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: orderedSections[0].overlayOpacity }" />
@@ -578,7 +574,7 @@ const goBack = () => {
         <!-- Exit fullscreen button -->
         <button 
             v-if="isFullscreen"
-            class="fixed top-4 right-4 z-50 p-3 bg-black/50 hover:bg-black/70 text-white rounded-full transition-all"
+            class="fixed top-4 right-4 z-[110] p-3 bg-black/50 hover:bg-black/70 text-white rounded-full transition-all"
             @click="toggleFullscreen"
         >
             <Minimize2 class="w-5 h-5" />
@@ -588,21 +584,15 @@ const goBack = () => {
 
 <style scoped>
 /* Hide scrollbar */
-div::-webkit-scrollbar {
+.scroll-container::-webkit-scrollbar {
     width: 0;
     height: 0;
 }
 
-div {
+.scroll-container {
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
-
-/* Responsive invitation scaling handled by JS computed scaleFactor */
-.invitation-wrapper {
-    /* No default transform-origin needed here, set inline */
-}
-
 </style>
 
 
