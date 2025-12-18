@@ -325,7 +325,7 @@ const getClassicLabelText = (element: TemplateElement) => {
 };
 
 // --- STYLE HELPERS ---
-const getElementStyleConfig = (style: string, primaryColor: string, isDakMode: boolean = false) => {
+const getElementStyleConfig = (style: string, primaryColor: string, shape?: string) => {
     const s = style || 'classic';
     const config = {
         fill: '#ffffff',
@@ -339,12 +339,20 @@ const getElementStyleConfig = (style: string, primaryColor: string, isDakMode: b
         opacity: 1
     };
 
+    // Base Shape Corner Radius
+    if (shape === 'pill' || shape === 'stadium') {
+        config.cornerRadius = 9999;
+    } else if (shape === 'rounded') {
+        config.cornerRadius = 12;
+    } else {
+        config.cornerRadius = 0; // rectangle
+    }
+
     switch (s) {
         case 'classic':
             config.fill = '#ffffff';
             config.stroke = '#e2e8f0';
             config.strokeWidth = 1;
-            config.cornerRadius = 0;
             break;
         case 'minimal':
             config.fill = '#ffffff';
@@ -354,7 +362,7 @@ const getElementStyleConfig = (style: string, primaryColor: string, isDakMode: b
             break;
         case 'modern':
             config.fill = '#ffffff';
-            config.cornerRadius = 16;
+            if (shape !== 'pill' && shape !== 'stadium') config.cornerRadius = 16;
             config.shadowBlur = 20;
             config.shadowOpacity = 0.1;
             config.shadowOffset = { x: 0, y: 10 };
@@ -363,17 +371,16 @@ const getElementStyleConfig = (style: string, primaryColor: string, isDakMode: b
             config.fill = '#fdfbf7'; // Warm white
             config.stroke = primaryColor;
             config.strokeWidth = 1;
-            config.cornerRadius = 4;
+            if (shape !== 'pill' && shape !== 'stadium' && shape !== 'rounded') config.cornerRadius = 4;
             break;
         case 'rustic':
             config.fill = '#fffaf0'; // Floral white
             config.stroke = '#8b4513';
             config.strokeWidth = 1;
-            // Konva doesn't support 'dashed' in simple config object easily without specific property, handled in render
             break;
         case 'romantic':
             config.fill = '#fff0f5'; // Lavender blush
-            config.cornerRadius = 24;
+            if (shape !== 'pill' && shape !== 'stadium') config.cornerRadius = 24;
             config.shadowColor = '#ffb6c1';
             config.shadowBlur = 10;
             config.shadowOpacity = 0.3;
@@ -382,7 +389,7 @@ const getElementStyleConfig = (style: string, primaryColor: string, isDakMode: b
             config.fill = '#ffffff';
             config.stroke = '#000000';
             config.strokeWidth = 4;
-            config.cornerRadius = 0;
+            if (shape !== 'pill' && shape !== 'stadium') config.cornerRadius = 0;
             config.shadowColor = '#000000';
             config.shadowOffset = { x: 6, y: 6 };
             config.shadowOpacity = 1;
@@ -391,11 +398,11 @@ const getElementStyleConfig = (style: string, primaryColor: string, isDakMode: b
             config.fill = '#f5f5dc'; // Beige
             config.stroke = '#8b4513';
             config.strokeWidth = 2;
-            config.cornerRadius = 2;
+            if (shape !== 'pill' && shape !== 'stadium' && shape !== 'rounded') config.cornerRadius = 2;
             break;
         case 'boho':
             config.fill = '#fbf7f5';
-            config.cornerRadius = 30; // Very round
+            if (shape !== 'pill' && shape !== 'stadium') config.cornerRadius = 30; // Very round
             config.stroke = '#d2b48c'; // Tan
             config.strokeWidth = 1;
             break;
@@ -403,7 +410,7 @@ const getElementStyleConfig = (style: string, primaryColor: string, isDakMode: b
             config.fill = '#1a1a1a';
             config.stroke = '#ffd700'; // Gold
             config.strokeWidth = 2;
-            config.cornerRadius = 8;
+            if (shape !== 'pill' && shape !== 'stadium' && shape !== 'rounded') config.cornerRadius = 8;
             config.shadowColor = '#ffd700';
             config.shadowBlur = 15;
             config.shadowOpacity = 0.2;
@@ -412,13 +419,13 @@ const getElementStyleConfig = (style: string, primaryColor: string, isDakMode: b
             config.fill = '#1e293b';
             config.stroke = '#334155';
             config.strokeWidth = 1;
-            config.cornerRadius = 12;
+            if (shape !== 'pill' && shape !== 'stadium') config.cornerRadius = 12;
             break;
         case 'glass':
             config.fill = 'rgba(255, 255, 255, 0.7)';
             config.stroke = 'rgba(255, 255, 255, 0.5)';
             config.strokeWidth = 1;
-            config.cornerRadius = 16;
+            if (shape !== 'pill' && shape !== 'stadium') config.cornerRadius = 16;
             config.shadowBlur = 10;
             config.shadowOpacity = 0.1;
             break;
@@ -426,23 +433,23 @@ const getElementStyleConfig = (style: string, primaryColor: string, isDakMode: b
             config.fill = 'transparent';
             config.stroke = primaryColor;
             config.strokeWidth = 2;
-            config.cornerRadius = 8;
+            if (shape !== 'pill' && shape !== 'stadium' && shape !== 'rounded') config.cornerRadius = 8;
             break;
         case 'geometric':
             config.fill = '#ffffff';
             config.stroke = '#000000';
             config.strokeWidth = 2;
-            config.cornerRadius = 0;
+            if (shape !== 'pill' && shape !== 'stadium') config.cornerRadius = 0;
             break;
         case 'floral':
             config.fill = '#fff5f7';
             config.stroke = '#ffc0cb';
             config.strokeWidth = 1;
-            config.cornerRadius = 20;
+            if (shape !== 'pill' && shape !== 'stadium') config.cornerRadius = 20;
             break;
         case 'pastel':
             config.fill = '#f0f9ff'; // Alice blue
-            config.cornerRadius = 12;
+            if (shape !== 'pill' && shape !== 'stadium') config.cornerRadius = 12;
             config.shadowBlur = 5;
             config.shadowColor = '#bae6fd';
             config.shadowOpacity = 0.5;
@@ -451,7 +458,7 @@ const getElementStyleConfig = (style: string, primaryColor: string, isDakMode: b
             config.fill = '#ffffff';
             config.stroke = '#000000';
             config.strokeWidth = 1;
-            config.cornerRadius = 0;
+            if (shape !== 'pill' && shape !== 'stadium') config.cornerRadius = 0;
             break;
         case 'neon':
             config.fill = '#000000';
@@ -460,7 +467,7 @@ const getElementStyleConfig = (style: string, primaryColor: string, isDakMode: b
             config.shadowColor = primaryColor;
             config.shadowBlur = 20;
             config.shadowOpacity = 0.8;
-            config.cornerRadius = 8;
+            if (shape !== 'pill' && shape !== 'stadium' && shape !== 'rounded') config.cornerRadius = 8;
             break;
         case 'brutalist':
             config.fill = '#e2e8f0';
@@ -469,11 +476,11 @@ const getElementStyleConfig = (style: string, primaryColor: string, isDakMode: b
             config.shadowColor = '#000000';
             config.shadowOffset = { x: 8, y: 8 };
             config.shadowOpacity = 1;
-            config.cornerRadius = 0;
+            if (shape !== 'pill' && shape !== 'stadium') config.cornerRadius = 0;
             break;
         case 'cloud':
             config.fill = '#ffffff';
-            config.cornerRadius = 50;
+            if (shape !== 'pill' && shape !== 'stadium') config.cornerRadius = 50;
             config.shadowBlur = 25;
             config.shadowColor = '#cbd5e1';
             config.shadowOpacity = 0.5;
@@ -899,11 +906,11 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
                         :config="{
                             width: element.size.width,
                             height: element.size.height,
-                            ...getElementStyleConfig(element.openInvitationConfig.buttonStyle, element.openInvitationConfig.buttonColor || '#000000'),
+                            ...getElementStyleConfig(element.openInvitationConfig.buttonStyle, element.openInvitationConfig.buttonColor || '#000000', element.openInvitationConfig.buttonShape),
                             // Explicit overrides
                             fill: (element.openInvitationConfig.buttonStyle === 'outline' || element.openInvitationConfig.buttonStyle === 'minimal') ? 'transparent' : (element.openInvitationConfig.buttonStyle === 'glass' ? 'rgba(255,255,255,0.2)' : (element.openInvitationConfig.buttonColor || '#000000')),
                             stroke: element.openInvitationConfig.buttonColor || '#000000',
-                            strokeWidth: (element.openInvitationConfig.buttonStyle === 'outline' || element.openInvitationConfig.buttonStyle === 'minimal') ? 2 : 0,
+                            strokeWidth: (element.openInvitationConfig.buttonStyle === 'outline' || element.openInvitationConfig.buttonStyle === 'minimal') ? 2 : 1,
                             listening: false
                         }"
                     />
