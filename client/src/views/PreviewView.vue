@@ -8,7 +8,6 @@ import { ArrowLeft, Maximize2 } from 'lucide-vue-next';
 import { iconPaths } from '@/lib/icon-paths';
 
 // Library Imports
-import gsap from 'gsap';
 import Lenis from 'lenis';
 
 const route = useRoute();
@@ -136,21 +135,11 @@ const handleOpenInvitation = async () => {
         isRevealing.value = false;
         shutterVisible.value = false;
         
-        // Calculate scroll position to Section 2
-        const section1ScaledHeight = coverHeightComputed.value * scaleFactor.value;
-        const scrollOffset = 50 * scaleFactor.value;
-        const targetScroll = Math.max(0, section1ScaledHeight - scrollOffset);
-        
-        // Destroy Lenis to prevent interference
-        if (lenis) {
-            lenis.destroy();
-            lenis = null;
-        }
-        
-        // Set scroll position directly
+        // Keep Lenis alive for smooth scrolling
         nextTick(() => {
-            if (scrollContainer.value) {
-                scrollContainer.value.scrollTop = targetScroll;
+            if (lenis) {
+                lenis.start();
+                lenis.resize();
             }
         });
     }, triggerDelay);
@@ -353,8 +342,9 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :delay="el.animationDelay" 
                                         :duration="el.animationDuration" 
                                         class="absolute inset-0" 
-                                        :immediate="index === 0"
-                                        :trigger-mode="'auto'"
+                                        :immediate="index === 0 && el.animationTrigger !== 'scroll'"
+                                        :trigger-mode="el.animationTrigger === 'scroll' ? 'auto' : 'manual'"
+                                        :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : (index === 0)"
                                         :element-id="el.id"
                                     >
                                         <img v-if="el.type === 'image'" :src="el.imageUrl" :style="getElementStyle(el, index)" class="pointer-events-none select-none" />
@@ -386,8 +376,37 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 
                     <!-- ATOMIC STACK MODE (Initial Reveal Physics) -->
                     <div v-else class="relative w-full h-full overflow-hidden">
-                        <!-- ONLY Section 1 is rendered in Atomic Mode -->
-                        <!-- Section 2 is NOT pre-rendered to prevent double transition -->
+                        <!-- BOTTOM LAYER: Section 2 (visible behind Section 1) -->
+                        <div v-if="orderedSections[1]" class="absolute inset-0 z-[1]" :style="{ backgroundColor: orderedSections[1].backgroundColor || '#ffffff', backgroundImage: orderedSections[1].backgroundUrl ? `url(${orderedSections[1].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
+                            <div v-if="orderedSections[1].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[1].overlayOpacity }" />
+                            <div class="relative w-full h-full">
+                                <template v-for="el in orderedSections[1].elements" :key="el.id">
+                                    <!-- Elements in Atomic Mode use manual trigger, animate when isOpened -->
+                                    <AnimatedElement 
+                                        :animation="el.animation" 
+                                        :loop-animation="el.loopAnimation" 
+                                        :delay="el.animationDelay" 
+                                        :duration="el.animationDuration" 
+                                        class="absolute inset-0" 
+                                        :trigger-mode="'manual'" 
+                                        :force-trigger="isOpened"
+                                        :element-id="el.id"
+                                    >
+                                        <img v-if="el.type === 'image'" :src="el.imageUrl" :style="getElementStyle(el, 1)" class="pointer-events-none select-none" />
+                                        <div v-else-if="el.type === 'text'" :style="[getElementStyle(el, 1), getTextStyle(el)]">{{ el.content }}</div>
+                                        <div v-else-if="el.type === 'icon'" :style="[getElementStyle(el, 1), { color: el.iconStyle?.iconColor }]" class="w-full h-full flex items-center justify-center">
+                                            <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
+                                        </div>
+                                        <div v-else-if="el.type === 'countdown'" :style="getElementStyle(el, 1)" class="flex justify-center items-center gap-2">
+                                            <div v-for="unit in ['Days', 'Hours', 'Min', 'Sec']" :key="unit" class="flex flex-col items-center">
+                                                <div class="text-2xl font-bold" :style="{ color: el.countdownConfig?.digitColor || '#000' }">00</div>
+                                                <div class="text-[10px] uppercase" :style="{ color: el.countdownConfig?.labelColor || '#666' }">{{ unit }}</div>
+                                            </div>
+                                        </div>
+                                    </AnimatedElement>
+                                </template>
+                            </div>
+                        </div>
 
                         <!-- TOP LAYER: Section 1 -->
                         <div v-if="orderedSections[0]" class="absolute inset-0 z-[2] atomic-cover-layer" :style="{ backgroundColor: orderedSections[0].backgroundColor || '#cccccc', backgroundImage: orderedSections[0].backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
