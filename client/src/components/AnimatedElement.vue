@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from "vue";
-import { useElementVisibility } from "@vueuse/core";
+import { useIntersectionObserver } from "@vueuse/core";
 import { type AnimationType } from "@/lib/types";
 
-// SHARED STATE: Persist manual triggers (Open Invitation button) across remounts
-const permanentAnimations = new Set<string>();
+/**
+ * SHARED PERSISTENT STATE
+ * Used to track animation status for ALL elements by their ID.
+ * This ensures that when the component is remounted (e.g., during mode switch),
+ * the animation state is preserved, preventing unwanted 're-fire' or 'hidden' states.
+ */
+const globalAnimatedState = new Map<string, boolean>();
 
 interface Props {
   animation?: AnimationType;
@@ -32,48 +37,70 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const elementRef = ref<HTMLElement | null>(null);
-const isVisible = useElementVisibility(elementRef, { 
-    threshold: 0.1, // Trigger when 10% is visible
-    rootMargin: '20px 0px 20px 0px' // Start slightly early for smoothness
-});
 
-// Track animation state
-const shouldAnimate = ref(props.elementId ? permanentAnimations.has(props.elementId) : false);
+// Track animation state - Check global cache first
+const shouldAnimate = ref(props.elementId ? (globalAnimatedState.get(props.elementId) || false) : false);
 
 const tryTriggerAnimation = () => {
     if (!shouldAnimate.value) {
         requestAnimationFrame(() => {
             shouldAnimate.value = true;
-            // Only memorize manual triggers (pro standard)
-            if (props.triggerMode === 'manual' && props.elementId) {
-                permanentAnimations.add(props.elementId);
-            }
+            if (props.elementId) globalAnimatedState.set(props.elementId, true);
         });
     }
 };
 
-// Trigger immediately if prop is set
+const resetAnimation = () => {
+    if (shouldAnimate.value && !props.immediate) {
+        shouldAnimate.value = false;
+        if (props.elementId) globalAnimatedState.set(props.elementId, false);
+    }
+};
+
+// INITIAL TRIGGER (Immediate)
 onMounted(() => {
     if (props.immediate) {
         tryTriggerAnimation();
     }
 });
 
-// Watch visibility or forceTrigger based on mode
-watch([isVisible, () => props.forceTrigger, () => props.triggerMode], ([visible, force, mode]) => {
-    if (mode === 'manual') {
-        // MANUAL MODE: Persistence logic
-        if (shouldAnimate.value) return;
-        if (force) tryTriggerAnimation();
-    } else {
-        // AUTO MODE: Re-trigger logic (Pro standard: animate on entry, reset on exit)
-        if (visible) {
+// DIRECTIONAL VISIBILITY LOGIC (Pro Standard)
+useIntersectionObserver(
+    elementRef,
+    ([{ isIntersecting, boundingClientRect, rootBounds }], observerElement) => {
+        if (isIntersecting) {
+            // Element entered viewport (from any direction)
             tryTriggerAnimation();
-        } else if (!props.immediate) {
-            // Reset state so it can re-animate when entering again
-            // We only reset if NOT immediate to avoid cover flickering
-            shouldAnimate.value = false;
+        } else if (rootBounds && props.triggerMode === 'auto') {
+            /**
+             * DIRECTIONAL RESET: 
+             * 'Pro' standard means we only reset an animation if the element is currently 
+             * BELOW the viewport (it hasn't been reached yet or we scrolled back up away from it).
+             * If the element is ABOVE the viewport (we scrolled past it), it MUST stay visible.
+             */
+            const isBelowViewport = boundingClientRect.top > rootBounds.bottom;
+            
+            if (isBelowViewport) {
+                // We scrolled UP, the element is now below the screen. 
+                // We can reset it to allow it to 're-animate' when we scroll back DOWN.
+                resetAnimation();
+            } else {
+                // The element is ABOVE the viewport. 
+                // DO NOT RESET. Elements above the screen must remain as they are 
+                // so they are already there when you scroll back UP.
+            }
         }
+    },
+    { 
+        threshold: 0.1, 
+        rootMargin: '10px 0px 10px 0px' 
+    }
+);
+
+// MANUAL TRIGGER WATCHER
+watch(() => props.forceTrigger, (force) => {
+    if (props.triggerMode === 'manual' && force) {
+        tryTriggerAnimation();
     }
 }, { immediate: true });
 
