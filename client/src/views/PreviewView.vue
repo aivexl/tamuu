@@ -9,12 +9,9 @@ import { iconPaths } from '@/lib/icon-paths';
 
 // Library Imports
 import gsap from 'gsap';
-import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
 import * as _anime from 'animejs';
 const anime: any = (_anime as any).default || _anime;
 import Lenis from 'lenis';
-
-gsap.registerPlugin(ScrollToPlugin);
 
 const route = useRoute();
 const router = useRouter();
@@ -36,14 +33,14 @@ const orderedSections = computed(() => {
         .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 });
 
-// Enterprise State
-const isOpened = ref(false);
+// Atomic State
+const isOpened = ref(false); // Controls reveal state
 const openBtnTriggered = ref(false);
 const sectionRefs = ref<HTMLElement[]>([]);
 const sectionClicked = ref<boolean[]>([]);
 const isRevealing = ref(false); 
 
-// Shutter Mirror Refs
+// Shutter Mirror Refs (GPU Mask)
 const leftShutter = ref<HTMLElement | null>(null);
 const rightShutter = ref<HTMLElement | null>(null);
 const shutterVisible = ref(false);
@@ -80,7 +77,7 @@ onMounted(async () => {
         await store.fetchTemplate(templateId.value);
     }
     
-    // Observer for scroll-based entrance animations
+    // Observer for scroll-based animations
     observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             const index = parseInt((entry.target as HTMLElement).dataset.index || '-1');
@@ -104,7 +101,7 @@ onMounted(async () => {
             infinite: false,
         });
 
-        // Initially lock Lenis
+        // Initially lock Lenis until opened
         lenis.stop();
 
         const scrollLoop = (time: number) => {
@@ -125,8 +122,8 @@ onUnmounted(() => {
 });
 
 /**
- * TRUE Z-STACK REVEAL (Unicorn Standard)
- * Mirrors Section 1 while concurrently scrolling to Section 2.
+ * ATOMIC Z-STACK REVEAL
+ * Section 2 is physically behind Section 1. No scroll motion occurs.
  */
 const handleOpenInvitation = async (clickedElement: any) => {
     if (openBtnTriggered.value) return;
@@ -144,14 +141,12 @@ const handleOpenInvitation = async (clickedElement: any) => {
     });
     
     setTimeout(async () => {
-        isOpened.value = true;
         isRevealing.value = true;
         shutterVisible.value = true;
         
         await nextTick();
         
         const coverEl = sectionRefs.value[0];
-        const nextEl = sectionRefs.value[1]; // Section 2 (Content)
         const effect = coverSection?.transitionEffect || 'split-screen';
         const duration = (coverSection?.transitionDuration || 1500) / 1000;
 
@@ -160,56 +155,41 @@ const handleOpenInvitation = async (clickedElement: any) => {
             return;
         }
 
-        // UNICORN TIMELINE: Synchronized Reveal + Scroll
+        // UNICORN REVEAL: Mirror Split (No Scroll Move)
         const tl = gsap.timeline({
             onComplete: finalizeAndUnlock,
             defaults: { duration, ease: "expo.inOut" }
         });
 
         if (effect === 'split-screen' && leftShutter.value && rightShutter.value) {
-            // Frame 0: Hide real Section 1 to reveal the twinning shutters
+            // Hide the real Section 1 immediately so shutters take over
             gsap.set(coverEl, { opacity: 0 });
             
-            // Frame 1 to N: Concurrent Motion
-            tl.to(leftShutter.value, { xPercent: -100.5, force3D: true }, 0);
-            tl.to(rightShutter.value, { xPercent: 100.5, force3D: true }, 0);
-            
-            // DETERMINISTIC LANDING: Scroll to Section 2 Offset
-            if (lenis && scrollContainer.value) {
-                lenis.start();
-                tl.to(scrollContainer.value, { 
-                    scrollTo: { y: coverHeight.value, autoKill: false },
-                    onUpdate: () => lenis?.notify() 
-                }, 0);
-            }
+            // Split the mirrors - Section 2 is revealed INSTANTLY underneath
+            tl.to(leftShutter.value, { xPercent: -101, force3D: true }, 0);
+            tl.to(rightShutter.value, { xPercent: 101, force3D: true }, 0);
         } 
         else if (effect === 'cards' || effect === 'reveal') {
-            gsap.set(coverEl, { opacity: index === 0 ? 1 : 1 }); // Prep
-            tl.to(coverEl, { y: -windowHeight.value, opacity: 0, scale: 0.9, duration: 1.2 }, 0);
-            if (lenis) {
-                lenis.start();
-                tl.to(scrollContainer.value, { scrollTo: coverHeight.value }, 0);
-            }
+            tl.to(coverEl, { y: -windowHeight.value, opacity: 0, scale: 0.95, duration: 1.2 }, 0);
         }
         else {
-            // General Case
             tl.to(coverEl, { opacity: 0, duration: 0.8 });
-            if (lenis) {
-                lenis.start();
-                tl.to(scrollContainer.value, { scrollTo: coverHeight.value }, 0);
-            }
         }
 
         function finalizeAndUnlock() {
             shutterVisible.value = false;
             isRevealing.value = false;
-            // Real Section 1 remains in the DOM flow at opacity 0 or visible for scroll-back
-            gsap.set(coverEl, { opacity: 1 }); 
+            isOpened.value = true; // Permanent reveal state
+            
+            // Allow scroll-up by making original Section 1 interactable but open
+            gsap.set(coverEl, { 
+                opacity: 1, 
+                pointerEvents: 'none' // Elements in Section 1 shouldn't block Section 2 anymore
+            }); 
+            
             if (lenis) {
                 lenis.start();
                 lenis.resize();
-                // Ensure interaction is back
-                scrollContainer.value?.classList.remove('pointer-events-none');
             }
         }
     }, triggerDelay);
@@ -245,7 +225,6 @@ const getElementStyle = (el: any, sectionIndex: number) => {
         zIndex: el.zIndex || 1,
     };
 
-    // Special handling for Page 1 Tall Displays
     if (sectionIndex === 0 && windowHeight.value > windowWidth.value) {
          const currentCoverHeight = coverHeight.value;
          if (currentCoverHeight > CANVAS_HEIGHT) {
@@ -264,152 +243,135 @@ const getButtonStyle = (element: any) => {
     if (element.openInvitationConfig) {
         const config = element.openInvitationConfig;
         const color = config.buttonColor || '#000000';
-        
-        let css: any = {
-            fontFamily: config.fontFamily || 'Inter',
-            fontSize: `${config.fontSize || 16}px`,
-            color: config.textColor || '#ffffff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: '100%', height: '100%', transition: 'all 0.5s cubic-bezier(0.23, 1, 0.32, 1)',
-            cursor: 'pointer', border: 'none'
+        return {
+            fontFamily: config.fontFamily || 'Inter', fontSize: `${config.fontSize || 16}px`,
+            color: config.textColor || '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '100%', height: '100%', transition: 'all 0.4s ease', cursor: 'pointer', border: 'none',
+            borderRadius: config.buttonShape === 'pill' ? '200px' : config.buttonShape === 'rounded' ? '12px' : '0px',
+            backgroundColor: config.buttonStyle === 'outline' ? 'transparent' : color,
+            border: config.buttonStyle === 'outline' ? `2px solid ${color}` : 'none'
         };
-
-        const shape = config.buttonShape || 'pill';
-        if (shape === 'pill' || shape === 'stadium') css.borderRadius = '200px';
-        else if (shape === 'rounded') css.borderRadius = '16px';
-        else css.borderRadius = '0px';
-
-        if (config.buttonStyle === 'outline') {
-            css.backgroundColor = 'transparent';
-            css.border = `2px solid ${color}`;
-            css.color = color;
-        } else if (config.buttonStyle === 'glass') {
-            css.backgroundColor = 'rgba(255,255,255,0.1)';
-            css.backdropFilter = 'blur(20px)';
-            css.border = '1px solid rgba(255,255,255,0.2)';
-        } else {
-            css.backgroundColor = color;
-        }
-        return css;
     } 
-    return {
-        backgroundColor: '#000000', color: '#ffffff', borderRadius: '12px',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: '100%', height: '100%', border: 'none'
-    };
+    return { backgroundColor: '#000000', color: '#ffffff', borderRadius: '8px', border: 'none', width: '100%', height: '100%' };
 };
 
 const toggleFullscreen = () => {
     if (!mainViewport.value) return;
-    if (!document.fullscreenElement) {
-        mainViewport.value.requestFullscreen().catch(console.error);
-    } else {
-        document.exitFullscreen().catch(console.error);
-    }
+    if (!document.fullscreenElement) mainViewport.value.requestFullscreen();
+    else document.exitFullscreen();
 };
 
-const handleFullscreenChange = () => {
-    isFullscreen.value = !!document.fullscreenElement;
-    updateDimensions();
-};
-
+const handleFullscreenChange = () => { isFullscreen.value = !!document.fullscreenElement; updateDimensions(); };
 const goBack = () => router.push(`/editor/${templateId.value}`);
 </script>
 
 <template>
-    <div 
-        ref="mainViewport" 
-        class="h-screen w-screen bg-black flex flex-col items-center justify-center overflow-hidden"
-    >
-        <!-- UNICORN SCROLL ARCHITECTURE (TRUE Z-STACK) -->
-        <div 
-            ref="scrollContainer"
-            class="scroll-container flex-1 w-full h-full overflow-y-auto overflow-x-hidden"
-        >
-            <div 
-                class="invitation-wrapper flex flex-col flex-shrink-0 relative mx-auto"
-                :style="{
-                    width: `${CANVAS_WIDTH}px`,
-                    transform: `scale(${scaleFactor})`,
-                    transformOrigin: 'top center',
-                }"
-            >
-                <!-- Controls (Floating UI) -->
+    <div ref="mainViewport" class="h-screen w-screen bg-black flex flex-col items-center justify-center overflow-hidden">
+        
+        <!-- UNICORN SCROLL ENGINE -->
+        <div ref="scrollContainer" class="scroll-container flex-1 w-full h-full overflow-y-auto overflow-x-hidden">
+            <div class="invitation-wrapper flex flex-col flex-shrink-0 relative mx-auto" :style="{ width: `${CANVAS_WIDTH}px`, transform: `scale(${scaleFactor})`, transformOrigin: 'top center' }">
+                
+                <!-- Floating Controls -->
                 <div v-if="!isFullscreen" class="absolute top-6 left-0 w-full px-6 flex justify-between z-[500] pointer-events-none">
-                    <button class="p-3 text-white bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-xl transition-all pointer-events-auto border border-white/20 shadow-2xl" @click="goBack"><ArrowLeft class="w-6 h-6" /></button>
-                    <button class="p-3 text-white bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-xl transition-all pointer-events-auto border border-white/20 shadow-2xl" @click="toggleFullscreen"><Maximize2 class="w-6 h-6" /></button>
+                    <button class="p-3 bg-black/40 text-white rounded-full backdrop-blur-xl pointer-events-auto shadow-2xl" @click="goBack"><ArrowLeft class="w-6 h-6" /></button>
+                    <button class="p-3 bg-black/40 text-white rounded-full backdrop-blur-xl pointer-events-auto shadow-2xl" @click="toggleFullscreen"><Maximize2 class="w-6 h-6" /></button>
                 </div>
 
-                <!-- UNIFIED DOM STACK (Section 1 to N) -->
-                <div 
-                    v-for="(section, index) in orderedSections" :key="section.key"
-                    :ref="(el) => setSectionRef(el, index)" :data-index="index"
-                    class="relative overflow-hidden flex-shrink-0 page-section w-full"
-                    :style="{
-                        height: `${index === 0 ? coverHeight : CANVAS_HEIGHT}px`,
-                        backgroundColor: section.backgroundColor || '#ffffff',
-                        backgroundImage: section.backgroundUrl ? `url(${section.backgroundUrl})` : 'none',
-                        backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 10,
-                    }"
-                >
-                    <div v-if="section.overlayOpacity" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: section.overlayOpacity }" />
+                <!-- UNIFIED STACK FLOW -->
+                <div class="atomic-flow-container flex flex-col w-full">
                     
-                    <div v-for="el in section.elements || []" :key="el.id" class="absolute pointer-events-auto" :style="getElementStyle(el, index)">
-                        <AnimatedElement
-                            :animation="el.animation || 'none'" :loop-animation="el.loopAnimation"
-                            :delay="el.animationDelay || 0" :duration="el.animationDuration || 800"
-                            class="w-full h-full"
-                            :trigger-mode="(!el.animationTrigger || el.animationTrigger === 'scroll') ? 'auto' : 'manual'"
-                            :force-trigger="el.animationTrigger === 'click' ? (sectionClicked[index] || false) : el.animationTrigger === 'open_btn' ? openBtnTriggered : false"
-                            :element-id="el.id"
-                        >
-                            <div class="w-full h-full" :style="{ transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})` }">
-                                <img v-if="el.type === 'image' && el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity ?? 1 }" draggable="false" />
-                                <div v-else-if="el.type === 'text' && el.textStyle" class="w-full h-full flex items-center" :style="{ fontSize: `${el.textStyle.fontSize}px`, fontFamily: el.textStyle.fontFamily, fontStyle: el.textStyle.fontStyle, color: el.textStyle.color, textAlign: el.textStyle.textAlign }">{{ el.content }}</div>
-                                <div v-else-if="el.type === 'icon' && el.iconStyle" class="w-full h-full flex items-center justify-center" :style="{ color: el.iconStyle.iconColor }"><svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="iconPaths[el.iconStyle.iconName] || iconPaths['heart']" /></svg></div>
-                                <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:scale-105 active:scale-95 transition-all" @click="handleOpenInvitation(el)">{{ el.openInvitationConfig?.buttonText || el.content || 'Open Invitation' }}</button>
+                    <!-- THE ATOMIC Z-STACK BLOCK (Section 1 & 2) -->
+                    <div class="relative w-full overflow-hidden" :style="{ height: `${coverHeight}px` }">
+                        
+                        <!-- Physical Base: Section 2 (Isi Pertama) -->
+                        <div v-if="orderedSections[1]" class="absolute inset-0 z-10">
+                            <div 
+                                :ref="(el) => setSectionRef(el, 1)" :data-index="1"
+                                class="w-full h-full relative overflow-hidden"
+                                :style="{ backgroundColor: orderedSections[1].backgroundColor || '#fff', backgroundImage: `url(${orderedSections[1].backgroundUrl})`, backgroundSize: 'cover' }"
+                            >
+                                <div v-if="orderedSections[1].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[1].overlayOpacity }" />
+                                <div v-for="el in orderedSections[1].elements || []" :key="el.id" class="absolute" :style="getElementStyle(el, 1)">
+                                    <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="w-full h-full" :trigger-mode="(!el.animationTrigger || el.animationTrigger === 'scroll') ? 'auto' : 'manual'" :force-trigger="isRevealing || isOpened" :element-id="el.id">
+                                        <div class="w-full h-full" :style="{ transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})` }">
+                                            <img v-if="el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity }" />
+                                            <div v-else-if="el.type === 'text'" class="w-full h-full flex items-center" :style="{ fontSize: el.textStyle?.fontSize+'px', fontFamily: el.textStyle?.fontFamily, color: el.textStyle?.color }">{{ el.content }}</div>
+                                            <div v-else-if="el.type === 'icon'" class="w-full h-full flex items-center justify-center" :style="{ color: el.iconStyle?.iconColor }"><svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="iconPaths[el.iconStyle?.iconName] || ''" /></svg></div>
+                                        </div>
+                                    </AnimatedElement>
+                                </div>
                             </div>
-                        </AnimatedElement>
-                    </div>
-                </div>
+                        </div>
 
-                <!-- HARDWARE-ACCELERATED SHUTTER TWINS (Mirror of Section 1) -->
-                <div v-if="shutterVisible" class="absolute top-0 left-0 w-full z-[400] pointer-events-none overflow-hidden" :style="{ height: `${coverHeight}px` }">
-                    <!-- Left Shutter -->
-                    <div ref="leftShutter" class="absolute top-0 left-0 w-full h-full will-change-transform" :style="{ clipPath: 'inset(0 50% 0 0)', backgroundColor: orderedSections[0]?.backgroundColor || '#fff', backgroundImage: orderedSections[0]?.backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
-                        <div v-if="orderedSections[0]?.overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
-                        <div v-for="el in orderedSections[0]?.elements || []" :key="'shutter-l-'+el.id" class="absolute" :style="getElementStyle(el, 0)">
-                             <div class="w-full h-full" :style="{ transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})` }">
-                                 <img v-if="el.type === 'image' && el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity ?? 1 }" />
-                                 <div v-else-if="el.type === 'text' && el.textStyle" class="w-full h-full flex items-center" :style="{ fontSize: `${el.textStyle.fontSize}px`, fontFamily: el.textStyle.fontFamily, color: el.textStyle.color, textAlign: el.textStyle.textAlign }">{{ el.content }}</div>
+                        <!-- Protective Layer: Section 1 (Cover) -->
+                        <div v-if="orderedSections[0]" class="absolute inset-0 z-20" :style="{ opacity: isOpened ? 0 : 1 }">
+                            <div 
+                                :ref="(el) => setSectionRef(el, 0)" :data-index="0"
+                                class="w-full h-full relative overflow-hidden shadow-2xl"
+                                :style="{ backgroundColor: orderedSections[0].backgroundColor || '#fff', backgroundImage: `url(${orderedSections[0].backgroundUrl})`, backgroundSize: 'cover' }"
+                            >
+                                <div v-if="orderedSections[0].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
+                                <div v-for="el in orderedSections[0].elements || []" :key="el.id" class="absolute" :style="getElementStyle(el, 0)">
+                                    <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="w-full h-full" trigger-mode="manual" :force-trigger="openBtnTriggered" :element-id="el.id">
+                                        <div class="w-full h-full" :style="{ transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})` }">
+                                            <img v-if="el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity }" />
+                                            <div v-else-if="el.type === 'text'" class="w-full h-full flex items-center" :style="{ fontSize: el.textStyle?.fontSize+'px', fontFamily: el.textStyle?.fontFamily, color: el.textStyle?.color }">{{ el.content }}</div>
+                                            <button v-else-if="el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:scale-105 active:scale-95 transition-all" @click="handleOpenInvitation(el)">{{ el.openInvitationConfig?.buttonText || 'Open' }}</button>
+                                        </div>
+                                    </AnimatedElement>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GPU Mirror Shutters (Active Transition Only) -->
+                        <div v-if="shutterVisible" class="absolute inset-0 z-30 pointer-events-none overflow-hidden">
+                             <!-- Left Half Mirror of Section 1 -->
+                             <div ref="leftShutter" class="absolute inset-0" :style="{ clipPath: 'inset(0 50% 0 0)', backgroundColor: orderedSections[0].backgroundColor, backgroundImage: `url(${orderedSections[0].backgroundUrl})`, backgroundSize: 'cover' }">
+                                 <div v-if="orderedSections[0].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
+                                 <div v-for="el in orderedSections[0].elements || []" :key="'sl-'+el.id" class="absolute" :style="getElementStyle(el, 0)">
+                                     <div class="w-full h-full" :style="{ transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})` }">
+                                        <img v-if="el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity }" />
+                                        <div v-else-if="el.type === 'text'" class="w-full h-full flex items-center" :style="{ fontSize: el.textStyle?.fontSize+'px', fontFamily: el.textStyle?.fontFamily, color: el.textStyle?.color }">{{ el.content }}</div>
+                                     </div>
+                                 </div>
+                             </div>
+                             <!-- Right Half Mirror of Section 1 -->
+                             <div ref="rightShutter" class="absolute inset-0" :style="{ clipPath: 'inset(0 0 0 50%)', backgroundColor: orderedSections[0].backgroundColor, backgroundImage: `url(${orderedSections[0].backgroundUrl})`, backgroundSize: 'cover' }">
+                                 <div v-if="orderedSections[0].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
+                                 <div v-for="el in orderedSections[0].elements || []" :key="'sr-'+el.id" class="absolute" :style="getElementStyle(el, 0)">
+                                     <div class="w-full h-full" :style="{ transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})` }">
+                                        <img v-if="el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity }" />
+                                        <div v-else-if="el.type === 'text'" class="w-full h-full flex items-center" :style="{ fontSize: el.textStyle?.fontSize+'px', fontFamily: el.textStyle?.fontFamily, color: el.textStyle?.color }">{{ el.content }}</div>
+                                     </div>
+                                 </div>
                              </div>
                         </div>
                     </div>
-                    <!-- Right Shutter -->
-                    <div ref="rightShutter" class="absolute top-0 left-0 w-full h-full will-change-transform" :style="{ clipPath: 'inset(0 0 0 50%)', backgroundColor: orderedSections[0]?.backgroundColor || '#fff', backgroundImage: orderedSections[0]?.backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
-                        <div v-if="orderedSections[0]?.overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
-                        <div v-for="el in orderedSections[0]?.elements || []" :key="'shutter-r-'+el.id" class="absolute" :style="getElementStyle(el, 0)">
-                             <div class="w-full h-full" :style="{ transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})` }">
-                                 <img v-if="el.type === 'image' && el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity ?? 1 }" />
-                                 <div v-else-if="el.type === 'text' && el.textStyle" class="w-full h-full flex items-center" :style="{ fontSize: `${el.textStyle.fontSize}px`, fontFamily: el.textStyle.fontFamily, color: el.textStyle.color, textAlign: el.textStyle.textAlign }">{{ el.content }}</div>
-                             </div>
+
+                    <!-- Subsequent Content (Section 3 to N) -->
+                    <div v-for="(section, index) in orderedSections.slice(2)" :key="section.key" :ref="(el) => setSectionRef(el, index + 2)" :data-index="index + 2" class="relative overflow-hidden flex-shrink-0 page-section w-full" :style="{ height: `${CANVAS_HEIGHT}px`, backgroundColor: section.backgroundColor || '#fff', backgroundImage: `url(${section.backgroundUrl})`, backgroundSize: 'cover' }">
+                        <div v-if="section.overlayOpacity" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: section.overlayOpacity }" />
+                        <div v-for="el in section.elements || []" :key="el.id" class="absolute" :style="getElementStyle(el, index + 2)">
+                            <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="w-full h-full" trigger-mode="auto" :element-id="el.id">
+                                <div class="w-full h-full" :style="{ transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})` }">
+                                    <img v-if="el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity }" />
+                                    <div v-else-if="el.type === 'text'" class="w-full h-full flex items-center" :style="{ fontSize: el.textStyle?.fontSize+'px', fontFamily: el.textStyle?.fontFamily, color: el.textStyle?.color }">{{ el.content }}</div>
+                                    <div v-else-if="el.type === 'icon'" class="w-full h-full flex items-center justify-center" :style="{ color: el.iconStyle?.iconColor }"><svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="iconPaths[el.iconStyle?.iconName] || ''" /></svg></div>
+                                </div>
+                            </AnimatedElement>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <button v-if="isFullscreen" class="fixed top-8 right-8 z-[600] p-4 bg-black/50 text-white rounded-full transition-all border border-white/20 hover:bg-black/80" @click="toggleFullscreen"><Minimize2 class="w-7 h-7" /></button>
+        <button v-if="isFullscreen" class="fixed top-8 right-8 z-[600] p-4 bg-black/50 text-white rounded-full border border-white/20 shadow-2xl hover:bg-black/80" @click="toggleFullscreen"><Minimize2 class="w-7 h-7" /></button>
     </div>
 </template>
 
 <style scoped>
 .scroll-container::-webkit-scrollbar { width: 0; height: 0; }
 .scroll-container { scrollbar-width: none; -ms-overflow-style: none; }
-/* Hardware Acceleration Base */
-.page-section, .will-change-transform {
-    backface-visibility: hidden;
-    transform: translateZ(0); 
-    perspective: 1000px;
-}
+.page-section, .absolute { backface-visibility: hidden; transform: translateZ(0); }
 </style>
