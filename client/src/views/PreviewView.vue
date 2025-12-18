@@ -166,18 +166,20 @@ const handleOpenInvitation = async () => {
             isRevealing.value = false;
             shutterVisible.value = false;
             
-            // Calculate scroll position to Section 2 (after Section 1)
+            // Calculate scroll position to Section 2 boundary
+            // Subtract a small offset to ensure top flowers of Section 2 are visible
             const section1ScaledHeight = coverHeightComputed.value * scaleFactor.value;
+            const scrollOffset = 50 * scaleFactor.value; // Show a bit of Section 2's top
+            const targetScroll = Math.max(0, section1ScaledHeight - scrollOffset);
             
             nextTick(() => {
                 if (scrollContainer.value) {
-                    // Jump to Section 2
-                    scrollContainer.value.scrollTop = section1ScaledHeight;
+                    scrollContainer.value.scrollTop = targetScroll;
                 }
                 if (lenis) {
                     lenis.start();
                     lenis.resize();
-                    lenis.scrollTo(section1ScaledHeight, { immediate: true });
+                    lenis.scrollTo(targetScroll, { immediate: true });
                 }
             });
         };
