@@ -213,7 +213,9 @@ const getElementStyle = (el: any, sectionIndex: number) => {
         width: `${el.size.width}px`,
         height: `${el.size.height}px`,
         zIndex: el.zIndex || 1,
-        position: 'absolute'
+        position: 'absolute',
+        transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})`,
+        opacity: el.opacity ?? 1
     };
 
     if (sectionIndex === 0 && windowHeight.value > windowWidth.value) {
@@ -283,9 +285,9 @@ const getButtonStyle = (el: any) => {
     // Style Overrides
     switch (style) {
         case 'classic':
-            base.backgroundColor = '#ffffff';
+            // Classic in editor uses buttonColor with white border
+            base.backgroundColor = config.buttonColor || '#ffffff';
             base.border = '1px solid #e2e8f0';
-            base.color = '#000000';
             break;
         case 'outline':
             base.backgroundColor = 'transparent';
@@ -337,14 +339,15 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
         
         <!-- MAIN SCROLL ENGINE -->
         <div ref="scrollContainer" class="scroll-container flex-1 w-full h-full overflow-y-auto overflow-x-hidden">
-            <div 
-                class="invitation-parent relative mx-auto" 
-                :style="{ 
-                    width: `${CANVAS_WIDTH}px`, 
-                    transform: `scale(${scaleFactor})`, 
-                    transformOrigin: 'top center' 
-                }"
-            >
+                <div 
+                    class="invitation-parent relative mx-auto" 
+                    :style="{ 
+                        width: `${CANVAS_WIDTH}px`, 
+                        height: flowMode ? 'auto' : `${coverHeightComputed}px`,
+                        transform: `scale(${scaleFactor})`, 
+                        transformOrigin: 'top center' 
+                    }"
+                >
                 <!-- Controls -->
                 <div v-if="!isFullscreen" class="absolute top-6 left-0 w-full px-6 flex justify-between z-[500] pointer-events-none">
                     <button class="p-4 bg-black/50 text-white rounded-full backdrop-blur-3xl pointer-events-auto border border-white/20 shadow-2xl" @click="goBack"><ArrowLeft class="w-7 h-7" /></button>
@@ -353,9 +356,8 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 
                 <!-- 
                     THE UNIFIED ATOMIC CONTAINER
-                    Matches CANVAS size exactly.
                 -->
-                <div class="relative w-full mx-auto bg-white shadow-2xl overflow-hidden" :style="{ width: `${CANVAS_WIDTH}px`, minHeight: `${coverHeightComputed}px` }">
+                <div class="relative w-full mx-auto shadow-2xl overflow-hidden bg-white" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? 'auto' : `${coverHeightComputed}px` }">
                     
                     <!-- NATURAL FLOW MODE (Active after Reveal) -->
                     <div v-if="flowMode" class="flex flex-col w-full relative h-auto">
@@ -385,38 +387,50 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :trigger-mode="'auto'"
                                         :element-id="el.id"
                                     >
-                                        <!-- Element content -->
                                         <img v-if="el.type === 'image'" :src="el.imageUrl" :style="getElementStyle(el, index)" class="pointer-events-none select-none" />
                                         <div v-else-if="el.type === 'text'" :style="[getElementStyle(el, index), getTextStyle(el)]">{{ el.content }}</div>
                                         <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" @click="handleOpenInvitation()">
                                             {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
                                         </button>
                                         <div v-else-if="el.type === 'icon'" :style="getElementStyle(el, index)" class="w-full h-full flex items-center justify-center opacity-100" :style="{ color: el.iconStyle?.iconColor }">
-                                            <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%">
-                                                <path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" />
-                                            </svg>
+                                            <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
                                         </div>
-
-                                        <!-- Countdown -->
                                         <div v-else-if="el.type === 'countdown'" :style="getElementStyle(el, index)" class="flex justify-center items-center gap-2">
                                             <div v-for="unit in ['Days', 'Hours', 'Min', 'Sec']" :key="unit" class="flex flex-col items-center">
                                                 <div class="text-2xl font-bold" :style="{ color: el.countdownConfig?.digitColor || '#000' }">00</div>
                                                 <div class="text-[10px] uppercase" :style="{ color: el.countdownConfig?.labelColor || '#666' }">{{ unit }}</div>
                                             </div>
                                         </div>
-
-                                        <!-- RSVP Form (Simplified Preview) -->
                                         <div v-else-if="el.type === 'rsvp_form' || el.type === 'rsvp-form'" :style="getElementStyle(el, index)" class="p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/20 shadow-xl flex flex-col gap-2 pointer-events-none">
-                                            <div class="h-8 bg-black/5 rounded w-full"></div>
                                             <div class="h-8 bg-black/5 rounded w-full"></div>
                                             <div class="h-10 bg-black rounded w-full mt-2"></div>
                                         </div>
-
-                                        <!-- Wishes (Simplified Preview) -->
                                         <div v-else-if="el.type === 'guest_wishes'" :style="getElementStyle(el, index)" class="p-4 bg-white/30 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg h-full overflow-hidden flex flex-col gap-3">
-                                            <div v-for="i in 3" :key="i" class="flex flex-col gap-1">
-                                                <div class="h-3 bg-black/10 rounded w-1/3"></div>
-                                                <div class="h-5 bg-black/5 rounded w-full"></div>
+                                            <div v-for="i in 2" :key="i" class="flex flex-col gap-1"><div class="h-3 bg-black/10 rounded w-1/3"></div><div class="h-4 bg-black/5 rounded w-full"></div></div>
+                                        </div>
+                                    </AnimatedElement>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ATOMIC STACK MODE (Initial Reveal Physics) -->
+                    <div v-else class="relative w-full h-full overflow-hidden">
+                        <!-- BOTTOM LAYER: Section 2 -->
+                        <div v-if="orderedSections[1]" class="absolute inset-0 z-[1]" :style="{ backgroundColor: orderedSections[1].backgroundColor || '#ffffff', backgroundImage: orderedSections[1].backgroundUrl ? `url(${orderedSections[1].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
+                            <div v-if="orderedSections[1].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[1].overlayOpacity }" />
+                            <div class="relative w-full h-full">
+                                <template v-for="el in orderedSections[1].elements" :key="el.id">
+                                    <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="w-full h-full" :trigger-mode="'manual'" :force-trigger="isRevealing || isOpened" :element-id="el.id">
+                                        <img v-if="el.type === 'image'" :src="el.imageUrl" :style="getElementStyle(el, 1)" class="pointer-events-none select-none" />
+                                        <div v-else-if="el.type === 'text'" :style="[getElementStyle(el, 1), getTextStyle(el)]">{{ el.content }}</div>
+                                        <div v-else-if="el.type === 'icon'" :style="getElementStyle(el, 1)" class="w-full h-full flex items-center justify-center" :style="{ color: el.iconStyle?.iconColor }">
+                                            <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
+                                        </div>
+                                        <div v-else-if="el.type === 'countdown'" :style="getElementStyle(el, 1)" class="flex justify-center items-center gap-2">
+                                            <div v-for="unit in ['Days', 'Hours', 'Min', 'Sec']" :key="unit" class="flex flex-col items-center">
+                                                <div class="text-2xl font-bold" :style="{ color: el.countdownConfig?.digitColor || '#000' }">00</div>
+                                                <div class="text-[10px] uppercase" :style="{ color: el.countdownConfig?.labelColor || '#666' }">{{ unit }}</div>
                                             </div>
                                         </div>
                                     </AnimatedElement>
@@ -424,61 +438,32 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             </div>
                         </div>
 
-                        <!-- MIRROR SHUTTERS (Z-Index High) -->
-                        <div v-if="shutterVisible" class="absolute inset-0 z-[100] flex overflow-hidden pointer-events-none">
-                            <div class="mirror-shutter-left w-1/2 h-full bg-white/10 backdrop-blur-sm border-r border-white/20"></div>
-                            <div class="mirror-shutter-right w-1/2 h-full bg-white/10 backdrop-blur-sm border-l border-white/20"></div>
+                        <!-- TOP LAYER: Section 1 -->
+                        <div v-if="orderedSections[0]" class="absolute inset-0 z-[2] atomic-cover-layer" :style="{ backgroundColor: orderedSections[0].backgroundColor || '#cccccc', backgroundImage: orderedSections[0].backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
+                            <div v-if="orderedSections[0].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
+                            <div class="relative w-full h-full">
+                                <template v-for="el in orderedSections[0].elements" :key="el.id">
+                                    <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="w-full h-full" :immediate="true" :element-id="el.id">
+                                        <img v-if="el.type === 'image'" :src="el.imageUrl" :style="getElementStyle(el, 0)" class="pointer-events-none select-none" />
+                                        <div v-else-if="el.type === 'text'" :style="[getElementStyle(el, 0), getTextStyle(el)]">{{ el.content }}</div>
+                                        <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" @click="handleOpenInvitation()">
+                                            {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
+                                        </button>
+                                         <div v-else-if="el.type === 'icon'" :style="getElementStyle(el, 0)" class="w-full h-full flex items-center justify-center" :style="{ color: el.iconStyle?.iconColor }">
+                                            <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
+                                        </div>
+                                    </AnimatedElement>
+                                </template>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- ATOMIC STACK MODE (Initial Reveal Physics) -->
-                    <div v-else class="relative w-full overflow-hidden" :style="{ height: `${coverHeightComputed}px` }">
-                        
-                                    </template>
-                                </div>
-                            </div>
-
-                            <!-- TOP LAYER: Section 1 (The Gray Cover) -->
-                            <div v-if="orderedSections[0]" class="absolute inset-0 z-[2] atomic-cover-layer" :style="{ backgroundColor: orderedSections[0].backgroundColor || '#cccccc', backgroundImage: `url(${orderedSections[0].backgroundUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }">
-                                <div v-if="orderedSections[0].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
-                                <div class="relative w-full h-full">
-                                    <template v-for="el in orderedSections[0].elements" :key="el.id">
-                                        <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="w-full h-full" :immediate="true" :element-id="el.id">
-                                            <img v-if="el.type === 'image'" :src="el.imageUrl" :style="getElementStyle(el, 0)" class="pointer-events-none select-none" />
-                                            <div v-else-if="el.type === 'text'" :style="[getElementStyle(el, 0), getTextStyle(el)]">{{ el.content }}</div>
-                                            <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" @click="handleOpenInvitation()">
-                                                {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
-                                            </button>
-                                             <div v-else-if="el.type === 'icon'" :style="getElementStyle(el, 0)" class="w-full h-full flex items-center justify-center" :style="{ color: el.iconStyle?.iconColor }">
-                                                <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%">
-                                                    <path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" />
-                                                </svg>
-                                            </div>
-                                            <!-- Countdown -->
-                                            <div v-else-if="el.type === 'countdown'" :style="getElementStyle(el, 0)" class="flex justify-center items-center gap-2">
-                                                <div v-for="unit in ['Days', 'Hours', 'Min', 'Sec']" :key="unit" class="flex flex-col items-center">
-                                                    <div class="text-2xl font-bold" :style="{ color: el.countdownConfig?.digitColor || '#000' }">00</div>
-                                                    <div class="text-[10px] uppercase" :style="{ color: el.countdownConfig?.labelColor || '#666' }">{{ unit }}</div>
-                                                </div>
-                                            </div>
-                                            <!-- RSVP Form -->
-                                            <div v-else-if="el.type === 'rsvp_form' || el.type === 'rsvp-form'" :style="getElementStyle(el, 0)" class="p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/20 shadow-xl flex flex-col gap-2 pointer-events-none">
-                                                <div class="h-8 bg-black/5 rounded w-full"></div>
-                                                <div class="h-8 bg-black/5 rounded w-full"></div>
-                                                <div class="h-10 bg-black rounded w-full mt-2"></div>
-                                            </div>
-                                            <!-- Wishes -->
-                                            <div v-else-if="el.type === 'guest_wishes'" :style="getElementStyle(el, 0)" class="p-4 bg-white/30 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg h-full overflow-hidden flex flex-col gap-3">
-                                                <div v-for="i in 3" :key="i" class="flex flex-col gap-1">
-                                                    <div class="h-3 bg-black/10 rounded w-1/3"></div>
-                                                    <div class="h-5 bg-black/5 rounded w-full"></div>
-                                                </div>
-                                            </div>
-                                        </AnimatedElement>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- MIRROR SHUTTERS -->
+                    <div v-if="shutterVisible" class="absolute inset-0 z-[100] flex overflow-hidden pointer-events-none">
+                        <div class="mirror-shutter-left w-1/2 h-full bg-white/20 backdrop-blur-md"></div>
+                        <div class="mirror-shutter-right w-1/2 h-full bg-white/20 backdrop-blur-md"></div>
+                    </div>
+                </div>
                     </div>
                 </div>
             </div>
