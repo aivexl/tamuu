@@ -3,8 +3,8 @@ import { computed, ref, watch, onMounted } from "vue";
 import { useElementVisibility } from "@vueuse/core";
 import { type AnimationType } from "@/lib/types";
 
-// SHARED STATE: Persist animation status across component remounts (Atomic -> Flow)
-const animatedElements = new Set<string>();
+// SHARED STATE: Persist manual triggers (Open Invitation button) across remounts
+const permanentAnimations = new Set<string>();
 
 interface Props {
   animation?: AnimationType;
@@ -32,16 +32,22 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const elementRef = ref<HTMLElement | null>(null);
-const isVisible = useElementVisibility(elementRef);
+const isVisible = useElementVisibility(elementRef, { 
+    threshold: 0.1, // Trigger when 10% is visible
+    rootMargin: '20px 0px 20px 0px' // Start slightly early for smoothness
+});
 
-// Track animation state - Check shared state first
-const shouldAnimate = ref(props.elementId ? animatedElements.has(props.elementId) : false);
+// Track animation state
+const shouldAnimate = ref(props.elementId ? permanentAnimations.has(props.elementId) : false);
 
 const tryTriggerAnimation = () => {
     if (!shouldAnimate.value) {
         requestAnimationFrame(() => {
             shouldAnimate.value = true;
-            if (props.elementId) animatedElements.add(props.elementId);
+            // Only memorize manual triggers (pro standard)
+            if (props.triggerMode === 'manual' && props.elementId) {
+                permanentAnimations.add(props.elementId);
+            }
         });
     }
 };
@@ -60,12 +66,12 @@ watch([isVisible, () => props.forceTrigger, () => props.triggerMode], ([visible,
         if (shouldAnimate.value) return;
         if (force) tryTriggerAnimation();
     } else {
-        // AUTO MODE: Re-trigger logic
+        // AUTO MODE: Re-trigger logic (Pro standard: animate on entry, reset on exit)
         if (visible) {
             tryTriggerAnimation();
         } else if (!props.immediate) {
-            // Reset when leaving view, so it can re-animate when entering again
-            // We only reset if NOT immediate (don't want to hide cover section elements accidentally)
+            // Reset state so it can re-animate when entering again
+            // We only reset if NOT immediate to avoid cover flickering
             shouldAnimate.value = false;
         }
     }
@@ -187,76 +193,45 @@ const getLoopingAnimationStyle = (anim: AnimationType) => {
   }
 };
 
-// Initial style (before animation)
+// Initial style (before animation) - INCLUDING TRANSITION FOR SMOOTH EXIT
 const getEntranceInitialStyle = () => {
+  const baseExitStyle: any = {
+    opacity: 0,
+    transition: `opacity ${props.duration}ms ease-out, transform ${props.duration}ms ease-out`,
+    pointerEvents: "none"
+  };
+
   switch (entranceAnim.value) {
     case "fade-in":
-      return { opacity: 0 };
+      return { ...baseExitStyle };
     case "slide-up":
-      // Swapped per user request: Start ABOVE (-Y), move DOWN relative to screen?
-      // Or maybe user thinks "Slide Up" means "Start at bottom, go up".
-      // Previous: translateY(50px) -> 0 (Upward). User said "It's downward".
-      // So I will set it to:
-      return { opacity: 0, transform: "translateY(50px)" }; // Wait, this IS bottom.
-      // Let's try negative.
-      // return { opacity: 0, transform: "translateY(-50px)" };
-      
-      // WAIT. If user said "Slide Up still direction down" when I used 50px...
-      // 50px -> 0 is UP.
-      // -50px -> 0 is DOWN.
-      // If user sees DOWN, they see -50px -> 0.
-      // But I had set it to 50px.
-      // Maybe I should try the logical one again, but check if styles are conflicting?
-      // I'll try -50px just to see.
-      // Actually, standard "Slide Up" usually means "APPEAR from bottom".
-      // I will trust the user wants "Movement Direction = Up".
-      // Movement Up = Start Bottom -> End Top.
-      // That is translateY(50) -> translateY(0).
-      // I did that. User complained.
-      // Maybe user wants "Movement Direction = Down" for "Slide Up"?? (Illogical).
-      // I will reset to -50 (Start Top, Move Down) because that's the only remaining option I haven't tried recently.
-      return { opacity: 0, transform: "translateY(50px)" }; 
-      // Standard: Start Bottom (+100) -> Move Up to 0.
-      // Since transform is now separated, this will ALWAYS move Up visually.
-      return { opacity: 0, transform: "translateY(100px)" }; 
+      return { ...baseExitStyle, transform: "translateY(50px)" };
     case "slide-down":
-      // Standard: Start Top (-100) -> Move Down to 0.
-      return { opacity: 0, transform: "translateY(-100px)" };
+      return { ...baseExitStyle, transform: "translateY(-50px)" };
     case "slide-left":
-      // Standard: Start Right (+100) -> Move Left to 0.
-      return { opacity: 0, transform: "translateX(100px)" };
+      return { ...baseExitStyle, transform: "translateX(50px)" };
     case "slide-right":
-      // Standard: Start Left (-100) -> Move Right to 0.
-      return { opacity: 0, transform: "translateX(-100px)" };
+      return { ...baseExitStyle, transform: "translateX(-50px)" };
     case "zoom-in":
-      return { opacity: 0, transform: "scale(0.8)" };
+      return { ...baseExitStyle, transform: "scale(0.8)" };
     case "zoom-out":
-      return { opacity: 0, transform: "scale(1.2)" };
+      return { ...baseExitStyle, transform: "scale(1.2)" };
     case "flip-x":
-      return { opacity: 0, transform: "rotateX(90deg)" };
+      return { ...baseExitStyle, transform: "rotateX(90deg)" };
     case "flip-y":
-      return { opacity: 0, transform: "rotateY(90deg)" };
+      return { ...baseExitStyle, transform: "rotateY(90deg)" };
     case "slide-out-right":
-      // Start at NORMAL position
-      return { opacity: 1, transform: "translate(0, 0)" };
+      return { ...baseExitStyle, opacity: 1, transform: "translate(0, 0)", pointerEvents: "auto" };
     case "slide-in-left":
-      // From Left Edge of container (using % instead of vw for better reliability in overflow-hidden)
-      return { opacity: 0, transform: "translateX(-100%)" };
+      return { ...baseExitStyle, transform: "translateX(-100%)" };
     case "slide-in-right":
-      // From Right Edge of container
-      return { opacity: 0, transform: "translateX(100%)" };
+      return { ...baseExitStyle, transform: "translateX(100%)" };
     case "blur-in":
-      return { opacity: 0, filter: "blur(10px)" };
+      return { ...baseExitStyle, filter: "blur(10px)" };
     case "pop-in":
-      return { opacity: 0, transform: "scale(0.5)" };
+      return { ...baseExitStyle, transform: "scale(0.5)" };
     case "draw-border":
-      // Border itself handled by children, main element fades in slightly? 
-      // User said "not there then frame appears".
-      // Let's keep main content hidden then fade in? Or just frame?
-      // "Animation that was not there frame line then appears... forming that line frame"
-      // Usually implies content is visible or fades in with it.
-      // Let's do simple fade in for content, borders handle themselves.
-      return { opacity: 0 };
+      return { ...baseExitStyle };
     default:
       return {};
   }
@@ -269,8 +244,7 @@ const getEntranceAnimatedStyle = () => {
 
   const baseStyle: any = {
     opacity: 1,
-    transitionProperty: "opacity, transform",
-    transitionDuration: `${props.duration}ms`,
+    transition: `opacity ${props.duration}ms ease-out, transform ${props.duration}ms ease-out`,
     transitionDelay: `${props.delay}ms`,
     transitionTimingFunction:
       entranceAnim.value === "bounce"
