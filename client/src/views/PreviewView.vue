@@ -43,7 +43,7 @@ const sectionRefs = ref<HTMLElement[]>([]);
 const sectionClicked = ref<boolean[]>([]);
 const isRevealing = ref(false); 
 
-// Shutter Layers
+// Shutter Mirror Refs
 const leftShutter = ref<HTMLElement | null>(null);
 const rightShutter = ref<HTMLElement | null>(null);
 const shutterVisible = ref(false);
@@ -80,7 +80,7 @@ onMounted(async () => {
         await store.fetchTemplate(templateId.value);
     }
     
-    // Observer for scroll animations
+    // Observer for scroll-based entrance animations
     observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             const index = parseInt((entry.target as HTMLElement).dataset.index || '-1');
@@ -89,8 +89,8 @@ onMounted(async () => {
             }
         });
     }, { 
-        threshold: 0.1,
-        rootMargin: '20% 0px 20% 0px' 
+        threshold: 0.15,
+        rootMargin: '10% 0px 10% 0px' 
     });
 
     // Initialize Lenis - UNICORN STANDARD CONFIG
@@ -98,13 +98,13 @@ onMounted(async () => {
         lenis = new Lenis({
             wrapper: scrollContainer.value,
             content: scrollContainer.value.firstElementChild as HTMLElement,
-            duration: 1.4,
+            duration: 1.5,
             easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-            touchMultiplier: 1.8,
+            touchMultiplier: 2,
             infinite: false,
         });
 
-        // Initially stop Lenis until opened or allowed
+        // Initially lock Lenis
         lenis.stop();
 
         const scrollLoop = (time: number) => {
@@ -125,14 +125,13 @@ onUnmounted(() => {
 });
 
 /**
- * Enterprise Shutter Reveal Logic (CHC - Concurrent Height Collapse)
- * Guaranteed Section 2 Landing with zero visual jump.
+ * TRUE Z-STACK REVEAL (Unicorn Standard)
+ * Mirrors Section 1 while concurrently scrolling to Section 2.
  */
 const handleOpenInvitation = async (clickedElement: any) => {
     if (openBtnTriggered.value) return;
     openBtnTriggered.value = true;
     
-    // 1. Elements preparation
     const coverSection = orderedSections.value[0];
     const elements = coverSection?.elements || [];
     let triggerDelay = 0;
@@ -144,7 +143,6 @@ const handleOpenInvitation = async (clickedElement: any) => {
         }
     });
     
-    // 2. The Climax Delay
     setTimeout(async () => {
         isOpened.value = true;
         isRevealing.value = true;
@@ -153,6 +151,7 @@ const handleOpenInvitation = async (clickedElement: any) => {
         await nextTick();
         
         const coverEl = sectionRefs.value[0];
+        const nextEl = sectionRefs.value[1]; // Section 2 (Content)
         const effect = coverSection?.transitionEffect || 'split-screen';
         const duration = (coverSection?.transitionDuration || 1500) / 1000;
 
@@ -161,49 +160,62 @@ const handleOpenInvitation = async (clickedElement: any) => {
             return;
         }
 
-        // --- THE UNICORN SYNC ---
-        const timeline = gsap.timeline({
+        // UNICORN TIMELINE: Synchronized Reveal + Scroll
+        const tl = gsap.timeline({
             onComplete: finalizeAndUnlock,
             defaults: { duration, ease: "expo.inOut" }
         });
 
         if (effect === 'split-screen' && leftShutter.value && rightShutter.value) {
-            // Hide live cover, reveal shutters (Hardware-Accelerated Masking)
+            // Frame 0: Hide real Section 1 to reveal the twinning shutters
             gsap.set(coverEl, { opacity: 0 });
             
-            // Atomic Reveal: Shutters split while we concurrently scroll to Section 2
-            timeline.to(leftShutter.value, { xPercent: -101 }, 0);
-            timeline.to(rightShutter.value, { xPercent: 101 }, 0);
+            // Frame 1 to N: Concurrent Motion
+            tl.to(leftShutter.value, { xPercent: -100.5, force3D: true }, 0);
+            tl.to(rightShutter.value, { xPercent: 100.5, force3D: true }, 0);
             
-            // PHYSICS SYNC: Concurrent scroll landing on Section 2 (index 1)
+            // DETERMINISTIC LANDING: Scroll to Section 2 Offset
             if (lenis && scrollContainer.value) {
                 lenis.start();
-                timeline.to(scrollContainer.value, { 
+                tl.to(scrollContainer.value, { 
                     scrollTo: { y: coverHeight.value, autoKill: false },
-                    onUpdate: () => lenis?.notify() // Keep Lenis in sync
+                    onUpdate: () => lenis?.notify() 
                 }, 0);
             }
-        } else {
-            // Fallback for other effects using similar orchestrator
-            timeline.to(coverEl, { opacity: 0, duration: 0.8, onComplete: finalizeAndUnlock });
+        } 
+        else if (effect === 'cards' || effect === 'reveal') {
+            gsap.set(coverEl, { opacity: index === 0 ? 1 : 1 }); // Prep
+            tl.to(coverEl, { y: -windowHeight.value, opacity: 0, scale: 0.9, duration: 1.2 }, 0);
             if (lenis) {
                 lenis.start();
-                lenis.scrollTo(coverHeight.value, { duration: 1, easing: (t) => t });
+                tl.to(scrollContainer.value, { scrollTo: coverHeight.value }, 0);
+            }
+        }
+        else {
+            // General Case
+            tl.to(coverEl, { opacity: 0, duration: 0.8 });
+            if (lenis) {
+                lenis.start();
+                tl.to(scrollContainer.value, { scrollTo: coverHeight.value }, 0);
             }
         }
 
         function finalizeAndUnlock() {
             shutterVisible.value = false;
             isRevealing.value = false;
+            // Real Section 1 remains in the DOM flow at opacity 0 or visible for scroll-back
+            gsap.set(coverEl, { opacity: 1 }); 
             if (lenis) {
                 lenis.start();
                 lenis.resize();
+                // Ensure interaction is back
+                scrollContainer.value?.classList.remove('pointer-events-none');
             }
         }
     }, triggerDelay);
 };
 
-// Dimensions & Scaling Utilities
+// Dimensions & Scaling Engineering
 const windowWidth = ref(0);
 const windowHeight = ref(0);
 
@@ -233,6 +245,7 @@ const getElementStyle = (el: any, sectionIndex: number) => {
         zIndex: el.zIndex || 1,
     };
 
+    // Special handling for Page 1 Tall Displays
     if (sectionIndex === 0 && windowHeight.value > windowWidth.value) {
          const currentCoverHeight = coverHeight.value;
          if (currentCoverHeight > CANVAS_HEIGHT) {
@@ -251,34 +264,28 @@ const getButtonStyle = (element: any) => {
     if (element.openInvitationConfig) {
         const config = element.openInvitationConfig;
         const color = config.buttonColor || '#000000';
-        const textColor = config.textColor || '#ffffff';
         
         let css: any = {
             fontFamily: config.fontFamily || 'Inter',
             fontSize: `${config.fontSize || 16}px`,
-            color: textColor,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            height: '100%',
-            transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
-            cursor: 'pointer',
-            border: 'none'
+            color: config.textColor || '#ffffff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: '100%', height: '100%', transition: 'all 0.5s cubic-bezier(0.23, 1, 0.32, 1)',
+            cursor: 'pointer', border: 'none'
         };
 
         const shape = config.buttonShape || 'pill';
-        if (shape === 'pill' || shape === 'stadium') css.borderRadius = '9999px';
-        else if (shape === 'rounded') css.borderRadius = '12px';
+        if (shape === 'pill' || shape === 'stadium') css.borderRadius = '200px';
+        else if (shape === 'rounded') css.borderRadius = '16px';
         else css.borderRadius = '0px';
 
-        if (config.buttonStyle === 'outline' || config.buttonStyle === 'minimal') {
+        if (config.buttonStyle === 'outline') {
             css.backgroundColor = 'transparent';
             css.border = `2px solid ${color}`;
-            css.color = config.textColor || color; 
+            css.color = color;
         } else if (config.buttonStyle === 'glass') {
-            css.backgroundColor = 'rgba(255,255,255,0.15)';
-            css.backdropFilter = 'blur(15px)';
+            css.backgroundColor = 'rgba(255,255,255,0.1)';
+            css.backdropFilter = 'blur(20px)';
             css.border = '1px solid rgba(255,255,255,0.2)';
         } else {
             css.backgroundColor = color;
@@ -286,20 +293,18 @@ const getButtonStyle = (element: any) => {
         return css;
     } 
     return {
-        backgroundColor: '#000000', color: '#ffffff',
-        borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: '100%', height: '100%', border: 'none',
-        fontSize: '14px', fontFamily: 'Inter'
+        backgroundColor: '#000000', color: '#ffffff', borderRadius: '12px',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: '100%', height: '100%', border: 'none'
     };
 };
 
-const toggleFullscreen = async () => {
+const toggleFullscreen = () => {
     if (!mainViewport.value) return;
     if (!document.fullscreenElement) {
-        try { await mainViewport.value.requestFullscreen(); isFullscreen.value = true; }
-        catch (err) { console.error(err); }
+        mainViewport.value.requestFullscreen().catch(console.error);
     } else {
-        await document.exitFullscreen(); isFullscreen.value = false;
+        document.exitFullscreen().catch(console.error);
     }
 };
 
@@ -316,7 +321,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
         ref="mainViewport" 
         class="h-screen w-screen bg-black flex flex-col items-center justify-center overflow-hidden"
     >
-        <!-- UNICORN-GRADE SCROLL ARCHITECTURE -->
+        <!-- UNICORN SCROLL ARCHITECTURE (TRUE Z-STACK) -->
         <div 
             ref="scrollContainer"
             class="scroll-container flex-1 w-full h-full overflow-y-auto overflow-x-hidden"
@@ -329,23 +334,22 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                     transformOrigin: 'top center',
                 }"
             >
-                <!-- Controls Layer (Always Top) -->
-                <div v-if="!isFullscreen" class="absolute top-4 left-0 w-full px-4 flex justify-between z-[500] pointer-events-none">
-                    <button class="p-2.5 text-white/90 bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-lg transition-all pointer-events-auto shadow-xl" @click="goBack"><ArrowLeft class="w-6 h-6" /></button>
-                    <button class="p-2.5 text-white/90 bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-lg transition-all pointer-events-auto shadow-xl" @click="toggleFullscreen"><Maximize2 class="w-6 h-6" /></button>
+                <!-- Controls (Floating UI) -->
+                <div v-if="!isFullscreen" class="absolute top-6 left-0 w-full px-6 flex justify-between z-[500] pointer-events-none">
+                    <button class="p-3 text-white bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-xl transition-all pointer-events-auto border border-white/20 shadow-2xl" @click="goBack"><ArrowLeft class="w-6 h-6" /></button>
+                    <button class="p-3 text-white bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-xl transition-all pointer-events-auto border border-white/20 shadow-2xl" @click="toggleFullscreen"><Maximize2 class="w-6 h-6" /></button>
                 </div>
 
-                <!-- Unified Block Flow (Section 0 to N) -->
+                <!-- UNIFIED DOM STACK (Section 1 to N) -->
                 <div 
                     v-for="(section, index) in orderedSections" :key="section.key"
                     :ref="(el) => setSectionRef(el, index)" :data-index="index"
-                    class="relative overflow-hidden flex-shrink-0 page-section w-full border-0"
+                    class="relative overflow-hidden flex-shrink-0 page-section w-full"
                     :style="{
                         height: `${index === 0 ? coverHeight : CANVAS_HEIGHT}px`,
                         backgroundColor: section.backgroundColor || '#ffffff',
                         backgroundImage: section.backgroundUrl ? `url(${section.backgroundUrl})` : 'none',
                         backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 10,
-                        visibility: (index === 0 && !isOpened) ? 'visible' : 'visible'
                     }"
                 >
                     <div v-if="section.overlayOpacity" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: section.overlayOpacity }" />
@@ -363,50 +367,49 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 <img v-if="el.type === 'image' && el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity ?? 1 }" draggable="false" />
                                 <div v-else-if="el.type === 'text' && el.textStyle" class="w-full h-full flex items-center" :style="{ fontSize: `${el.textStyle.fontSize}px`, fontFamily: el.textStyle.fontFamily, fontStyle: el.textStyle.fontStyle, color: el.textStyle.color, textAlign: el.textStyle.textAlign }">{{ el.content }}</div>
                                 <div v-else-if="el.type === 'icon' && el.iconStyle" class="w-full h-full flex items-center justify-center" :style="{ color: el.iconStyle.iconColor }"><svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="iconPaths[el.iconStyle.iconName] || iconPaths['heart']" /></svg></div>
-                                <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:brightness-110 active:scale-95 transition-all" @click="handleOpenInvitation(el)">{{ el.openInvitationConfig?.buttonText || el.content || 'Open Invitation' }}</button>
+                                <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:scale-105 active:scale-95 transition-all" @click="handleOpenInvitation(el)">{{ el.openInvitationConfig?.buttonText || el.content || 'Open Invitation' }}</button>
                             </div>
                         </AnimatedElement>
                     </div>
                 </div>
 
-                <!-- HARDWARE-ACCELERATED SHUTTER LAYER (Reveal Mask) -->
-                <div v-if="shutterVisible" class="absolute top-0 left-0 w-full h-screen z-[300] pointer-events-none overflow-hidden" :style="{ height: `${coverHeight}px` }">
+                <!-- HARDWARE-ACCELERATED SHUTTER TWINS (Mirror of Section 1) -->
+                <div v-if="shutterVisible" class="absolute top-0 left-0 w-full z-[400] pointer-events-none overflow-hidden" :style="{ height: `${coverHeight}px` }">
                     <!-- Left Shutter -->
-                    <div ref="leftShutter" class="absolute top-0 left-0 w-full h-full bg-inherit" :style="{ clipPath: 'inset(0 50% 0 0)', backgroundColor: orderedSections[0]?.backgroundColor || '#fff', backgroundImage: orderedSections[0]?.backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
-                         <div v-if="orderedSections[0]?.overlayOpacity" class="absolute inset-0 bg-black shadow-2xl" :style="{ opacity: orderedSections[0].overlayOpacity }" />
-                         <!-- Cloned elements for bit-perfect mirroring -->
-                         <div v-for="el in orderedSections[0]?.elements || []" :key="'l-'+el.id" class="absolute" :style="getElementStyle(el, 0)">
+                    <div ref="leftShutter" class="absolute top-0 left-0 w-full h-full will-change-transform" :style="{ clipPath: 'inset(0 50% 0 0)', backgroundColor: orderedSections[0]?.backgroundColor || '#fff', backgroundImage: orderedSections[0]?.backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
+                        <div v-if="orderedSections[0]?.overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
+                        <div v-for="el in orderedSections[0]?.elements || []" :key="'shutter-l-'+el.id" class="absolute" :style="getElementStyle(el, 0)">
                              <div class="w-full h-full" :style="{ transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})` }">
                                  <img v-if="el.type === 'image' && el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity ?? 1 }" />
                                  <div v-else-if="el.type === 'text' && el.textStyle" class="w-full h-full flex items-center" :style="{ fontSize: `${el.textStyle.fontSize}px`, fontFamily: el.textStyle.fontFamily, color: el.textStyle.color, textAlign: el.textStyle.textAlign }">{{ el.content }}</div>
                              </div>
-                         </div>
+                        </div>
                     </div>
                     <!-- Right Shutter -->
-                    <div ref="rightShutter" class="absolute top-0 left-0 w-full h-full bg-inherit" :style="{ clipPath: 'inset(0 0 0 50%)', backgroundColor: orderedSections[0]?.backgroundColor || '#fff', backgroundImage: orderedSections[0]?.backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
-                         <div v-if="orderedSections[0]?.overlayOpacity" class="absolute inset-0 bg-black shadow-2xl" :style="{ opacity: orderedSections[0].overlayOpacity }" />
-                         <div v-for="el in orderedSections[0]?.elements || []" :key="'r-'+el.id" class="absolute" :style="getElementStyle(el, 0)">
+                    <div ref="rightShutter" class="absolute top-0 left-0 w-full h-full will-change-transform" :style="{ clipPath: 'inset(0 0 0 50%)', backgroundColor: orderedSections[0]?.backgroundColor || '#fff', backgroundImage: orderedSections[0]?.backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
+                        <div v-if="orderedSections[0]?.overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
+                        <div v-for="el in orderedSections[0]?.elements || []" :key="'shutter-r-'+el.id" class="absolute" :style="getElementStyle(el, 0)">
                              <div class="w-full h-full" :style="{ transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})` }">
                                  <img v-if="el.type === 'image' && el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity ?? 1 }" />
                                  <div v-else-if="el.type === 'text' && el.textStyle" class="w-full h-full flex items-center" :style="{ fontSize: `${el.textStyle.fontSize}px`, fontFamily: el.textStyle.fontFamily, color: el.textStyle.color, textAlign: el.textStyle.textAlign }">{{ el.content }}</div>
                              </div>
-                         </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <button v-if="isFullscreen" class="fixed top-8 right-8 z-[600] p-3.5 bg-black/50 text-white rounded-full transition-all border border-white/20 hover:bg-black/80 shadow-2xl" @click="toggleFullscreen"><Minimize2 class="w-7 h-7" /></button>
+        <button v-if="isFullscreen" class="fixed top-8 right-8 z-[600] p-4 bg-black/50 text-white rounded-full transition-all border border-white/20 hover:bg-black/80" @click="toggleFullscreen"><Minimize2 class="w-7 h-7" /></button>
     </div>
 </template>
 
 <style scoped>
 .scroll-container::-webkit-scrollbar { width: 0; height: 0; }
 .scroll-container { scrollbar-width: none; -ms-overflow-style: none; }
-/* Hardware Acceleration */
-.page-section, .shutter-layer {
+/* Hardware Acceleration Base */
+.page-section, .will-change-transform {
     backface-visibility: hidden;
-    transform-style: preserve-3d;
-    will-change: transform, opacity;
+    transform: translateZ(0); 
+    perspective: 1000px;
 }
 </style>
