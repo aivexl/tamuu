@@ -464,8 +464,6 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                         <div class="mirror-shutter-right w-1/2 h-full bg-white/20 backdrop-blur-md"></div>
                     </div>
                 </div>
-                    </div>
-                </div>
             </div>
         </div>
 
