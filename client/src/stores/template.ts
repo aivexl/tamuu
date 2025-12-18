@@ -133,12 +133,10 @@ export const useTemplateStore = defineStore("template", {
 
             if (options.skipDb) return;
 
-            if (!elementId.startsWith("el-")) {
-                try {
-                    await CloudflareAPI.updateElement(elementId, updates, templateId);
-                } catch (error: any) {
-                    console.error("Failed to update element:", error);
-                }
+            try {
+                await CloudflareAPI.updateElement(elementId, updates, templateId);
+            } catch (error: any) {
+                console.error("Failed to update element:", error);
             }
         },
 
