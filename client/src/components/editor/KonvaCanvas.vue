@@ -162,26 +162,29 @@ const handleStageClick = (e: any) => {
 const handleDragEnd = (e: any, element: TemplateElement) => {
     const x = Math.round(e.target.x());
     const y = Math.round(e.target.y());
-    emit('elementDragEnd', element.id, x, y);
+    emit('elementDragEnd', element.id, { x, y });
 };
 
 const handleDragMove = (e: any, element: TemplateElement) => {
+    const node = e.target;
+    let newX = node.x();
+    let newY = node.y();
+
     // Apply virtual boundaries unless Shift is pressed
     if (!isShiftPressed.value) {
-        const node = e.target;
-        const x = node.x();
-        const y = node.y();
         const width = node.width() || element.size.width;
         const height = node.height() || element.size.height;
         
         // Clamp position within canvas bounds
-        let newX = Math.max(0, Math.min(x, CANVAS_WIDTH - width));
-        let newY = Math.max(0, Math.min(y, CANVAS_HEIGHT - height));
+        newX = Math.max(0, Math.min(newX, CANVAS_WIDTH - width));
+        newY = Math.max(0, Math.min(newY, CANVAS_HEIGHT - height));
         
         // Apply constrained position
         node.x(newX);
         node.y(newY);
     }
+
+    emit('elementDrag', element.id, { x: Math.round(newX), y: Math.round(newY) });
 };
 
 const handleElementClick = (elementId: string) => {
@@ -224,7 +227,10 @@ watch(
 );
 
 const handleTransformEnd = (e: any) => {
-   const node = e.target;
+   const transformerNode = e.target;
+   const node = transformerNode.nodes()[0];
+   if (!node) return;
+
    const scaleX = node.scaleX();
    const scaleY = node.scaleY();
 
@@ -237,8 +243,7 @@ const handleTransformEnd = (e: any) => {
    node.width(newWidth);
    node.height(newHeight);
    
-   emit('elementTransformEnd', {
-       id: props.selectedElementId,
+   emit('elementTransformEnd', props.selectedElementId, {
        x: Math.round(node.x()),
        y: Math.round(node.y()),
        width: Math.round(newWidth),
@@ -963,6 +968,7 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
                 keepRatio: true,
                 enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right']
             }"
+            @transformend="handleTransformEnd"
         />
       </v-layer>
     </v-stage>
