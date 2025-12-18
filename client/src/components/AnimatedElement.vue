@@ -336,48 +336,50 @@ const computedStyle = computed(() => {
 </script>
 
 <template>
-  <div ref="elementRef" :class="class" :style="computedStyle" class="relative">
-    <slot />
-    
-    <!-- Border Drawing Lines -->
-    <template v-if="animation === 'draw-border'">
-      <!-- Top -->
-      <span 
-        class="absolute top-0 left-0 h-[2px] bg-current transition-all duration-[1000ms] ease-out"
-        :style="{ 
-            width: shouldAnimate ? '100%' : '0%', 
-            backgroundColor: style.borderColor || style.color || '#000',
-            transitionDelay: `${delay}ms` 
-        }"
-      />
-      <!-- Right -->
-      <span 
-        class="absolute top-0 right-0 w-[2px] bg-current transition-all duration-[1000ms] ease-out"
-        :style="{ 
-            height: shouldAnimate ? '100%' : '0%', 
-            backgroundColor: style.borderColor || style.color || '#000',
-            transitionDelay: `${delay + 200}ms` 
-        }"
-      />
-      <!-- Bottom -->
-      <span 
-        class="absolute bottom-0 right-0 h-[2px] bg-current transition-all duration-[1000ms] ease-out"
-        :style="{ 
-            width: shouldAnimate ? '100%' : '0%', 
-            backgroundColor: style.borderColor || style.color || '#000',
-            transitionDelay: `${delay + 400}ms` 
-        }"
-      />
-      <!-- Left -->
-      <span 
-        class="absolute bottom-0 left-0 w-[2px] bg-current transition-all duration-[1000ms] ease-out"
-        :style="{ 
-            height: shouldAnimate ? '100%' : '0%', 
-            backgroundColor: style.borderColor || style.color || '#000',
-            transitionDelay: `${delay + 600}ms` 
-        }"
-      />
-    </template>
+  <div ref="elementRef" :class="class" class="relative">
+    <div :style="computedStyle" class="w-full h-full relative">
+      <slot />
+      
+      <!-- Border Drawing Lines -->
+      <template v-if="animation === 'draw-border'">
+        <!-- Top -->
+        <span 
+          class="absolute top-0 left-0 h-[2px] bg-current transition-all duration-[1000ms] ease-out"
+          :style="{ 
+              width: shouldAnimate ? '100%' : '0%', 
+              backgroundColor: style.borderColor || style.color || '#000',
+              transitionDelay: `${delay}ms` 
+          }"
+        />
+        <!-- Right -->
+        <span 
+          class="absolute top-0 right-0 w-[2px] bg-current transition-all duration-[1000ms] ease-out"
+          :style="{ 
+              height: shouldAnimate ? '100%' : '0%', 
+              backgroundColor: style.borderColor || style.color || '#000',
+              transitionDelay: `${delay + 200}ms` 
+          }"
+        />
+        <!-- Bottom -->
+        <span 
+          class="absolute bottom-0 right-0 h-[2px] bg-current transition-all duration-[1000ms] ease-out"
+          :style="{ 
+              width: shouldAnimate ? '100%' : '0%', 
+              backgroundColor: style.borderColor || style.color || '#000',
+              transitionDelay: `${delay + 400}ms` 
+          }"
+        />
+        <!-- Left -->
+        <span 
+          class="absolute bottom-0 left-0 w-[2px] bg-current transition-all duration-[1000ms] ease-out"
+          :style="{ 
+              height: shouldAnimate ? '100%' : '0%', 
+              backgroundColor: style.borderColor || style.color || '#000',
+              transitionDelay: `${delay + 600}ms` 
+          }"
+        />
+      </template>
+    </div>
   </div>
 </template>
 
