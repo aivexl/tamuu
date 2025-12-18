@@ -13,6 +13,7 @@ interface Props {
   forceTrigger?: boolean;
   triggerMode?: 'auto' | 'manual';
   elementId?: string;
+  immediate?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -24,6 +25,7 @@ const props = withDefaults(defineProps<Props>(), {
   forceTrigger: false,
   triggerMode: 'auto',
   elementId: '',
+  immediate: false,
 });
 
 const elementRef = ref<HTMLElement | null>(null);
@@ -32,8 +34,8 @@ const isVisible = useElementVisibility(elementRef);
 // Global state to track animations per element ID (prevents re-triggering directly)
 const animatedElements = new Set<string>();
 
-// Track animation state
-const shouldAnimate = ref(props.elementId && animatedElements.has(props.elementId));
+// Track animation state - Force true if immediate is passed
+const shouldAnimate = ref(props.immediate || (props.elementId && animatedElements.has(props.elementId)));
 
 const tryTriggerAnimation = () => {
     if (!shouldAnimate.value) {
