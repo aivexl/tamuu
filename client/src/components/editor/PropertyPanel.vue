@@ -91,6 +91,7 @@ const cancelEditingName = () => {
 // ============================================
 const draggedElementId = ref<string | null>(null);
 const dragOverElementId = ref<string | null>(null);
+const dragOverPosition = ref<'above' | 'below' | null>(null);
 
 const handleDragStart = (event: DragEvent, elementId: string) => {
     draggedElementId.value = elementId;
@@ -105,11 +106,51 @@ const handleDragOver = (event: DragEvent, elementId: string) => {
     if (event.dataTransfer) {
         event.dataTransfer.dropEffect = 'move';
     }
+    if (draggedElementId.value === elementId) {
+        dragOverElementId.value = null;
+        dragOverPosition.value = null;
+        return;
+    }
     dragOverElementId.value = elementId;
+    
+    // Determine if dropping above or below the target based on mouse Y
+    const target = event.currentTarget as HTMLElement;
+    if (target) {
+        const rect = target.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        dragOverPosition.value = event.clientY < midY ? 'above' : 'below';
+    }
 };
 
 const handleDragLeave = () => {
     dragOverElementId.value = null;
+    dragOverPosition.value = null;
+};
+
+// ============================================
+// UNIFIED LAYER REORDERING HELPER
+// ============================================
+/**
+ * Takes a new ordered array of element IDs (from top to bottom in UI).
+ * Assigns z-indices so that index 0 = highest z, last index = lowest z.
+ * Uses a spacing of 10 to allow for future insertions without re-normalization.
+ */
+const applyNewElementOrder = (newOrderedIds: string[]) => {
+    if (!store.activeTemplateId || !props.activeSectionType || !props.activeSection) return;
+    
+    const elementsInSection = props.activeSection.elements;
+    const totalElements = newOrderedIds.length;
+    
+    newOrderedIds.forEach((id, index) => {
+        const el = elementsInSection.find(e => e.id === id);
+        if (el) {
+            // Top of list (index 0) gets highest z-index
+            const newZIndex = (totalElements - index) * 10;
+            if (el.zIndex !== newZIndex) {
+                store.updateElement(store.activeTemplateId!, props.activeSectionType!, id, { zIndex: newZIndex });
+            }
+        }
+    });
 };
 
 const handleDrop = (event: DragEvent, targetElementId: string) => {
@@ -117,43 +158,44 @@ const handleDrop = (event: DragEvent, targetElementId: string) => {
     if (!draggedElementId.value || draggedElementId.value === targetElementId) {
         draggedElementId.value = null;
         dragOverElementId.value = null;
+        dragOverPosition.value = null;
         return;
     }
 
-    const sortedElements = [...currentSectionElements.value];
-    const draggedIndex = sortedElements.findIndex(el => el.id === draggedElementId.value);
-    const targetIndex = sortedElements.findIndex(el => el.id === targetElementId);
+    // Get current sorted list (top = highest z)
+    const sortedIds = currentSectionElements.value.map(el => el.id);
+    const draggedIndex = sortedIds.indexOf(draggedElementId.value);
+    const targetIndex = sortedIds.indexOf(targetElementId);
 
     if (draggedIndex === -1 || targetIndex === -1) return;
 
-    // Move element in the sorted array
-    const [movedElement] = sortedElements.splice(draggedIndex, 1);
-    sortedElements.splice(targetIndex, 0, movedElement);
-
-    // Reassign zIndices based on new sorted order (descending)
-    // We'll use a spread of z-indices to keep relative positions but ensure the new order is respected.
-    // Top of list = highest zIndex.
-    if (store.activeTemplateId && props.activeSectionType) {
-        // Calculate new z-indices. We can just use large increments.
-        // Or better, take the range of existing z-indices.
-        const allZIndices = props.activeSection.elements.map(el => el.zIndex || 0).sort((a,b) => b - a);
-        
-        sortedElements.forEach((el, index) => {
-            // New z-index mapping: topmost (index 0) gets highest available or a calculated value
-            const newZIndex = (sortedElements.length - index) * 10;
-            if (el.zIndex !== newZIndex) {
-                 store.updateElement(store.activeTemplateId!, props.activeSectionType!, el.id, { zIndex: newZIndex });
-            }
-        });
+    // Remove dragged element
+    sortedIds.splice(draggedIndex, 1);
+    
+    // Insert at the correct position based on dragOverPosition
+    let insertIndex = targetIndex;
+    if (dragOverPosition.value === 'below') {
+        // If the dragged item was originally above the target, adjust index
+        insertIndex = draggedIndex < targetIndex ? targetIndex : targetIndex + 1;
+    } else {
+        insertIndex = draggedIndex < targetIndex ? targetIndex - 1 : targetIndex;
     }
+    // Clamp to valid range
+    insertIndex = Math.max(0, Math.min(sortedIds.length, insertIndex));
+    sortedIds.splice(insertIndex, 0, draggedElementId.value);
+
+    // Apply the new order
+    applyNewElementOrder(sortedIds);
 
     draggedElementId.value = null;
     dragOverElementId.value = null;
+    dragOverPosition.value = null;
 };
 
 const handleDragEnd = () => {
     draggedElementId.value = null;
     dragOverElementId.value = null;
+    dragOverPosition.value = null;
 };
 
 // Update element handler
@@ -289,19 +331,41 @@ const handleAlignment = (align: 'left' | 'center-h' | 'right' | 'top' | 'center-
     handleUpdate({ position: { x: newX, y: newY } });
 };
 
-// Layer handlers
+// Layer handlers - now using the unified reorderElements approach
 const handleLayer = (action: 'front' | 'up' | 'down' | 'back') => {
-    if (!element.value) return;
-    const currentZ = element.value.zIndex || 1;
-    let newZ = currentZ;
+    if (!element.value || !props.activeSection) return;
     
+    const sortedIds = currentSectionElements.value.map(el => el.id);
+    const currentIndex = sortedIds.indexOf(element.value.id);
+    
+    if (currentIndex === -1) return;
+    
+    // Remove from current position
+    sortedIds.splice(currentIndex, 1);
+    
+    let newIndex: number;
     switch (action) {
-        case 'front': newZ = 999; break;
-        case 'up': newZ = currentZ + 1; break;
-        case 'down': newZ = Math.max(1, currentZ - 1); break;
-        case 'back': newZ = 1; break;
+        case 'front':
+            newIndex = 0; // Top of list = front
+            break;
+        case 'up':
+            newIndex = Math.max(0, currentIndex - 1);
+            break;
+        case 'down':
+            newIndex = Math.min(sortedIds.length, currentIndex + 1);
+            break;
+        case 'back':
+            newIndex = sortedIds.length; // Bottom of list = back
+            break;
+        default:
+            newIndex = currentIndex;
     }
-    handleUpdate({ zIndex: newZ });
+    
+    // Insert at new position
+    sortedIds.splice(newIndex, 0, element.value.id);
+    
+    // Apply the new order
+    applyNewElementOrder(sortedIds);
 };
 
 // Countdown config update helper
@@ -488,6 +552,15 @@ const handleCopyToSection = async () => {
                     @dragend="handleDragEnd"
                     @click="store.setSelectedElement(el.id)"
                 >
+                    <!-- Drop Line Indicator (Above) -->
+                    <div 
+                        v-if="dragOverElementId === el.id && dragOverPosition === 'above' && draggedElementId !== el.id"
+                        class="absolute -top-1.5 left-0 right-0 h-0.5 bg-indigo-500 rounded-full shadow-md z-10"
+                    >
+                        <div class="absolute -left-1 -top-1 w-2 h-2 bg-indigo-500 rounded-full"></div>
+                        <div class="absolute -right-1 -top-1 w-2 h-2 bg-indigo-500 rounded-full"></div>
+                    </div>
+                    
                     <!-- Drag Handle -->
                     <div class="cursor-grab active:cursor-grabbing text-slate-300 group-hover:text-slate-500 transition-colors">
                         <GripVertical class="w-3.5 h-3.5" />
@@ -533,6 +606,15 @@ const handleCopyToSection = async () => {
                         >
                             <Trash2 class="w-3.5 h-3.5" />
                         </Button>
+                    </div>
+                    
+                    <!-- Drop Line Indicator (Below) -->
+                    <div 
+                        v-if="dragOverElementId === el.id && dragOverPosition === 'below' && draggedElementId !== el.id"
+                        class="absolute -bottom-1.5 left-0 right-0 h-0.5 bg-indigo-500 rounded-full shadow-md z-10"
+                    >
+                        <div class="absolute -left-1 -top-1 w-2 h-2 bg-indigo-500 rounded-full"></div>
+                        <div class="absolute -right-1 -top-1 w-2 h-2 bg-indigo-500 rounded-full"></div>
                     </div>
                 </div>
             </div>
