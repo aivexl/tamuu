@@ -12,7 +12,10 @@ import {
     Upload, Image as ImageIcon, Copy, GripVertical, Square,
     Circle, Play, Star, Minus, Heart, Cloud, Leaf, Flower, Sun, Moon,
     MessageCircle, MessageSquare, Phone, Flag, Shield, Hexagon,
-    Award, Bell, Bookmark, Camera, Gift, Music, Umbrella
+    Award, Bell, Bookmark, Camera, Gift, Music, Umbrella,
+    AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignCenterVertical, AlignEndVertical,
+    Trash2, ChevronsUp, ArrowUp, ArrowDown, ChevronsDown,
+    FlipHorizontal2, FlipVertical2
 } from 'lucide-vue-next';
 
 interface Props {
