@@ -630,6 +630,91 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
                  />
              </v-group>
 
+            <!-- SHAPE ELEMENT -->
+            <template v-if="element.type === 'shape' && element.shapeConfig">
+                <!-- Rectangle -->
+                <v-rect
+                    v-if="element.shapeConfig.shapeType === 'rectangle'"
+                    :config="{
+                        width: element.size.width,
+                        height: element.size.height,
+                        fill: element.shapeConfig.fill ?? undefined,
+                        stroke: element.shapeConfig.stroke ?? undefined,
+                        strokeWidth: element.shapeConfig.stroke ? element.shapeConfig.strokeWidth : 0,
+                        cornerRadius: element.shapeConfig.cornerRadius || 0,
+                        listening: false
+                    }"
+                />
+                
+                <!-- Circle -->
+                <v-circle
+                    v-else-if="element.shapeConfig.shapeType === 'circle'"
+                    :config="{
+                        x: element.size.width / 2,
+                        y: element.size.height / 2,
+                        radius: Math.min(element.size.width, element.size.height) / 2,
+                        fill: element.shapeConfig.fill ?? undefined,
+                        stroke: element.shapeConfig.stroke ?? undefined,
+                        strokeWidth: element.shapeConfig.stroke ? element.shapeConfig.strokeWidth : 0,
+                        listening: false
+                    }"
+                />
+                
+                <!-- Ellipse -->
+                <v-ellipse
+                    v-else-if="element.shapeConfig.shapeType === 'ellipse'"
+                    :config="{
+                        x: element.size.width / 2,
+                        y: element.size.height / 2,
+                        radiusX: element.size.width / 2,
+                        radiusY: element.size.height / 2,
+                        fill: element.shapeConfig.fill ?? undefined,
+                        stroke: element.shapeConfig.stroke ?? undefined,
+                        strokeWidth: element.shapeConfig.stroke ? element.shapeConfig.strokeWidth : 0,
+                        listening: false
+                    }"
+                />
+                
+                <!-- Triangle -->
+                <v-line
+                    v-else-if="element.shapeConfig.shapeType === 'triangle'"
+                    :config="{
+                        points: [element.size.width / 2, 0, element.size.width, element.size.height, 0, element.size.height],
+                        closed: true,
+                        fill: element.shapeConfig.fill ?? undefined,
+                        stroke: element.shapeConfig.stroke ?? undefined,
+                        strokeWidth: element.shapeConfig.stroke ? element.shapeConfig.strokeWidth : 0,
+                        listening: false
+                    }"
+                />
+                
+                <!-- Star -->
+                <v-star
+                    v-else-if="element.shapeConfig.shapeType === 'star'"
+                    :config="{
+                        x: element.size.width / 2,
+                        y: element.size.height / 2,
+                        numPoints: element.shapeConfig.points || 5,
+                        innerRadius: Math.min(element.size.width, element.size.height) / 4,
+                        outerRadius: Math.min(element.size.width, element.size.height) / 2,
+                        fill: element.shapeConfig.fill ?? undefined,
+                        stroke: element.shapeConfig.stroke ?? undefined,
+                        strokeWidth: element.shapeConfig.stroke ? element.shapeConfig.strokeWidth : 0,
+                        listening: false
+                    }"
+                />
+                
+                <!-- Line -->
+                <v-line
+                    v-else-if="element.shapeConfig.shapeType === 'line'"
+                    :config="{
+                        points: [0, element.size.height / 2, element.size.width, element.size.height / 2],
+                        stroke: element.shapeConfig.stroke || '#000000',
+                        strokeWidth: element.shapeConfig.strokeWidth || 2,
+                        listening: false
+                    }"
+                />
+            </template>
 
             <!-- Text Element -->
             <v-text

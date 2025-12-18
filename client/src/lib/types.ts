@@ -207,7 +207,18 @@ export type AnimationType =
     | 'heartbeat'     // Love heartbeat effect
     | 'glow';         // Soft glowing aura
 
-export type ElementType = 'image' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'rsvp-form' | 'guest_wishes' | 'open_invitation_button' | 'button';
+export type ElementType = 'image' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'rsvp-form' | 'guest_wishes' | 'open_invitation_button' | 'button' | 'shape';
+
+export type ShapeType = 'rectangle' | 'circle' | 'ellipse' | 'triangle' | 'star' | 'line';
+
+export interface ShapeConfig {
+    shapeType: ShapeType;
+    fill: string | null;      // null = no fill (transparent)
+    stroke: string | null;    // null = no stroke
+    strokeWidth: number;
+    cornerRadius?: number;    // for rectangles
+    points?: number;          // for star (number of points)
+}
 
 export interface TextStyle {
     fontFamily: string;
@@ -317,6 +328,7 @@ export interface TemplateElement {
     countdownConfig?: CountdownConfig;
     rsvpFormConfig?: RSVPFormConfig;
     guestWishesConfig?: GuestWishesConfig;
+    shapeConfig?: ShapeConfig;
 
     openInvitationConfig?: OpenInvitationConfig;
     animationTrigger?: 'scroll' | 'click' | 'open_btn';

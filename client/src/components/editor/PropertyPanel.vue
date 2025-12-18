@@ -12,7 +12,7 @@ import {
     Trash2, ArrowUp, ArrowDown, ChevronsUp, ChevronsDown,
     FlipHorizontal2, FlipVertical2,
     AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignCenterVertical, AlignEndVertical,
-    Upload, Image as ImageIcon, Copy
+    Upload, Image as ImageIcon, Copy, GripVertical, Square
 } from 'lucide-vue-next';
 
 interface Props {
@@ -59,6 +59,88 @@ const currentSectionElements = computed(() => {
     if (!props.activeSection) return [];
     return props.activeSection.elements || [];
 });
+
+// ============================================
+// INLINE NAME EDITING
+// ============================================
+const editingElementId = ref<string | null>(null);
+const editingName = ref('');
+
+const startEditingName = (elementId: string, currentName: string) => {
+    editingElementId.value = elementId;
+    editingName.value = currentName || '';
+};
+
+const saveEditingName = () => {
+    if (editingElementId.value && store.activeTemplateId && props.activeSectionType) {
+        store.updateElement(store.activeTemplateId, props.activeSectionType, editingElementId.value, { name: editingName.value });
+    }
+    editingElementId.value = null;
+    editingName.value = '';
+};
+
+const cancelEditingName = () => {
+    editingElementId.value = null;
+    editingName.value = '';
+};
+
+// ============================================
+// DRAG AND DROP LAYER REORDERING
+// ============================================
+const draggedElementId = ref<string | null>(null);
+const dragOverElementId = ref<string | null>(null);
+
+const handleDragStart = (event: DragEvent, elementId: string) => {
+    draggedElementId.value = elementId;
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', elementId);
+    }
+};
+
+const handleDragOver = (event: DragEvent, elementId: string) => {
+    event.preventDefault();
+    if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+    }
+    dragOverElementId.value = elementId;
+};
+
+const handleDragLeave = () => {
+    dragOverElementId.value = null;
+};
+
+const handleDrop = (event: DragEvent, targetElementId: string) => {
+    event.preventDefault();
+    if (!draggedElementId.value || draggedElementId.value === targetElementId) {
+        draggedElementId.value = null;
+        dragOverElementId.value = null;
+        return;
+    }
+
+    const elements = [...currentSectionElements.value];
+    const draggedIndex = elements.findIndex(el => el.id === draggedElementId.value);
+    const targetIndex = elements.findIndex(el => el.id === targetElementId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Swap zIndex values
+    const draggedZIndex = elements[draggedIndex].zIndex;
+    const targetZIndex = elements[targetIndex].zIndex;
+
+    if (store.activeTemplateId && props.activeSectionType) {
+        store.updateElement(store.activeTemplateId, props.activeSectionType, draggedElementId.value, { zIndex: targetZIndex });
+        store.updateElement(store.activeTemplateId, props.activeSectionType, targetElementId, { zIndex: draggedZIndex });
+    }
+
+    draggedElementId.value = null;
+    dragOverElementId.value = null;
+};
+
+const handleDragEnd = () => {
+    draggedElementId.value = null;
+    dragOverElementId.value = null;
+};
 
 // Update element handler
 const handleUpdate = (updates: Partial<TemplateElement>) => {
@@ -299,7 +381,8 @@ const getElementIcon = (type: string) => {
         case 'rsvp-form': case 'rsvp_form': return '📝';
         case 'guest_wishes': return '💬';
         case 'open_invitation_button': case 'button': return '🔘';
-        default: return '⬜';
+        case 'shape': return '⬜';
+        default: return '◻';
     }
 };
 
@@ -340,24 +423,59 @@ const handleCopyToSection = async () => {
     <div class="space-y-4 text-sm">
         <!-- ELEMENTS LIST -->
         <div v-if="currentSectionElements.length > 0" class="space-y-2">
-            <Label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Elements</Label>
-            <div class="max-h-40 overflow-y-auto space-y-1 border rounded-md p-2 bg-slate-50">
+            <Label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Elements (Layers)</Label>
+            <div class="max-h-48 overflow-y-auto space-y-1 border rounded-md p-2 bg-slate-50">
                 <div 
                     v-for="el in currentSectionElements" 
                     :key="el.id"
-                    class="flex items-center justify-between p-2 rounded cursor-pointer hover:bg-white transition-colors"
-                    :class="{ 'bg-white shadow-sm ring-1 ring-blue-200': store.selectedElementId === el.id }"
+                    class="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-white transition-all"
+                    :class="{ 
+                        'bg-white shadow-sm ring-1 ring-blue-200': store.selectedElementId === el.id,
+                        'ring-2 ring-blue-400 bg-blue-50': dragOverElementId === el.id && draggedElementId !== el.id,
+                        'opacity-50': draggedElementId === el.id
+                    }"
+                    draggable="true"
+                    @dragstart="handleDragStart($event, el.id)"
+                    @dragover="handleDragOver($event, el.id)"
+                    @dragleave="handleDragLeave"
+                    @drop="handleDrop($event, el.id)"
+                    @dragend="handleDragEnd"
                     @click="store.setSelectedElement(el.id)"
                 >
-                    <div class="flex items-center gap-2 truncate flex-1">
-                        <span class="text-base">{{ getElementIcon(el.type) }}</span>
-                        <span class="truncate text-slate-700">{{ el.name || `New ${el.type}` }}</span>
+                    <!-- Drag Handle -->
+                    <div class="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600">
+                        <GripVertical class="w-4 h-4" />
                     </div>
-                    <Button variant="ghost" size="sm" class="text-red-400 hover:text-red-600 hover:bg-red-50 p-1 h-auto" @click.stop="store.deleteElement(store.activeTemplateId!, props.activeSectionType!, el.id)">
+                    
+                    <!-- Element Icon -->
+                    <span class="text-base flex-shrink-0">{{ getElementIcon(el.type) }}</span>
+                    
+                    <!-- Element Name (Editable) -->
+                    <div class="flex-1 min-w-0">
+                        <input 
+                            v-if="editingElementId === el.id"
+                            v-model="editingName"
+                            class="w-full px-1 py-0.5 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
+                            @blur="saveEditingName"
+                            @keyup.enter="saveEditingName"
+                            @keyup.escape="cancelEditingName"
+                            @click.stop
+                            autofocus
+                        />
+                        <span 
+                            v-else
+                            class="truncate text-slate-700 block cursor-text"
+                            @dblclick.stop="startEditingName(el.id, el.name || `New ${el.type}`)"
+                        >{{ el.name || `New ${el.type}` }}</span>
+                    </div>
+                    
+                    <!-- Delete Button -->
+                    <Button variant="ghost" size="sm" class="text-red-400 hover:text-red-600 hover:bg-red-50 p-1 h-auto flex-shrink-0" @click.stop="store.deleteElement(store.activeTemplateId!, props.activeSectionType!, el.id)">
                         <Trash2 class="w-3.5 h-3.5" />
                     </Button>
                 </div>
             </div>
+            <p class="text-xs text-slate-400">Drag to reorder • Double-click to rename</p>
         </div>
 
         <!-- ELEMENT PROPERTIES -->
@@ -556,6 +674,122 @@ const handleCopyToSection = async () => {
                     <div class="flex items-center gap-2">
                         <input type="range" min="0" max="1" step="0.05" :value="element.opacity ?? 1" @input="(e: any) => handleUpdate({ opacity: Number(e.target.value) })" class="flex-1 h-2 bg-slate-200 rounded-lg" />
                         <span class="text-xs w-10 text-right">{{ Math.round((element.opacity ?? 1) * 100) }}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SHAPE SETTINGS -->
+            <div v-if="element.type === 'shape'" class="space-y-3 pt-3 border-t">
+                <Label class="text-xs font-semibold text-slate-500 uppercase">Shape</Label>
+                
+                <!-- Shape Type -->
+                <div>
+                    <span class="text-xs text-slate-400">Shape Type</span>
+                    <select 
+                        class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white"
+                        :value="element.shapeConfig?.shapeType || 'rectangle'"
+                        @change="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, shapeType: e.target.value } })"
+                    >
+                        <option value="rectangle">Rectangle</option>
+                        <option value="circle">Circle</option>
+                        <option value="ellipse">Ellipse</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="star">Star</option>
+                        <option value="line">Line</option>
+                    </select>
+                </div>
+                
+                <!-- Fill Color -->
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-400">Fill Color</span>
+                        <label class="flex items-center gap-1 text-xs text-slate-500">
+                            <input 
+                                type="checkbox" 
+                                :checked="element.shapeConfig?.fill !== null"
+                                @change="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, fill: e.target.checked ? '#3b82f6' : null } })"
+                            />
+                            Enable Fill
+                        </label>
+                    </div>
+                    <input 
+                        v-if="element.shapeConfig?.fill !== null"
+                        type="color" 
+                        class="w-full h-8 rounded border border-slate-200 cursor-pointer"
+                        :value="element.shapeConfig?.fill || '#3b82f6'"
+                        @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, fill: e.target.value } })"
+                    />
+                    <p v-else class="text-xs text-slate-400 italic">No fill (transparent)</p>
+                </div>
+                
+                <!-- Stroke Color -->
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-400">Stroke Color</span>
+                        <label class="flex items-center gap-1 text-xs text-slate-500">
+                            <input 
+                                type="checkbox" 
+                                :checked="element.shapeConfig?.stroke !== null"
+                                @change="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, stroke: e.target.checked ? '#1d4ed8' : null } })"
+                            />
+                            Enable Stroke
+                        </label>
+                    </div>
+                    <input 
+                        v-if="element.shapeConfig?.stroke !== null"
+                        type="color" 
+                        class="w-full h-8 rounded border border-slate-200 cursor-pointer"
+                        :value="element.shapeConfig?.stroke || '#1d4ed8'"
+                        @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, stroke: e.target.value } })"
+                    />
+                    <p v-else class="text-xs text-slate-400 italic">No stroke</p>
+                </div>
+                
+                <!-- Stroke Width -->
+                <div v-if="element.shapeConfig?.stroke !== null">
+                    <span class="text-xs text-slate-400">Stroke Width</span>
+                    <div class="flex items-center gap-2">
+                        <input 
+                            type="range" 
+                            min="1" 
+                            max="20" 
+                            :value="element.shapeConfig?.strokeWidth || 2"
+                            @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, strokeWidth: Number(e.target.value) } })"
+                            class="flex-1 h-2 bg-slate-200 rounded-lg"
+                        />
+                        <span class="text-xs w-8 text-right">{{ element.shapeConfig?.strokeWidth || 2 }}px</span>
+                    </div>
+                </div>
+                
+                <!-- Corner Radius (for rectangles) -->
+                <div v-if="element.shapeConfig?.shapeType === 'rectangle'">
+                    <span class="text-xs text-slate-400">Corner Radius</span>
+                    <div class="flex items-center gap-2">
+                        <input 
+                            type="range" 
+                            min="0" 
+                            max="50" 
+                            :value="element.shapeConfig?.cornerRadius || 0"
+                            @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, cornerRadius: Number(e.target.value) } })"
+                            class="flex-1 h-2 bg-slate-200 rounded-lg"
+                        />
+                        <span class="text-xs w-8 text-right">{{ element.shapeConfig?.cornerRadius || 0 }}px</span>
+                    </div>
+                </div>
+                
+                <!-- Star Points (for stars) -->
+                <div v-if="element.shapeConfig?.shapeType === 'star'">
+                    <span class="text-xs text-slate-400">Number of Points</span>
+                    <div class="flex items-center gap-2">
+                        <input 
+                            type="range" 
+                            min="3" 
+                            max="12" 
+                            :value="element.shapeConfig?.points || 5"
+                            @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, points: Number(e.target.value) } })"
+                            class="flex-1 h-2 bg-slate-200 rounded-lg"
+                        />
+                        <span class="text-xs w-8 text-right">{{ element.shapeConfig?.points || 5 }}</span>
                     </div>
                 </div>
             </div>

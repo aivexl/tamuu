@@ -2,7 +2,7 @@
 import { useTemplateStore } from '@/stores/template';
 import { type TemplateElement, type ElementType } from '@/lib/types';
 import Button from '@/components/ui/Button.vue';
-import { Type, Image as ImageIcon, Clock, MessageSquare, MailOpen, Users, Heart } from 'lucide-vue-next';
+import { Type, Image as ImageIcon, Clock, MessageSquare, MailOpen, Users, Heart, Square } from 'lucide-vue-next';
 
 interface Props {
   activeSection: string;
@@ -156,6 +156,21 @@ const handleAddElement = async (type: ElementType) => {
                 id: newId
             };
             break;
+        case 'shape':
+             newElement = {
+                ...newElement,
+                name: 'Shape',
+                shapeConfig: {
+                    shapeType: 'rectangle',
+                    fill: '#3b82f6',
+                    stroke: '#1d4ed8',
+                    strokeWidth: 2,
+                    cornerRadius: 8
+                },
+                size: { width: 150, height: 150 },
+                id: newId
+            };
+            break;
     }
 
     await store.addElement(store.activeTemplateId, props.activeSection, newElement);
@@ -227,6 +242,15 @@ const handleAddElement = async (type: ElementType) => {
             >
                 <Users class="w-6 h-6 text-gray-600" />
                 <span class="text-xs">Guest Wishes</span>
+            </Button>
+
+            <Button 
+                variant="outline" 
+                class="flex flex-col items-center justify-center h-20 gap-2 hover:bg-blue-50 hover:border-blue-200 transition-all"
+                @click="handleAddElement('shape')"
+            >
+                <Square class="w-6 h-6 text-gray-600" />
+                <span class="text-xs">Shape</span>
             </Button>
         </div>
     </div>
