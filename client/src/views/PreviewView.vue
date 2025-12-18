@@ -338,7 +338,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
     <div ref="mainViewport" class="h-screen w-screen bg-black flex flex-col items-center justify-center overflow-hidden">
         
         <!-- MAIN SCROLL ENGINE -->
-        <div ref="scrollContainer" class="scroll-container flex-1 w-full h-full overflow-y-auto overflow-x-hidden">
+        <div ref="scrollContainer" class="scroll-container flex-1 w-full h-full" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'">
                 <div 
                     class="invitation-parent relative mx-auto" 
                     :style="{ 
