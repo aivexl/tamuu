@@ -167,21 +167,27 @@ const handleOpenInvitation = async () => {
             shutterVisible.value = false;
             
             // Calculate scroll position to Section 2 boundary
-            // Subtract a small offset to ensure top flowers of Section 2 are visible
             const section1ScaledHeight = coverHeightComputed.value * scaleFactor.value;
             const scrollOffset = 50 * scaleFactor.value;
             const targetScroll = Math.max(0, section1ScaledHeight - scrollOffset);
             
             nextTick(() => {
-                // Only use scrollContainer, not Lenis scrollTo, to avoid double transition
+                // Step 1: Set scroll position directly (no Lenis)
                 if (scrollContainer.value) {
                     scrollContainer.value.scrollTop = targetScroll;
                 }
-                if (lenis) {
-                    lenis.start();
-                    lenis.resize();
-                    // Don't call lenis.scrollTo - it causes a second transition
-                }
+                
+                // Step 2: Wait for next frame then start Lenis
+                // This ensures scroll position is "locked in" before Lenis takes over
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        if (lenis) {
+                            // Force Lenis to recognize current scroll position
+                            lenis.resize();
+                            lenis.start();
+                        }
+                    });
+                });
             });
         };
     }, triggerDelay);
