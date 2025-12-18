@@ -227,12 +227,6 @@ const getTextStyle = (el: any) => {
 const getButtonStyle = (el: any) => {
     const config = el.openInvitationConfig || {};
     const base: any = {
-        position: 'absolute',
-        left: `${el.position.x}px`,
-        top: `${el.position.y}px`,
-        width: `${el.size.width}px`,
-        height: `${el.size.height}px`,
-        zIndex: el.zIndex || 1,
         backgroundColor: config.buttonColor || '#000000',
         color: config.textColor || '#ffffff',
         fontSize: `${config.fontSize || 16}px`,
@@ -242,7 +236,10 @@ const getButtonStyle = (el: any) => {
         justifyContent: 'center',
         gap: '8px',
         border: 'none',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        width: '100%',
+        height: '100%',
+        opacity: el.opacity ?? 1
     };
 
     // Style Specifics
