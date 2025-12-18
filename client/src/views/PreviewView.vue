@@ -30,6 +30,22 @@ const orderedSections = computed((): (any)[] => {
         .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 });
 
+// Filter out buttons from Section 1 when invitation is opened
+const filteredSections = computed((): (any)[] => {
+    return orderedSections.value.map((section, index) => {
+        if (index === 0 && isOpened.value) {
+            // Remove button elements from Section 1 after "Open" is clicked
+            return {
+                ...section,
+                elements: (section.elements || []).filter((el: any) => 
+                    el.type !== 'button' && el.type !== 'open_invitation_button'
+                )
+            };
+        }
+        return section;
+    });
+});
+
 // State
 const isOpened = ref(false); 
 const isRevealing = ref(false); // Mid-transition state
@@ -316,7 +332,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                     <!-- NATURAL FLOW MODE (Active after Reveal) -->
                     <div v-if="flowMode" class="flex flex-col w-full relative h-auto">
                         <div 
-                            v-for="(section, index) in orderedSections" 
+                            v-for="(section, index) in filteredSections" 
                             :key="section.key"
                             :ref="(el) => setSectionRef(el, index)" :data-index="index"
                             class="relative w-full flex-shrink-0 page-section overflow-hidden"
@@ -378,10 +394,10 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                     <!-- ATOMIC STACK MODE (Initial Reveal Physics) -->
                     <div v-else class="relative w-full h-full overflow-hidden">
                         <!-- BOTTOM LAYER: Section 2 (visible behind Section 1) -->
-                        <div v-if="orderedSections[1]" class="absolute inset-0 z-[1]" :style="{ backgroundColor: orderedSections[1].backgroundColor || '#ffffff', backgroundImage: orderedSections[1].backgroundUrl ? `url(${orderedSections[1].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
-                            <div v-if="orderedSections[1].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[1].overlayOpacity }" />
+                        <div v-if="filteredSections[1]" class="absolute inset-0 z-[1]" :style="{ backgroundColor: filteredSections[1].backgroundColor || '#ffffff', backgroundImage: filteredSections[1].backgroundUrl ? `url(${filteredSections[1].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
+                            <div v-if="filteredSections[1].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[1].overlayOpacity }" />
                             <div class="relative w-full h-full">
-                                <template v-for="el in orderedSections[1].elements" :key="el.id">
+                                <template v-for="el in filteredSections[1].elements" :key="el.id">
                                     <!-- Elements in Atomic Mode use manual trigger, animate when isOpened -->
                                     <AnimatedElement 
                                         :animation="el.animation" 
@@ -404,7 +420,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                                 <div class="text-[10px] uppercase" :style="{ color: el.countdownConfig?.labelColor || '#666' }">{{ unit }}</div>
                                             </div>
                                         </div>
-                                        <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="w-full h-full font-bold shadow-xl hover:scale-105 active:scale-95 transition-all" @click="handleOpenInvitation()">
+                                        <button v-else-if="(el.type === 'button' || el.type === 'open_invitation_button') && !isOpened" :style="getButtonStyle(el)" class="w-full h-full font-bold shadow-xl hover:scale-105 active:scale-95 transition-all" @click="handleOpenInvitation()">
                                             {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
                                         </button>
                                         <div v-else-if="el.type === 'rsvp_form' || el.type === 'rsvp-form'" class="w-full h-full p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/20 shadow-xl flex flex-col gap-2 pointer-events-none">
@@ -421,13 +437,13 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 
                         <!-- TOP LAYER: Section 1 -->
                         <div 
-                            v-if="orderedSections[0]" 
+                            v-if="filteredSections[0]" 
                             class="absolute inset-0 z-[2] atomic-cover-layer" 
-                            :style="{ backgroundColor: orderedSections[0].backgroundColor || '#cccccc', backgroundImage: orderedSections[0].backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }"
+                            :style="{ backgroundColor: filteredSections[0].backgroundColor || '#cccccc', backgroundImage: filteredSections[0].backgroundUrl ? `url(${filteredSections[0].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }"
                         >
-                            <div v-if="orderedSections[0].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
+                            <div v-if="filteredSections[0].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[0].overlayOpacity }" />
                             <div class="relative w-full h-full">
-                                <template v-for="el in orderedSections[0].elements" :key="el.id">
+                                <template v-for="el in filteredSections[0].elements" :key="el.id">
                                     <AnimatedElement 
                                         :animation="el.animation" 
                                         :loop-animation="el.loopAnimation" 
