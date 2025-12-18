@@ -5,8 +5,12 @@ import { useTemplateStore } from '@/stores/template';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/lib/constants';
 import AnimatedElement from '@/components/AnimatedElement.vue';
 import { ArrowLeft, Maximize2, Minimize2 } from 'lucide-vue-next';
-
 import { iconPaths } from '@/lib/icon-paths';
+
+// Library Imports
+import gsap from 'gsap';
+import anime from 'animejs';
+import Lenis from 'lenis';
 
 const route = useRoute();
 const router = useRouter();
@@ -34,6 +38,7 @@ const sectionRefs = ref<HTMLElement[]>([]);
 const sectionClicked = ref<boolean[]>([]);
 const isCoverVisible = ref(true); // Track cover visibility after transition
 const coverTransitionDone = ref(false); // Track if cover transition completed
+const isRevealing = ref(false); // New state for overlay reveal phase
 
 const setSectionRef = (el: any, index: number) => {
     if (el) {
@@ -52,6 +57,7 @@ const visibleSections = ref<Set<number>>(new Set());
 
 // Use IntersectionObserver to track which sections are in view for scroll transitions
 let observer: IntersectionObserver | null = null;
+let lenis: Lenis | null = null;
 
 onMounted(() => {
   observer = new IntersectionObserver((entries) => {
@@ -62,81 +68,182 @@ onMounted(() => {
       }
     });
   }, { threshold: 0.1 });
+
+  // Initialize Lenis for Smooth Reveal
+  lenis = new Lenis();
+  const scrollLoop = (time: number) => {
+    lenis?.raf(time);
+    requestAnimationFrame(scrollLoop);
+  };
+  requestAnimationFrame(scrollLoop);
 });
 
 onUnmounted(() => {
   if (observer) observer.disconnect();
+  if (lenis) lenis.destroy();
 });
 
-// Handle Open Invitation Click (Sequencing)
-const handleOpenInvitation = (clickedElement: any) => {
+// Handle Open Invitation Click (Premium Sequencing)
+const handleOpenInvitation = async (clickedElement: any) => {
     openBtnTriggered.value = true;
     
-    // 1. Calculate max animation duration to wait
+    // 1. Calculate max animation duration to wait for element animations
     let triggerDelay = 0;
-    let foundSlideOut = false;
-
-    // Check all elements in the cover section (index 0)
     const coverSection = orderedSections.value[0];
     const elements = coverSection?.elements || [];
 
     elements.forEach((el: any) => {
         if (el.animationTrigger === 'open_btn') {
-            const duration = el.animationDuration || 1000;
-            const delay = el.animationDelay || 0;
-            const total = duration + delay;
-            
-            // Heuristic: If it's a slide-out animation, we want to time it exactly
-            // to when it leaves the frame (roughly the duration)
-            if (el.animation?.includes('slide-out')) {
-                foundSlideOut = true;
-                // If multiple slide-outs, take the longest one
-                if (total > triggerDelay) triggerDelay = total;
-            } else if (!foundSlideOut) {
-                // Keep tracking max duration of other animations as fallback
-                if (total > triggerDelay) triggerDelay = total;
-            }
+            const total = (el.animationDuration || 1000) + (el.animationDelay || 0);
+            if (total > triggerDelay) triggerDelay = total;
         }
     });
     
-    // If no specific open_btn animations found but button clicked, 
-    // maybe wait a tiny bit or just 0.
-    // If we found a slide-out, we trust its duration.
-    // User wants "immediately when out of frame", which matches duration end for CSS animations.
-    
-    // 2. Play Sound (if any)
-    // ...
-
-    // 3. Wait for animations, then trigger Page Transition
+    // 2. Wait for element animations to complete
     setTimeout(() => {
         isOpened.value = true;
+        isRevealing.value = true;
         
-        // 4. Get cover section's transition effect and duration
-        const coverSection = orderedSections.value[0];
-        const coverEffect = coverSection?.transitionEffect || 'none';
-        const coverDuration = coverSection?.transitionDuration || 1000;
+        const coverEl = sectionRefs.value[0];
+        const effect = coverSection?.transitionEffect || 'none';
+        const duration = (coverSection?.transitionDuration || 1000) / 1000; // UI is ms, GSAP is seconds
+
+        if (!coverEl) return;
+
+        // --- PREMIUM TRANSITIONS (GSAP / ANIME / MOTION) ---
         
-        // 5. After cover transition completes, mark it done and hide cover
-        if (coverEffect !== 'none' && coverEffect !== 'scroll') {
-            setTimeout(() => {
-                coverTransitionDone.value = true;
-                isCoverVisible.value = false;
-            }, coverDuration + 100); // Small buffer
-        } else {
-            // No transition effect - scroll behavior
+        if (effect === 'split-screen') {
+            // GSAP: Premium Real Split Screen (Cloning for impact)
+            const leftHalf = coverEl.cloneNode(true) as HTMLElement;
+            const rightHalf = coverEl.cloneNode(true) as HTMLElement;
+            
+            // Setup halves
+            const setupHalf = (el: HTMLElement, clip: string) => {
+                el.style.position = 'absolute';
+                el.style.top = '0';
+                el.style.left = '50%';
+                el.style.transform = 'translateX(-50%)';
+                el.style.clipPath = clip;
+                el.style.zIndex = '55';
+                coverEl.parentElement?.appendChild(el);
+            };
+
+            setupHalf(leftHalf, 'inset(0 50% 0 0)');
+            setupHalf(rightHalf, 'inset(0 0 0 50%)');
+            
+            // Hide original
+            coverEl.style.opacity = '0';
+
+            const tl = gsap.timeline({
+                onComplete: () => {
+                    leftHalf.remove();
+                    rightHalf.remove();
+                    coverTransitionDone.value = true;
+                    isCoverVisible.value = false;
+                }
+            });
+
+            tl.to(leftHalf, { xPercent: -150, duration: duration, ease: "power2.inOut" });
+            tl.to(rightHalf, { xPercent: 50, duration: duration, ease: "power2.inOut" }, 0);
+        } 
+        else if (effect === 'cube') {
+            // GSAP: 3D Cube Transition
+            const nextEl = sectionRefs.value[1];
+            if (nextEl) {
+                gsap.set(previewContainer.value, { perspective: 2000 });
+                const tl = gsap.timeline({
+                    onComplete: () => {
+                        coverTransitionDone.value = true;
+                        isCoverVisible.value = false;
+                        gsap.set([coverEl, nextEl], { clearProps: "all" });
+                    }
+                });
+                tl.to(coverEl, { rotationY: -90, x: -CANVAS_WIDTH/2, z: -CANVAS_WIDTH/2, opacity: 0, duration, ease: "slow(0.7, 0.7, false)" });
+                tl.from(nextEl, { rotationY: 90, x: CANVAS_WIDTH/2, z: -CANVAS_WIDTH/2, opacity: 0, duration, ease: "slow(0.7, 0.7, false)" }, 0);
+            }
+        }
+        else if (effect === 'cards') {
+            // GSAP: Stack Cards transition
+            const tl = gsap.timeline({
+                onComplete: () => {
+                    coverTransitionDone.value = true;
+                    isCoverVisible.value = false;
+                }
+            });
+            tl.to(coverEl, { y: -window.innerHeight, rotate: -5, scale: 0.9, opacity: 0, duration, ease: "back.in(1.7)" });
+        }
+        else if (effect === 'curtain-reveal' || effect === 'curtain') {
+            // GSAP: Curtain Reveal
+            gsap.to(coverEl, {
+                yPercent: -100,
+                duration: duration,
+                ease: "expo.inOut",
+                onComplete: () => {
+                    coverTransitionDone.value = true;
+                    isCoverVisible.value = false;
+                }
+            });
+        }
+        else if (effect === 'reveal') {
+            // GSAP: Reveal with scale and blur
+            gsap.to(coverEl, {
+                opacity: 0,
+                scale: 1.5,
+                filter: 'blur(20px)',
+                duration: duration,
+                ease: "power2.inOut",
+                onComplete: () => {
+                    coverTransitionDone.value = true;
+                    isCoverVisible.value = false;
+                }
+            });
+        }
+        else if (effect === 'smooth-reveal') {
+            // GSAP + Lenis: Smooth Reveal
+            gsap.to(coverEl, {
+                opacity: 0,
+                y: -50,
+                duration: duration,
+                ease: "expo.out",
+                onComplete: () => {
+                    coverTransitionDone.value = true;
+                    isCoverVisible.value = false;
+                    lenis?.scrollTo(0, { immediate: true });
+                }
+            });
+        }
+        else if (effect === 'split-transition' || effect === 'slide-split') {
+            // Anime.js: Split Transition
+            anime({
+                targets: coverEl,
+                translateX: '-100%',
+                opacity: 0,
+                duration: duration * 1000,
+                easing: 'easeInOutExpo',
+                complete: () => {
+                    coverTransitionDone.value = true;
+                    isCoverVisible.value = false;
+                }
+            });
+        }
+        else if (effect === 'none' || effect === 'scroll') {
+            // Default: Smooth scroll to Page 2
             if (sectionRefs.value[1]) {
                 sectionRefs.value[1].scrollIntoView({ behavior: 'smooth' });
             }
+        }
+        else {
+            // Fallback for other effects (legacy CSS-based)
+            setTimeout(() => {
+                coverTransitionDone.value = true;
+                isCoverVisible.value = false;
+            }, (duration * 1000) + 100);
         }
     }, triggerDelay);
 };
 
 const shouldShowSection = (index: number) => {
-    if (index === 0) {
-        // Cover: visible until transition animation completes
-        return isCoverVisible.value;
-    }
-    // Content sections: only show after isOpened
+    if (index === 0) return isCoverVisible.value;
     return isOpened.value;
 };
 
@@ -147,18 +254,16 @@ const getSectionClass = (index: number) => {
     const effect = section.transitionEffect || 'none';
     const trigger = section.transitionTrigger || 'scroll';
     
-    if (effect === 'none' || effect === 'scroll') {
-        return '';
-    }
-    
+    // If it's the premium JS transition, we don't apply CSS enter/leave classes 
+    // to the cover, as GSAP handles it.
+    const isPremium = ['split-screen', 'curtain-reveal', 'curtain', 'reveal', 'smooth-reveal', 'split-transition', 'slide-split'].includes(effect);
+
     if (index === 0) {
-        // Cover section - apply exit transition when opened
-        if (isOpened.value && !coverTransitionDone.value) {
+        if (isOpened.value && !coverTransitionDone.value && !isPremium) {
             return `pt-${effect}-leave-active pt-${effect}-leave-to`;
         }
         return '';
     } else {
-        // Content sections - apply enter transition
         const shouldAnimate = 
             (trigger === 'open_btn' && isOpened.value) || 
             (trigger === 'scroll' && visibleSections.value.has(index)) ||
@@ -442,10 +547,10 @@ const goBack = () => {
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                             zIndex: index === 0 ? 50 : 10,
-                            position: (index === 0 && isOpened.value && !coverTransitionDone.value) ? 'absolute' : 'relative',
+                            position: (index === 0 && isOpened && !coverTransitionDone) ? 'absolute' : 'relative',
                             top: 0,
                             left: '50%',
-                            transform: (index === 0 && isOpened.value && !coverTransitionDone.value) ? 'translateX(-50%)' : 'none',
+                            transform: (index === 0 && isOpened && !coverTransitionDone) ? 'translateX(-50%)' : 'none',
                             '--transition-duration': `${section.transitionDuration || 1000}ms`,
                         }"
                     >

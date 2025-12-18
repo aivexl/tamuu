@@ -76,19 +76,14 @@ const handleUpdate = (updates: Partial<TemplateElement>) => {
 const handleSectionUpdate = async (updates: Partial<SectionDesign>) => {
     if (props.activeSectionType && store.activeTemplateId) {
         const template = store.templates.find(t => t.id === store.activeTemplateId);
-        if (template && template.sections[props.activeSectionType]) {
-            // 1. Optimistic local update (merge updates into the store's object)
-            Object.assign(template.sections[props.activeSectionType], updates);
+        const section = template.sections[props.activeSectionType];
+        if (section) {
+            // 1. Optimistic local update
+            Object.assign(section, updates);
             
-            // 2. Get the FULL merged section data for persistence
-            // This ensures that even if 'updates' is a delta (e.g. just one field), 
-            // the DB receives all currently hydrated fields (essential for INSERT cases)
-            const fullSectionData = template.sections[props.activeSectionType];
-            
-            // Persist to database
+            // 2. Persist to database (sending FULL data for robust inserts)
             try {
-                // We send the fullSectionData so the backend can correctly handle New Section (INSERT) cases
-                await CloudflareAPI.updateSection(store.activeTemplateId, props.activeSectionType, fullSectionData);
+                await CloudflareAPI.updateSection(store.activeTemplateId, props.activeSectionType, section);
             } catch (error) {
                 console.error('[PropertyPanel] Failed to persist section update:', error);
             }
@@ -480,8 +475,8 @@ const handleCopyToSection = async () => {
                         variant="outline" 
                         size="sm" 
                         class="flex-1"
-                        :class="{ 'bg-blue-50 border-blue-300': element.flipHorizontal }"
-                        @click="handleUpdate({ flipHorizontal: !element.flipHorizontal })"
+                        :class="{ 'bg-blue-50 border-blue-300': element?.flipHorizontal }"
+                        @click="handleUpdate({ flipHorizontal: !element?.flipHorizontal })"
                     >
                         <FlipHorizontal2 class="w-4 h-4 mr-1" /> H
                     </Button>
@@ -489,8 +484,8 @@ const handleCopyToSection = async () => {
                         variant="outline" 
                         size="sm" 
                         class="flex-1"
-                        :class="{ 'bg-blue-50 border-blue-300': element.flipVertical }"
-                        @click="handleUpdate({ flipVertical: !element.flipVertical })"
+                        :class="{ 'bg-blue-50 border-blue-300': element?.flipVertical }"
+                        @click="handleUpdate({ flipVertical: !element?.flipVertical })"
                     >
                         <FlipVertical2 class="w-4 h-4 mr-1" /> V
                     </Button>
@@ -997,22 +992,15 @@ const handleCopyToSection = async () => {
                             <option value="grayscale">Grayscale</option>
                             <option value="sepia">Sepia</option>
                         </optgroup>
-                        <optgroup label="Premium Effects">
-                            <option value="curtain">Curtain Reveal</option>
-                            <option value="door">Door Open</option>
-                            <option value="book">Book Flip</option>
-                            <option value="ripple">Ripple</option>
-                            <option value="glitch">Glitch</option>
-                            <option value="pixelate">Pixelate</option>
-                            <option value="swirl">Swirl</option>
-                            <option value="split-screen">Split Screen</option>
-                            <option value="cube">Cube</option>
-                            <option value="cards">Cards</option>
-                            <option value="slide-split">Slide Split</option>
-                            <option value="reveal">Reveal</option>
-                            <option value="smooth-reveal">Smooth Reveal</option>
-                            <option value="overlay">Overlay</option>
-                            <option value="spring">Spring</option>
+                        <optgroup label="Premium (Libraries)">
+                            <option value="split-screen">Split Screen (GSAP)</option>
+                            <option value="curtain-reveal">Curtain Reveal (GSAP)</option>
+                            <option value="reveal">Soft Reveal (GSAP)</option>
+                            <option value="cube">3D Cube (GSAP)</option>
+                            <option value="cards">Stack Cards (Anime)</option>
+                            <option value="smooth-reveal">Smooth Scroll (Lenis)</option>
+                            <option value="split-transition">Split-X (Anime)</option>
+                            <option value="slide-split">Slide Split (Motion)</option>
                         </optgroup>
                     </select>
                 </div>
