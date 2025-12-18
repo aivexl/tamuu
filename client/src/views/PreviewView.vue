@@ -338,12 +338,13 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
     <div ref="mainViewport" class="h-screen w-screen bg-black flex flex-col items-center justify-center overflow-hidden">
         
         <!-- MAIN SCROLL ENGINE -->
-        <div ref="scrollContainer" class="scroll-container flex-1 w-full h-full" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'">
+        <div ref="scrollContainer" class="scroll-container flex-1 w-full" :class="flowMode ? 'h-full overflow-y-auto overflow-x-hidden' : 'h-screen overflow-hidden'">
                 <div 
                     class="invitation-parent relative mx-auto" 
                     :style="{ 
                         width: `${CANVAS_WIDTH}px`, 
-                        height: flowMode ? 'auto' : `${coverHeightComputed}px`,
+                        height: flowMode ? 'auto' : '100vh',
+                        maxHeight: flowMode ? 'none' : '100vh',
                         transform: `scale(${scaleFactor})`, 
                         transformOrigin: 'top center' 
                     }"
@@ -357,7 +358,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                 <!-- 
                     THE UNIFIED ATOMIC CONTAINER
                 -->
-                <div class="relative w-full mx-auto shadow-2xl overflow-hidden bg-white" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? 'auto' : `${coverHeightComputed}px` }">
+                <div class="relative w-full mx-auto shadow-2xl overflow-hidden bg-white" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? 'auto' : `${coverHeightComputed}px`, maxHeight: flowMode ? 'none' : `${coverHeightComputed}px` }">
                     
                     <!-- NATURAL FLOW MODE (Active after Reveal) -->
                     <div v-if="flowMode" class="flex flex-col w-full relative h-auto">
