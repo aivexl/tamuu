@@ -245,14 +245,6 @@ const handleTransformEnd = (e: any) => {
        height: Math.round(newHeight),
        rotation: Math.round(node.rotation())
    });
-   emit('elementTransformEnd', {
-       id: props.selectedElementId,
-       x: Math.round(node.x()),
-       y: Math.round(node.y()),
-       width: Math.round(newWidth),
-       height: Math.round(newHeight),
-       rotation: Math.round(node.rotation())
-   });
 };
 
 // Countdown Logic
