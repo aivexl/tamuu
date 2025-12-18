@@ -356,31 +356,31 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :loop-animation="el.loopAnimation" 
                                         :delay="el.animationDelay" 
                                         :duration="el.animationDuration" 
-                                        class="absolute inset-0" 
+                                        :style="getElementStyle(el, index)"
                                         :immediate="index === 0"
                                         :trigger-mode="el.animationTrigger === 'scroll' ? 'auto' : 'manual'"
                                         :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : (index === 0)"
                                         :element-id="el.id"
                                     >
-                                        <img v-if="el.type === 'image'" :src="el.imageUrl" :style="getElementStyle(el, index)" class="pointer-events-none select-none" />
-                                        <div v-else-if="el.type === 'text'" :style="[getElementStyle(el, index), getTextStyle(el)]">{{ el.content }}</div>
-                                        <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" @click="handleOpenInvitation()">
+                                        <img v-if="el.type === 'image'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" />
+                                        <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
+                                        <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="w-full h-full hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" @click="handleOpenInvitation()">
                                             {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
                                         </button>
-                                        <div v-else-if="el.type === 'icon'" :style="[getElementStyle(el, index), { color: el.iconStyle?.iconColor }]" class="w-full h-full flex items-center justify-center opacity-100">
+                                        <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center opacity-100">
                                             <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
                                         </div>
-                                        <div v-else-if="el.type === 'countdown'" :style="getElementStyle(el, index)" class="flex justify-center items-center gap-2">
+                                        <div v-else-if="el.type === 'countdown'" class="w-full h-full flex justify-center items-center gap-2">
                                             <div v-for="unit in ['Days', 'Hours', 'Min', 'Sec']" :key="unit" class="flex flex-col items-center">
                                                 <div class="text-2xl font-bold" :style="{ color: el.countdownConfig?.digitColor || '#000' }">00</div>
                                                 <div class="text-[10px] uppercase" :style="{ color: el.countdownConfig?.labelColor || '#666' }">{{ unit }}</div>
                                             </div>
                                         </div>
-                                        <div v-else-if="el.type === 'rsvp_form' || el.type === 'rsvp-form'" :style="getElementStyle(el, index)" class="p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/20 shadow-xl flex flex-col gap-2 pointer-events-none">
+                                        <div v-else-if="el.type === 'rsvp_form' || el.type === 'rsvp-form'" class="w-full h-full p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/20 shadow-xl flex flex-col gap-2 pointer-events-none">
                                             <div class="h-8 bg-black/5 rounded w-full"></div>
                                             <div class="h-10 bg-black rounded w-full mt-2"></div>
                                         </div>
-                                        <div v-else-if="el.type === 'guest_wishes'" :style="getElementStyle(el, index)" class="p-4 bg-white/30 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg h-full overflow-hidden flex flex-col gap-3">
+                                        <div v-else-if="el.type === 'guest_wishes'" class="w-full h-full p-4 bg-white/30 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg h-full overflow-hidden flex flex-col gap-3">
                                             <div v-for="i in 2" :key="i" class="flex flex-col gap-1"><div class="h-3 bg-black/10 rounded w-1/3"></div><div class="h-4 bg-black/5 rounded w-full"></div></div>
                                         </div>
                                     </AnimatedElement>
@@ -402,21 +402,31 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :loop-animation="el.loopAnimation" 
                                         :delay="el.animationDelay" 
                                         :duration="el.animationDuration" 
-                                        class="absolute inset-0" 
+                                        :style="getElementStyle(el, 1)"
                                         :trigger-mode="'manual'" 
                                         :force-trigger="isOpened"
                                         :element-id="el.id"
                                     >
-                                        <img v-if="el.type === 'image'" :src="el.imageUrl" :style="getElementStyle(el, 1)" class="pointer-events-none select-none" />
-                                        <div v-else-if="el.type === 'text'" :style="[getElementStyle(el, 1), getTextStyle(el)]">{{ el.content }}</div>
-                                        <div v-else-if="el.type === 'icon'" :style="[getElementStyle(el, 1), { color: el.iconStyle?.iconColor }]" class="w-full h-full flex items-center justify-center">
+                                        <img v-if="el.type === 'image'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" />
+                                        <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
+                                        <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center">
                                             <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
                                         </div>
-                                        <div v-else-if="el.type === 'countdown'" :style="getElementStyle(el, 1)" class="flex justify-center items-center gap-2">
+                                        <div v-else-if="el.type === 'countdown'" class="w-full h-full flex justify-center items-center gap-2">
                                             <div v-for="unit in ['Days', 'Hours', 'Min', 'Sec']" :key="unit" class="flex flex-col items-center">
                                                 <div class="text-2xl font-bold" :style="{ color: el.countdownConfig?.digitColor || '#000' }">00</div>
                                                 <div class="text-[10px] uppercase" :style="{ color: el.countdownConfig?.labelColor || '#666' }">{{ unit }}</div>
                                             </div>
+                                        </div>
+                                        <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="w-full h-full font-bold shadow-xl hover:scale-105 active:scale-95 transition-all" @click="handleOpenInvitation()">
+                                            {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
+                                        </button>
+                                        <div v-else-if="el.type === 'rsvp_form' || el.type === 'rsvp-form'" class="w-full h-full p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/20 shadow-xl flex flex-col gap-2 pointer-events-none">
+                                            <div class="h-8 bg-black/5 rounded w-full"></div>
+                                            <div class="h-10 bg-black rounded w-full mt-2"></div>
+                                        </div>
+                                        <div v-else-if="el.type === 'guest_wishes'" class="w-full h-full p-4 bg-white/30 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg h-full overflow-hidden flex flex-col gap-3">
+                                            <div v-for="i in 2" :key="i" class="flex flex-col gap-1"><div class="h-3 bg-black/10 rounded w-1/3"></div><div class="h-4 bg-black/5 rounded w-full"></div></div>
                                         </div>
                                     </AnimatedElement>
                                 </template>

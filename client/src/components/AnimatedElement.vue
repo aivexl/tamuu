@@ -330,69 +330,113 @@ const getEntranceAnimatedStyle = () => {
   return baseStyle;
 };
 
-const computedStyle = computed(() => {
-  let finalStyle = { ...props.style };
+// --- STYLE SPLITTING LOGIC ---
+
+// 1. Layout Styles (Positional & Box bounds)
+const rootStyle = computed(() => {
+  const s = props.style || {};
+  return {
+    position: s.position || 'absolute',
+    top: s.top,
+    left: s.left,
+    bottom: s.bottom,
+    right: s.right,
+    width: s.width,
+    height: s.height,
+    zIndex: s.zIndex,
+    // Add display: block if width/height are set
+    display: (s.width || s.height) ? 'block' : undefined
+  };
+});
+
+// 2. Animation Styles (Entrance & Loop)
+const animationStyle = computed(() => {
+  let animS: any = {};
 
   if (entranceAnim.value !== "none") {
     if (shouldAnimate.value) {
-      finalStyle = { ...finalStyle, ...getEntranceAnimatedStyle() };
+      animS = { ...getEntranceAnimatedStyle() };
     } else {
-      finalStyle = { ...finalStyle, ...getEntranceInitialStyle() };
+      animS = { ...getEntranceInitialStyle() };
     }
   }
 
   if (loopAnim.value && shouldAnimate.value) {
-    finalStyle = { ...finalStyle, ...getLoopingAnimationStyle(loopAnim.value!) };
+    animS = { ...animS, ...getLoopingAnimationStyle(loopAnim.value!) };
   }
 
-  return finalStyle;
+  return {
+      ...animS,
+      width: '100%',
+      height: '100%'
+  };
 });
+
+// 3. Static/Content Styles (Rotate, Flip, Opacity, etc.)
+const staticContentStyle = computed(() => {
+  const s = { ...props.style };
+  // Remove layout keys so they aren't applied twice
+  const layoutKeys = ['position', 'top', 'left', 'bottom', 'right', 'width', 'height', 'zIndex'];
+  layoutKeys.forEach(k => delete (s as any)[k]);
+  
+  return {
+      ...s,
+      width: '100%',
+      height: '100%'
+  };
+});
+
 </script>
 
 <template>
-  <div ref="elementRef" :class="class" class="relative">
-    <div :style="computedStyle" class="w-full h-full relative">
-      <slot />
-      
-      <!-- Border Drawing Lines -->
-      <template v-if="animation === 'draw-border'">
-        <!-- Top -->
-        <span 
-          class="absolute top-0 left-0 h-[2px] bg-current transition-all duration-[1000ms] ease-out"
-          :style="{ 
-              width: shouldAnimate ? '100%' : '0%', 
-              backgroundColor: style.borderColor || style.color || '#000',
-              transitionDelay: `${delay}ms` 
-          }"
-        />
-        <!-- Right -->
-        <span 
-          class="absolute top-0 right-0 w-[2px] bg-current transition-all duration-[1000ms] ease-out"
-          :style="{ 
-              height: shouldAnimate ? '100%' : '0%', 
-              backgroundColor: style.borderColor || style.color || '#000',
-              transitionDelay: `${delay + 200}ms` 
-          }"
-        />
-        <!-- Bottom -->
-        <span 
-          class="absolute bottom-0 right-0 h-[2px] bg-current transition-all duration-[1000ms] ease-out"
-          :style="{ 
-              width: shouldAnimate ? '100%' : '0%', 
-              backgroundColor: style.borderColor || style.color || '#000',
-              transitionDelay: `${delay + 400}ms` 
-          }"
-        />
-        <!-- Left -->
-        <span 
-          class="absolute bottom-0 left-0 w-[2px] bg-current transition-all duration-[1000ms] ease-out"
-          :style="{ 
-              height: shouldAnimate ? '100%' : '0%', 
-              backgroundColor: style.borderColor || style.color || '#000',
-              transitionDelay: `${delay + 600}ms` 
-          }"
-        />
-      </template>
+  <!-- ROOT: The 'Box' that browser sees for visibility -->
+  <div ref="elementRef" :class="class" :style="rootStyle">
+    <!-- MIDDLE: The 'Actor' that performs the entrance/loop animations -->
+    <div :style="animationStyle" class="relative">
+      <!-- DEEPEST: The 'Canvas' that holds static transforms like rotate/flip -->
+      <div :style="staticContentStyle" class="relative">
+        <slot />
+        
+        <!-- Border Drawing Lines -->
+        <template v-if="animation === 'draw-border'">
+          <!-- Top -->
+          <span 
+            class="absolute top-0 left-0 h-[2px] bg-current transition-all duration-[1000ms] ease-out"
+            :style="{ 
+                width: shouldAnimate ? '100%' : '0%', 
+                backgroundColor: style.borderColor || style.color || '#000',
+                transitionDelay: `${delay}ms` 
+            }"
+          />
+          <!-- Right -->
+          <span 
+            class="absolute top-0 right-0 w-[2px] bg-current transition-all duration-[1000ms] ease-out"
+            :style="{ 
+                height: shouldAnimate ? '100%' : '0%', 
+                backgroundColor: style.borderColor || style.color || '#000',
+                transitionDelay: `${delay + 200}ms` 
+            }"
+          />
+          <!-- Bottom -->
+          <span 
+            class="absolute bottom-0 right-0 h-[2px] bg-current transition-all duration-[1000ms] ease-out"
+            :style="{ 
+                width: shouldAnimate ? '100%' : '0%', 
+                backgroundColor: style.borderColor || style.color || '#000',
+                transitionDelay: `${delay + 400}ms` 
+            }"
+          />
+          <!-- Left -->
+          <span 
+            class="absolute bottom-0 left-0 w-[2px] bg-current transition-all duration-[1000ms] ease-out"
+            :style="{ 
+                height: shouldAnimate ? '100%' : '0%', 
+                backgroundColor: style.borderColor || style.color || '#000',
+                transitionDelay: `${delay + 600}ms` 
+            }"
+          />
+        </template>
+      </div>
     </div>
   </div>
 </template>
