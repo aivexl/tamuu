@@ -9,7 +9,7 @@ import { iconPaths } from '@/lib/icon-paths';
 
 // Library Imports
 import gsap from 'gsap';
-import anime from 'animejs';
+import anime from 'animejs/lib/anime.js';
 import Lenis from 'lenis';
 
 const route = useRoute();
@@ -240,11 +240,6 @@ const handleOpenInvitation = async (clickedElement: any) => {
             }, (duration * 1000) + 100);
         }
     }, triggerDelay);
-};
-
-const shouldShowSection = (index: number) => {
-    if (index === 0) return isCoverVisible.value;
-    return isOpened.value;
 };
 
 const getSectionClass = (index: number) => {
@@ -528,111 +523,111 @@ const goBack = () => {
                         <Maximize2 class="w-5 h-5" />
                     </button>
                 </div>
-                <!-- Sections Container -->
-                <div class="page-transition-wrapper flex flex-col items-center w-full">
+                <!-- Sections Container - REFACTORED TO STACKED LAYOUT -->
+                <div class="page-transition-wrapper relative w-full h-full min-h-screen">
+                    <!-- Layer 1: CONTENT (Sections 1 to N) -->
+                    <!-- This layer is always in the flow, providing the scrollable content -->
                     <div 
-                        v-for="(section, index) in orderedSections" 
-                        :key="section.key"
-                        v-show="shouldShowSection(index)"
-                        :ref="(el) => setSectionRef(el, index)"
-                        :data-index="index"
-                        class="relative overflow-hidden flex-shrink-0 page-section transition-all duration-300"
-                        :class="getSectionClass(index)"
-                        @click="handleSectionClick(index)"
+                        v-if="isOpened"
+                        class="content-layer flex flex-col items-center w-full"
+                    >
+                        <div 
+                            v-for="(section, index) in orderedSections.slice(1)" 
+                            :key="section.key"
+                            :ref="(el) => setSectionRef(el, index + 1)"
+                            :data-index="index + 1"
+                            class="relative overflow-hidden flex-shrink-0 page-section transition-all duration-300 w-full"
+                            :class="getSectionClass(index + 1)"
+                            @click="handleSectionClick(index + 1)"
+                            :style="{
+                                height: `${CANVAS_HEIGHT}px`,
+                                backgroundColor: section.backgroundColor || '#ffffff',
+                                backgroundImage: section.backgroundUrl ? `url(${section.backgroundUrl})` : 'none',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center',
+                                zIndex: 10,
+                                '--transition-duration': `${section.transitionDuration || 1000}ms`,
+                            }"
+                        >
+                            <div v-if="section.overlayOpacity" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: section.overlayOpacity }" />
+                            
+                            <div v-for="el in section.elements || []" :key="el.id" class="absolute" :style="getElementStyle(el, index + 1)">
+                                <AnimatedElement
+                                    :animation="el.animation || 'none'"
+                                    :loop-animation="el.loopAnimation"
+                                    :delay="el.animationDelay || 0"
+                                    :duration="el.animationDuration || 800"
+                                    class="w-full h-full"
+                                    :trigger-mode="(!el.animationTrigger || el.animationTrigger === 'scroll') ? 'auto' : 'manual'"
+                                    :force-trigger="
+                                        el.animationTrigger === 'click' ? (sectionClicked[index + 1] || false) :
+                                        el.animationTrigger === 'open_btn' ? openBtnTriggered :
+                                        false
+                                    "
+                                    :element-id="el.id"
+                                >
+                                    <div class="w-full h-full" :style="{ transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})` }">
+                                        <img v-if="el.type === 'image' && el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity ?? 1 }" draggable="false" />
+                                        <div v-else-if="el.type === 'text' && el.textStyle" class="w-full h-full flex items-center" :style="{ fontSize: `${el.textStyle.fontSize}px`, fontFamily: el.textStyle.fontFamily, fontStyle: el.textStyle.fontStyle, color: el.textStyle.color, textAlign: el.textStyle.textAlign }">
+                                            {{ el.content }}
+                                        </div>
+                                        <div v-else-if="el.type === 'icon' && el.iconStyle" class="w-full h-full flex items-center justify-center" :style="{ color: el.iconStyle.iconColor }">
+                                            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="100%" height="100%" style="display: block;"><path :d="iconPaths[el.iconStyle.iconName] || iconPaths['heart']" /></svg>
+                                        </div>
+                                        <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:opacity-90 active:scale-95 transition-all duration-700" :class="{ 'opacity-0 pointer-events-none': isOpened && (el.type === 'open_invitation_button' || el.openInvitationConfig) }" @click="handleOpenInvitation(el)">
+                                            {{ el.openInvitationConfig?.buttonText || el.content || 'Open Invitation' }}
+                                        </button>
+                                    </div>
+                                </AnimatedElement>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layer 2: COVER (Section 0) -->
+                    <!-- This layer is absolute, sitting directly on top of Page 2 -->
+                    <div 
+                        v-if="isCoverVisible && orderedSections[0]"
+                        :ref="(el) => setSectionRef(el, 0)"
+                        :data-index="0"
+                        class="absolute top-0 left-1/2 -translate-x-1/2 overflow-hidden flex-shrink-0 page-section transition-all duration-300 w-full"
+                        :class="getSectionClass(0)"
+                        @click="handleSectionClick(0)"
                         :style="{
-                            width: `${CANVAS_WIDTH}px`,
-                            height: index === 0 ? `${coverHeight}px` : `${CANVAS_HEIGHT}px`,
-                            backgroundColor: section.backgroundColor || '#ffffff',
-                            backgroundImage: section.backgroundUrl ? `url(${section.backgroundUrl})` : 'none',
+                            height: `${coverHeight}px`,
+                            backgroundColor: orderedSections[0].backgroundColor || '#ffffff',
+                            backgroundImage: orderedSections[0].backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
-                            zIndex: index === 0 ? 50 : 10,
-                            position: (index === 0 && isOpened && !coverTransitionDone) ? 'absolute' : 'relative',
-                            top: 0,
-                            left: '50%',
-                            transform: (index === 0 && isOpened && !coverTransitionDone) ? 'translateX(-50%)' : 'none',
-                            '--transition-duration': `${section.transitionDuration || 1000}ms`,
+                            zIndex: 50,
+                            '--transition-duration': `${orderedSections[0].transitionDuration || 1000}ms`,
                         }"
                     >
-                        <!-- Overlay -->
-                        <div 
-                            v-if="section.overlayOpacity"
-                            class="absolute inset-0 bg-black pointer-events-none" 
-                            :style="{ opacity: section.overlayOpacity }"
-                        />
+                        <div v-if="orderedSections[0].overlayOpacity" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: orderedSections[0].overlayOpacity }" />
                         
-                        <!-- Elements - positioned exactly as in editor -->
-                        <div 
-                            v-for="el in section.elements || []"
-                            :key="el.id"
-                            class="absolute"
-                            :style="getElementStyle(el, index)"
-                        >
-                            <!-- AnimatedElement wrapper for scroll animations (World Space) -->
+                        <div v-for="el in orderedSections[0].elements || []" :key="el.id" class="absolute" :style="getElementStyle(el, 0)">
                             <AnimatedElement
                                 :animation="el.animation || 'none'"
                                 :loop-animation="el.loopAnimation"
                                 :delay="el.animationDelay || 0"
                                 :duration="el.animationDuration || 800"
-                                :class="'w-full h-full'"
+                                class="w-full h-full"
                                 :trigger-mode="(!el.animationTrigger || el.animationTrigger === 'scroll') ? 'auto' : 'manual'"
                                 :force-trigger="
-                                    el.animationTrigger === 'click' ? (sectionClicked[index] || false) :
+                                    el.animationTrigger === 'click' ? (sectionClicked[0] || false) :
                                     el.animationTrigger === 'open_btn' ? openBtnTriggered :
                                     false
                                 "
                                 :element-id="el.id"
                             >
-                                <!-- Transform Wrapper (Element Space: Rotate/Flip) -->
-                                <div 
-                                    class="w-full h-full"
-                                    :style="{
-                                        transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})`,
-                                    }"
-                                >
-                                    <!-- Image -->
-                                    <img 
-                                        v-if="el.type === 'image' && el.imageUrl" 
-                                        :src="el.imageUrl" 
-                                        class="w-full h-full object-fill"
-                                        :style="{ opacity: el.opacity ?? 1 }"
-                                        draggable="false"
-                                    />
-                                    
-                                    <!-- Text -->
-                                    <div 
-                                        v-else-if="el.type === 'text' && el.textStyle"
-                                        class="w-full h-full flex items-center"
-                                        :style="{
-                                            fontSize: `${el.textStyle.fontSize}px`,
-                                            fontFamily: el.textStyle.fontFamily,
-                                            fontStyle: el.textStyle.fontStyle,
-                                            color: el.textStyle.color,
-                                            textAlign: el.textStyle.textAlign,
-                                        }"
-                                    >
+                                <div class="w-full h-full" :style="{ transform: `rotate(${el.rotation || 0}deg) scaleX(${el.flipHorizontal ? -1 : 1}) scaleY(${el.flipVertical ? -1 : 1})` }">
+                                    <img v-if="el.type === 'image' && el.imageUrl" :src="el.imageUrl" class="w-full h-full object-fill" :style="{ opacity: el.opacity ?? 1 }" draggable="false" />
+                                    <div v-else-if="el.type === 'text' && el.textStyle" class="w-full h-full flex items-center" :style="{ fontSize: `${el.textStyle.fontSize}px`, fontFamily: el.textStyle.fontFamily, fontStyle: el.textStyle.fontStyle, color: el.textStyle.color, textAlign: el.textStyle.textAlign }">
                                         {{ el.content }}
                                     </div>
-
-                                    <!-- Icon -->
-                                    <div 
-                                        v-else-if="el.type === 'icon' && el.iconStyle"
-                                        class="w-full h-full flex items-center justify-center"
-                                        :style="{ color: el.iconStyle.iconColor }"
-                                    >
-                                        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="100%" height="100%" style="display: block;">
-                                            <path :d="iconPaths[el.iconStyle.iconName] || iconPaths['heart']" />
-                                        </svg>
+                                    <div v-else-if="el.type === 'icon' && el.iconStyle" class="w-full h-full flex items-center justify-center" :style="{ color: el.iconStyle.iconColor }">
+                                        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="100%" height="100%" style="display: block;"><path :d="iconPaths[el.iconStyle.iconName] || iconPaths['heart']" /></svg>
                                     </div>
-
-                                    <!-- Button (Open Invitation / Regular) -->
-                                    <button
-                                        v-else-if="el.type === 'button' || el.type === 'open_invitation_button'"
-                                        :style="getButtonStyle(el)"
-                                        class="hover:opacity-90 active:scale-95 transition-all duration-700"
-                                        :class="{ 'opacity-0 pointer-events-none': isOpened && (el.type === 'open_invitation_button' || el.openInvitationConfig) }"
-                                        @click="handleOpenInvitation(el)"
-                                    >
+                                    <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:opacity-90 active:scale-95 transition-all duration-700" :class="{ 'opacity-0 pointer-events-none': isOpened && (el.type === 'open_invitation_button' || el.openInvitationConfig) }" @click="handleOpenInvitation(el)">
                                         {{ el.openInvitationConfig?.buttonText || el.content || 'Open Invitation' }}
                                     </button>
                                 </div>
