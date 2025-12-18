@@ -335,17 +335,17 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 </script>
 
 <template>
-    <div ref="mainViewport" class="h-screen w-screen bg-black flex flex-col items-center overflow-hidden" :class="flowMode ? 'justify-start' : 'justify-center'">
+    <div ref="mainViewport" class="h-screen w-screen bg-black flex flex-col items-center overflow-hidden">
         
         <!-- MAIN SCROLL ENGINE -->
-        <div ref="scrollContainer" class="scroll-container w-full flex-1" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'" :style="{ height: flowMode ? '100%' : `${coverHeightComputed * scaleFactor}px` }">
+        <div ref="scrollContainer" class="scroll-container w-full h-full" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden flex items-center justify-center'" :style="!flowMode ? { maxHeight: `${coverHeightComputed * scaleFactor}px` } : {}">
                 <div 
                     class="invitation-parent relative mx-auto" 
                     :style="{ 
                         width: `${CANVAS_WIDTH}px`, 
                         height: flowMode ? 'auto' : `${coverHeightComputed}px`,
                         transform: `scale(${scaleFactor})`, 
-                        transformOrigin: 'top center' 
+                        transformOrigin: flowMode ? 'top center' : 'center center' 
                     }"
                 >
                 <!-- Controls -->
