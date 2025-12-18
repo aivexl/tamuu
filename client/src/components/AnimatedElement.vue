@@ -31,30 +31,44 @@ const props = withDefaults(defineProps<Props>(), {
 const elementRef = ref<HTMLElement | null>(null);
 const isVisible = useElementVisibility(elementRef);
 
-// Global state to track animations per element ID (prevents re-triggering directly)
-const animatedElements = new Set<string>();
+// Global state to track manual-triggered animations (prevents re-triggering)
+const manualAnimatedElements = new Set<string>();
 
 // Track animation state - Force true if immediate is passed
-const shouldAnimate = ref(props.immediate || (props.elementId && animatedElements.has(props.elementId)));
+const shouldAnimate = ref(props.immediate || (props.triggerMode === 'manual' && props.elementId && manualAnimatedElements.has(props.elementId)));
 
 const tryTriggerAnimation = () => {
     if (!shouldAnimate.value) {
         requestAnimationFrame(() => {
             shouldAnimate.value = true;
-            if (props.elementId) animatedElements.add(props.elementId);
+            // Only track manual triggers to prevent re-triggering
+            if (props.triggerMode === 'manual' && props.elementId) {
+                manualAnimatedElements.add(props.elementId);
+            }
         });
+    }
+};
+
+const resetAnimation = () => {
+    // Only reset for auto (scroll) mode
+    if (props.triggerMode === 'auto') {
+        shouldAnimate.value = false;
     }
 };
 
 // Watch visibility or forceTrigger based on mode
 watch([isVisible, () => props.forceTrigger, () => props.triggerMode], ([visible, force, mode]) => {
-    // If already animated (and tracked), don't un-animate
-    if (shouldAnimate.value) return;
-
     if (mode === 'manual') {
+        // Manual mode: only trigger once when force becomes true
+        if (shouldAnimate.value) return; // Already animated
         if (force) tryTriggerAnimation();
     } else {
-        if (visible) tryTriggerAnimation();
+        // Auto mode (scroll): trigger when visible, reset when not visible
+        if (visible) {
+            tryTriggerAnimation();
+        } else {
+            resetAnimation();
+        }
     }
 }, { immediate: true });
 

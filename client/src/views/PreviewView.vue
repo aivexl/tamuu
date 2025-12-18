@@ -324,7 +324,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             v-for="(section, index) in orderedSections" 
                             :key="section.key"
                             :ref="(el) => setSectionRef(el, index)" :data-index="index"
-                            class="relative w-full flex-shrink-0 page-section"
+                            class="relative w-full flex-shrink-0 page-section overflow-hidden"
                             :style="{ 
                                 height: index === 0 ? `${coverHeightComputed}px` : `${CANVAS_HEIGHT}px`,
                                 backgroundColor: section.backgroundColor || '#ffffff',
