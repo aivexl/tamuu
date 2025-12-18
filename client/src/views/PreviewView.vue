@@ -6,6 +6,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/lib/constants';
 import AnimatedElement from '@/components/AnimatedElement.vue';
 import { ArrowLeft, Maximize2 } from 'lucide-vue-next';
 import { iconPaths } from '@/lib/icon-paths';
+import { shapePaths } from '@/lib/shape-paths';
 
 // Library Imports
 import Lenis from 'lenis';
@@ -202,12 +203,12 @@ const getElementStyle = (el: any, sectionIndex: number) => {
     if (sectionIndex === 0 && windowHeight.value > windowWidth.value) {
          const currentCoverHeight = coverHeightComputed.value;
          if (currentCoverHeight > CANVAS_HEIGHT) {
-             const extraHeight = currentCoverHeight - CANVAS_HEIGHT;
-             const elementHeight = Number(el.size?.height || 0);
-             const maxTop = CANVAS_HEIGHT - elementHeight;
-             let progress = maxTop > 0 ? el.position.y / maxTop : 0;
-             progress = Math.max(0, Math.min(1, progress));
-             baseStyle.top = `${el.position.y + (extraHeight * progress)}px`;
+              const extraHeight = currentCoverHeight - CANVAS_HEIGHT;
+              const elementHeight = Number(el.size?.height || 0);
+              const maxTop = CANVAS_HEIGHT - elementHeight;
+              let progress = maxTop > 0 ? el.position.y / maxTop : 0;
+              progress = Math.max(0, Math.min(1, progress));
+              baseStyle.top = `${el.position.y + (extraHeight * progress)}px`;
          }
     }
     return baseStyle;
@@ -380,6 +381,16 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center opacity-100">
                                             <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
                                         </div>
+                                        <div v-else-if="el.type === 'shape' && el.shapeConfig" class="w-full h-full">
+                                            <svg v-if="['rectangle', 'square', 'rounded-rectangle'].includes(el.shapeConfig.shapeType)" width="100%" height="100%" :viewBox="`0 0 ${el.size.width} ${el.size.height}`" preserveAspectRatio="none">
+                                               <rect x="0" y="0" :width="el.size.width" :height="el.size.height" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" :rx="el.shapeConfig.shapeType === 'rounded-rectangle' ? (el.shapeConfig.cornerRadius || 20) : 0" />
+                                            </svg>
+                                            <svg v-else-if="el.shapeConfig.shapeType === 'circle'" width="100%" height="100%" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
+                                            <svg v-else-if="el.shapeConfig.shapeType === 'ellipse'" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="48" ry="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
+                                            <svg v-else width="100%" height="100%" viewBox="0 0 100 100" :preserveAspectRatio="['line', 'zigzag', 'wave'].includes(el.shapeConfig.shapeType) ? 'none' : 'xMidYMid meet'">
+                                               <path :d="shapePaths[el.shapeConfig.shapeType] || el.shapeConfig.pathData || ''" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </div>
                                         <div v-else-if="el.type === 'countdown'" class="w-full h-full flex justify-center items-center gap-2">
                                             <div v-for="unit in ['Days', 'Hours', 'Min', 'Sec']" :key="unit" class="flex flex-col items-center">
                                                 <div class="text-2xl font-bold" :style="{ color: el.countdownConfig?.digitColor || '#000' }">00</div>
@@ -421,6 +432,16 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
                                         <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center">
                                             <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
+                                        </div>
+                                        <div v-else-if="el.type === 'shape' && el.shapeConfig" class="w-full h-full">
+                                            <svg v-if="['rectangle', 'square', 'rounded-rectangle'].includes(el.shapeConfig.shapeType)" width="100%" height="100%" :viewBox="`0 0 ${el.size.width} ${el.size.height}`" preserveAspectRatio="none">
+                                               <rect x="0" y="0" :width="el.size.width" :height="el.size.height" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" :rx="el.shapeConfig.shapeType === 'rounded-rectangle' ? (el.shapeConfig.cornerRadius || 20) : 0" />
+                                            </svg>
+                                            <svg v-else-if="el.shapeConfig.shapeType === 'circle'" width="100%" height="100%" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
+                                            <svg v-else-if="el.shapeConfig.shapeType === 'ellipse'" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="48" ry="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
+                                            <svg v-else width="100%" height="100%" viewBox="0 0 100 100" :preserveAspectRatio="['line', 'zigzag', 'wave'].includes(el.shapeConfig.shapeType) ? 'none' : 'xMidYMid meet'">
+                                               <path :d="shapePaths[el.shapeConfig.shapeType] || el.shapeConfig.pathData || ''" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
                                         </div>
                                         <div v-else-if="el.type === 'countdown'" class="w-full h-full flex justify-center items-center gap-2">
                                             <div v-for="unit in ['Days', 'Hours', 'Min', 'Sec']" :key="unit" class="flex flex-col items-center">
@@ -476,6 +497,16 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         </button>
                                         <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center">
                                             <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
+                                        </div>
+                                        <div v-else-if="el.type === 'shape' && el.shapeConfig" class="w-full h-full">
+                                            <svg v-if="['rectangle', 'square', 'rounded-rectangle'].includes(el.shapeConfig.shapeType)" width="100%" height="100%" :viewBox="`0 0 ${el.size.width} ${el.size.height}`" preserveAspectRatio="none">
+                                               <rect x="0" y="0" :width="el.size.width" :height="el.size.height" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" :rx="el.shapeConfig.shapeType === 'rounded-rectangle' ? (el.shapeConfig.cornerRadius || 20) : 0" />
+                                            </svg>
+                                            <svg v-else-if="el.shapeConfig.shapeType === 'circle'" width="100%" height="100%" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
+                                            <svg v-else-if="el.shapeConfig.shapeType === 'ellipse'" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="48" ry="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
+                                            <svg v-else width="100%" height="100%" viewBox="0 0 100 100" :preserveAspectRatio="['line', 'zigzag', 'wave'].includes(el.shapeConfig.shapeType) ? 'none' : 'xMidYMid meet'">
+                                               <path :d="shapePaths[el.shapeConfig.shapeType] || el.shapeConfig.pathData || ''" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
                                         </div>
                                     </AnimatedElement>
                                 </template>

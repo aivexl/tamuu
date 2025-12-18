@@ -9,11 +9,10 @@ import Input from '@/components/ui/Input.vue';
 import Label from '@/components/ui/Label.vue';
 import Button from '@/components/ui/Button.vue';
 import { 
-    Trash2, ArrowUp, ArrowDown, ChevronsUp, ChevronsDown,
-    FlipHorizontal2, FlipVertical2,
-    AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignCenterVertical, AlignEndVertical,
     Upload, Image as ImageIcon, Copy, GripVertical, Square,
-    Circle, Play, Star, Minus
+    Circle, Play, Star, Minus, Heart, Cloud, Leaf, Flower, Sun, Moon,
+    MessageCircle, MessageSquare, Phone, Flag, Shield, Hexagon,
+    Award, Bell, Bookmark, Camera, Gift, Music, Umbrella
 } from 'lucide-vue-next';
 
 interface Props {
@@ -449,6 +448,54 @@ const fontFamilies = [
 ];
 const fontSizes = [12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 56, 64, 72, 80, 96];
 
+// Shape categorization for UI
+const shapeCategories = [
+    {
+        name: 'Basic',
+        shapes: ['rectangle', 'square', 'rounded-rectangle', 'circle', 'ellipse', 'triangle', 'diamond', 'pentagon', 'hexagon', 'octagon']
+    },
+    {
+        name: 'Stars & Polygons',
+        shapes: ['star-4', 'star-5', 'star-6', 'star-8', 'star-burst', 'cross', 'plus', 'asterisk']
+    },
+    {
+        name: 'Hearts & Love',
+        shapes: ['heart', 'heart-outline', 'double-heart', 'heart-arrow']
+    },
+    {
+        name: 'Nature',
+        shapes: ['leaf', 'flower', 'cloud', 'sun', 'moon', 'raindrop']
+    },
+    {
+        name: 'Lines & Arrows',
+        shapes: ['line', 'arrow', 'double-arrow', 'curved-line', 'zigzag', 'wave']
+    },
+    {
+        name: 'Decorative',
+        shapes: ['ribbon', 'banner', 'frame', 'badge', 'seal', 'sparkle', 'burst', 'swirl']
+    },
+    {
+        name: 'Communication',
+        shapes: ['speech-bubble', 'thought-bubble', 'callout']
+    }
+];
+
+const getShapeIcon = (type: string) => {
+    if (type.startsWith('star-')) return Star;
+    if (type.includes('heart')) return Heart;
+    if (type === 'rectangle' || type === 'square' || type === 'rounded-rectangle') return Square;
+    if (type === 'circle' || type === 'ellipse') return Circle;
+    if (type === 'triangle' || type === 'diamond' || type === 'pentagon' || type === 'hexagon' || type === 'octagon') return Hexagon;
+    if (type === 'line' || type === 'minus') return Minus;
+    if (type === 'cloud') return Cloud;
+    if (type === 'leaf') return Leaf;
+    if (type === 'flower') return Flower;
+    if (type === 'sun') return Sun;
+    if (type === 'moon') return Moon;
+    if (type === 'speech-bubble' || type === 'thought-bubble' || type === 'callout') return MessageCircle;
+    return Square;
+};
+
 // Element type icons
 const getElementIcon = (type: string) => {
     switch(type) {
@@ -461,18 +508,6 @@ const getElementIcon = (type: string) => {
         case 'open_invitation_button': case 'button': return '🔘';
         case 'shape': return '⬜';
         default: return '◻';
-    }
-};
-
-const getShapeIcon = (type: string) => {
-    switch(type) {
-        case 'rectangle': return Square;
-        case 'circle': return Circle;
-        case 'ellipse': return Circle; // Use circle for both for now or find Ellipse if available
-        case 'triangle': return Play; // Rotated play for triangle
-        case 'star': return Star;
-        case 'line': return Minus;
-        default: return Square;
     }
 };
 
@@ -878,20 +913,23 @@ const handleCopyToSection = async () => {
                     <Square class="w-3 h-3 text-slate-300" />
                 </div>
                 
-                <!-- Shape Type Grid -->
-                <div class="space-y-2">
-                    <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Type</span>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button 
-                            v-for="type in (['rectangle', 'circle', 'ellipse', 'triangle', 'star', 'line'] as const)" 
-                            :key="type"
-                            class="flex flex-col items-center justify-center p-2 rounded-xl border transition-all hover:bg-slate-50 active:scale-95"
-                            :class="element.shapeConfig?.shapeType === type ? 'border-indigo-500 bg-indigo-50/50 text-indigo-600 shadow-sm' : 'border-slate-100 text-slate-400 bg-white'"
-                            @click="handleUpdate({ shapeConfig: { ...element.shapeConfig!, shapeType: type } })"
-                        >
-                            <component :is="getShapeIcon(type)" class="w-4 h-4 mb-1" :class="type === 'triangle' ? '-rotate-90' : ''" />
-                            <span class="text-[9px] font-medium capitalize">{{ type }}</span>
-                        </button>
+                <!-- Shape Type Grid (Categorized & Scrollable) -->
+                <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    <div v-for="category in shapeCategories" :key="category.name" class="space-y-2">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ category.name }}</span>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button 
+                                v-for="shape in category.shapes" 
+                                :key="shape"
+                                class="group flex flex-col items-center justify-center p-2 rounded-xl border transition-all hover:bg-slate-50 active:scale-95"
+                                :class="element.shapeConfig?.shapeType === shape ? 'border-indigo-500 bg-indigo-50/50 text-indigo-600 shadow-sm' : 'border-slate-100 text-slate-400 bg-white'"
+                                @click="handleUpdate({ shapeConfig: { ...element.shapeConfig!, shapeType: shape as any } })"
+                                :title="shape"
+                            >
+                                <component :is="getShapeIcon(shape)" class="w-4 h-4 transition-transform group-hover:scale-110" :class="shape === 'triangle' ? '-rotate-90' : ''" />
+                                <span class="text-[8px] font-medium capitalize mt-1 truncate w-full text-center">{{ shape.replace('-', ' ') }}</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 

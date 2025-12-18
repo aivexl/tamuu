@@ -112,7 +112,8 @@ const handleAddElement = async (type: ElementType) => {
                     messageLabel: 'Pesan',
                     attendanceLabel: 'Kehadiran',
                     submitButtonText: 'Kirim RSVP',
-                    successMessage: 'Terima kasih!'
+                    successMessage: 'Terima kasih!',
+                    style: 'classic'
                 },
                 size: { width: 320, height: 450 },
                 id: newId
@@ -143,15 +144,27 @@ const handleAddElement = async (type: ElementType) => {
                     buttonColor: '#722f37',
                     textColor: '#ffffff',
                     showIcon: true,
-                    iconName: 'mail-open'
+                    iconName: 'mail-open',
+                    enabled: true,
+                    position: 'bottom-center'
                 },
                 id: newId
             };
             break;
-         case 'guest_wishes':
+        case 'guest_wishes':
              newElement = {
                 ...newElement,
                 name: 'Guest Wishes',
+                guestWishesConfig: {
+                    style: 'classic',
+                    backgroundColor: '#ffffff',
+                    textColor: '#000000',
+                    cardBackgroundColor: '#ffffff',
+                    cardBorderColor: '#e5e5e5',
+                    showTimestamp: true,
+                    maxDisplayCount: 20,
+                    layout: 'list'
+                },
                 size: { width: 320, height: 400 },
                 id: newId
             };
@@ -162,10 +175,12 @@ const handleAddElement = async (type: ElementType) => {
                 name: 'Shape',
                 shapeConfig: {
                     shapeType: 'rectangle',
-                    fill: '#3b82f6',
-                    stroke: '#1d4ed8',
+                    fill: '#6366f1',
+                    stroke: '#474554',
                     strokeWidth: 2,
-                    cornerRadius: 8
+                    cornerRadius: 8,
+                    points: 5,
+                    innerRadius: 0.4
                 },
                 size: { width: 150, height: 150 },
                 id: newId

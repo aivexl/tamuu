@@ -4,6 +4,7 @@ import { type TemplateElement, type SectionType } from '@/lib/types';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/lib/constants';
 import { getProxiedImageUrl, isR2Url } from '@/lib/image-utils';
 import { iconPaths } from '@/lib/icon-paths';
+import { shapePaths } from '@/lib/shape-paths';
 import { useTemplateStore } from '@/stores/template';
 
 // Track Shift key for bypassing boundaries
@@ -680,11 +681,13 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
                 />
                 
                 <!-- Triangle -->
-                <v-line
+                <v-regular-polygon
                     v-else-if="element.shapeConfig.shapeType === 'triangle'"
                     :config="{
-                        points: [element.size.width / 2, 0, element.size.width, element.size.height, 0, element.size.height],
-                        closed: true,
+                        x: element.size.width / 2,
+                        y: element.size.height / 2,
+                        sides: 3,
+                        radius: Math.min(element.size.width, element.size.height) / 2,
                         fill: element.shapeConfig.fill ?? undefined,
                         stroke: element.shapeConfig.stroke ?? undefined,
                         strokeWidth: element.shapeConfig.stroke ? element.shapeConfig.strokeWidth : 0,
@@ -692,14 +695,29 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
                     }"
                 />
                 
-                <!-- Star -->
-                <v-star
-                    v-else-if="element.shapeConfig.shapeType === 'star'"
+                <!-- Polygons (Pentagon, Hexagon, etc.) -->
+                <v-regular-polygon
+                    v-else-if="['pentagon', 'hexagon', 'octagon'].includes(element.shapeConfig.shapeType)"
                     :config="{
                         x: element.size.width / 2,
                         y: element.size.height / 2,
-                        numPoints: element.shapeConfig.points || 5,
-                        innerRadius: Math.min(element.size.width, element.size.height) / 4,
+                        sides: element.shapeConfig.shapeType === 'pentagon' ? 5 : element.shapeConfig.shapeType === 'hexagon' ? 6 : 8,
+                        radius: Math.min(element.size.width, element.size.height) / 2,
+                        fill: element.shapeConfig.fill ?? undefined,
+                        stroke: element.shapeConfig.stroke ?? undefined,
+                        strokeWidth: element.shapeConfig.stroke ? element.shapeConfig.strokeWidth : 0,
+                        listening: false
+                    }"
+                />
+
+                <!-- Star -->
+                <v-star
+                    v-else-if="element.shapeConfig.shapeType === 'star' || element.shapeConfig.shapeType.startsWith('star-')"
+                    :config="{
+                        x: element.size.width / 2,
+                        y: element.size.height / 2,
+                        numPoints: element.shapeConfig.shapeType === 'star-4' ? 4 : element.shapeConfig.shapeType === 'star-6' ? 6 : element.shapeConfig.shapeType === 'star-8' ? 8 : (element.shapeConfig.points || 5),
+                        innerRadius: Math.min(element.size.width, element.size.height) * (element.shapeConfig.innerRadius || 0.4) / 2,
                         outerRadius: Math.min(element.size.width, element.size.height) / 2,
                         fill: element.shapeConfig.fill ?? undefined,
                         stroke: element.shapeConfig.stroke ?? undefined,
@@ -716,6 +734,22 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
                         stroke: element.shapeConfig.stroke || '#000000',
                         strokeWidth: element.shapeConfig.strokeWidth || 2,
                         listening: false
+                    }"
+                />
+
+                <!-- Generic SVG Path Shapes -->
+                <v-path
+                    v-else
+                    :config="{
+                        data: shapePaths[element.shapeConfig.shapeType] || element.shapeConfig.pathData || '',
+                        fill: element.shapeConfig.fill ?? undefined,
+                        stroke: element.shapeConfig.stroke ?? undefined,
+                        strokeWidth: element.shapeConfig.stroke ? element.shapeConfig.strokeWidth : 0,
+                        scaleX: element.size.width / 100,
+                        scaleY: element.size.height / 100,
+                        listening: false,
+                        lineCap: 'round',
+                        lineJoin: 'round'
                     }"
                 />
             </template>
@@ -996,6 +1030,91 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
                 <v-rect :config="{ x: 10, y: 40, width: element.size.width - 20, height: 60, fill: element.guestWishesConfig?.cardBackgroundColor || '#ffffff', cornerRadius: 4, shadowColor: 'black', shadowBlur: 2, shadowOpacity: 0.05, stroke: element.guestWishesConfig?.cardBorderColor || 'transparent', strokeWidth: 1, listening: false }" />
                 <v-rect :config="{ x: 10, y: 110, width: element.size.width - 20, height: 60, fill: element.guestWishesConfig?.cardBackgroundColor || '#ffffff', cornerRadius: 4, shadowColor: 'black', shadowBlur: 2, shadowOpacity: 0.05, stroke: element.guestWishesConfig?.cardBorderColor || 'transparent', strokeWidth: 1, listening: false }" />
             </v-group>
+
+             <!-- Shape Element -->
+             <v-group v-else-if="element.type === 'shape' && element.shapeConfig">
+                <!-- Basic Shape Components -->
+                <v-rect
+                    v-if="element.shapeConfig.shapeType === 'rectangle' || element.shapeConfig.shapeType === 'square' || element.shapeConfig.shapeType === 'rounded-rectangle'"
+                    :config="{
+                        width: element.size.width,
+                        height: element.size.height,
+                        fill: element.shapeConfig.fill || 'transparent',
+                        stroke: element.shapeConfig.stroke || 'transparent',
+                        strokeWidth: element.shapeConfig.strokeWidth || 0,
+                        cornerRadius: element.shapeConfig.shapeType === 'rounded-rectangle' ? (element.shapeConfig.cornerRadius || 20) : (element.shapeConfig.shapeType === 'square' ? 0 : element.shapeConfig.cornerRadius || 0),
+                        listening: false
+                    }"
+                />
+                <v-circle
+                    v-else-if="element.shapeConfig.shapeType === 'circle'"
+                    :config="{
+                        x: element.size.width / 2,
+                        y: element.size.height / 2,
+                        radius: Math.min(element.size.width, element.size.height) / 2,
+                        fill: element.shapeConfig.fill || 'transparent',
+                        stroke: element.shapeConfig.stroke || 'transparent',
+                        strokeWidth: element.shapeConfig.strokeWidth || 0,
+                        listening: false
+                    }"
+                />
+                <v-ellipse
+                    v-else-if="element.shapeConfig.shapeType === 'ellipse'"
+                    :config="{
+                        x: element.size.width / 2,
+                        y: element.size.height / 2,
+                        radiusX: element.size.width / 2,
+                        radiusY: element.size.height / 2,
+                        fill: element.shapeConfig.fill || 'transparent',
+                        stroke: element.shapeConfig.stroke || 'transparent',
+                        strokeWidth: element.shapeConfig.strokeWidth || 0,
+                        listening: false
+                    }"
+                />
+                <v-regular-polygon
+                    v-else-if="['triangle', 'diamond', 'pentagon', 'hexagon', 'octagon'].includes(element.shapeConfig.shapeType)"
+                    :config="{
+                        x: element.size.width / 2,
+                        y: element.size.height / 2,
+                        sides: element.shapeConfig.shapeType === 'triangle' ? 3 : (element.shapeConfig.shapeType === 'pentagon' ? 5 : (element.shapeConfig.shapeType === 'hexagon' ? 6 : (element.shapeConfig.shapeType === 'octagon' ? 8 : 4))),
+                        radius: Math.min(element.size.width, element.size.height) / 2,
+                        rotation: element.shapeConfig.shapeType === 'triangle' ? -90 : (element.shapeConfig.shapeType === 'diamond' ? 45 : 0),
+                        fill: element.shapeConfig.fill || 'transparent',
+                        stroke: element.shapeConfig.stroke || 'transparent',
+                        strokeWidth: element.shapeConfig.strokeWidth || 0,
+                        listening: false
+                    }"
+                />
+                <v-star
+                    v-else-if="element.shapeConfig.shapeType.startsWith('star-')"
+                    :config="{
+                        x: element.size.width / 2,
+                        y: element.size.height / 2,
+                        numPoints: parseInt(element.shapeConfig.shapeType.split('-')[1]) || 5,
+                        innerRadius: (Math.min(element.size.width, element.size.height) / 2) * (element.shapeConfig.innerRadius || 0.4),
+                        outerRadius: Math.min(element.size.width, element.size.height) / 2,
+                        fill: element.shapeConfig.fill || 'transparent',
+                        stroke: element.shapeConfig.stroke || 'transparent',
+                        strokeWidth: element.shapeConfig.strokeWidth || 0,
+                        listening: false
+                    }"
+                />
+                <!-- Complex/SVG Path Shapes -->
+                <v-path
+                    v-else
+                    :config="{
+                        data: shapePaths[element.shapeConfig.shapeType] || element.shapeConfig.pathData || '',
+                        width: element.size.width,
+                        height: element.size.height,
+                        scaleX: element.size.width / 100,
+                        scaleY: element.size.height / 100,
+                        fill: element.shapeConfig.fill || 'transparent',
+                        stroke: element.shapeConfig.stroke || 'transparent',
+                        strokeWidth: (element.shapeConfig.strokeWidth || 0) / (element.size.width / 100),
+                        listening: false
+                    }"
+                />
+             </v-group>
 
              <!-- Button Element (Basic & Open Invitation) -->
             <v-group v-if="element.type === 'button' || element.type === 'open_invitation_button'">

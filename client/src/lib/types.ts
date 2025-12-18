@@ -209,7 +209,21 @@ export type AnimationType =
 
 export type ElementType = 'image' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'rsvp-form' | 'guest_wishes' | 'open_invitation_button' | 'button' | 'shape';
 
-export type ShapeType = 'rectangle' | 'circle' | 'ellipse' | 'triangle' | 'star' | 'line';
+export type ShapeType =
+    // Basic Shapes
+    | 'rectangle' | 'square' | 'rounded-rectangle' | 'circle' | 'ellipse' | 'triangle' | 'diamond' | 'pentagon' | 'hexagon' | 'octagon'
+    // Stars & Polygons
+    | 'star-4' | 'star-5' | 'star-6' | 'star-8' | 'star-burst' | 'cross' | 'plus' | 'asterisk'
+    // Lines & Arrows
+    | 'line' | 'arrow' | 'double-arrow' | 'curved-line' | 'zigzag' | 'wave'
+    // Hearts & Love
+    | 'heart' | 'heart-outline' | 'double-heart' | 'heart-arrow'
+    // Nature
+    | 'leaf' | 'flower' | 'cloud' | 'sun' | 'moon' | 'raindrop'
+    // Decorative
+    | 'ribbon' | 'banner' | 'frame' | 'badge' | 'seal' | 'sparkle' | 'burst' | 'swirl'
+    // Communication
+    | 'speech-bubble' | 'thought-bubble' | 'callout';
 
 export interface ShapeConfig {
     shapeType: ShapeType;
@@ -217,7 +231,9 @@ export interface ShapeConfig {
     stroke: string | null;    // null = no stroke
     strokeWidth: number;
     cornerRadius?: number;    // for rectangles
-    points?: number;          // for star (number of points)
+    points?: number;          // for star/polygons
+    innerRadius?: number;     // for stars
+    pathData?: string;        // for custom SVG paths (v-path)
 }
 
 export interface TextStyle {
