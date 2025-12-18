@@ -33,7 +33,7 @@ const orderedSections = computed(() => {
         .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 });
 
-// High-Precision State
+// Art-Grade State
 const isOpened = ref(false);
 const openBtnTriggered = ref(false);
 const sectionRefs = ref<HTMLElement[]>([]);
@@ -74,6 +74,7 @@ onMounted(async () => {
         await store.fetchTemplate(templateId.value);
     }
     
+    // Create Observer with precise settings for element animations
     observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             const index = parseInt((entry.target as HTMLElement).dataset.index || '-1');
@@ -81,15 +82,19 @@ onMounted(async () => {
                 visibleSections.value.add(index);
             }
         });
-    }, { threshold: 0.1 });
+    }, { 
+        threshold: 0.1,
+        rootMargin: '10% 0px 10% 0px' 
+    });
 
     // Initialize Lenis TARGETING THE INTERNAL SCROLL CONTAINER
     if (scrollContainer.value) {
         lenis = new Lenis({
             wrapper: scrollContainer.value,
             content: scrollContainer.value.firstElementChild as HTMLElement,
-            duration: 1.2,
+            duration: 1.5,
             easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            touchMultiplier: 2,
         });
 
         const scrollLoop = (time: number) => {
@@ -109,11 +114,14 @@ onUnmounted(() => {
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
 });
 
-// Handle Open Invitation Click (Premium Sequencing)
+/**
+ * Handle Open Invitation (Art-Grade Implementation)
+ * Ensuring Zero-Flicker Split and Forced Page 2 Landing
+ */
 const handleOpenInvitation = async (clickedElement: any) => {
     openBtnTriggered.value = true;
     
-    // 1. Calculate and wait for element animations
+    // 1. Element Animation Sync
     let triggerDelay = 0;
     const coverSection = orderedSections.value[0];
     const elements = coverSection?.elements || [];
@@ -129,34 +137,44 @@ const handleOpenInvitation = async (clickedElement: any) => {
         isOpened.value = true;
         isRevealing.value = true;
         
-        // Let Vue render the content layer at opacity 0 first
+        // Wait for Content Layer to render behind (hidden)
         await nextTick();
         
         const coverEl = sectionRefs.value[0];
+        const nextEl = sectionRefs.value[1];
         const effect = coverSection?.transitionEffect || 'none';
-        const duration = (coverSection?.transitionDuration || 1000) / 1000;
+        const duration = (coverSection?.transitionDuration || 1200) / 1000;
 
         if (!coverEl) {
-            isOpened.value = true;
-            coverTransitionDone.value = true;
-            isCoverVisible.value = false;
+            finalizeAndScroll();
             return;
         }
 
-        const finalize = () => {
+        function finalizeAndScroll() {
             coverTransitionDone.value = true;
             isCoverVisible.value = false;
             isRevealing.value = false;
-            // Force re-calc for Lenis
-            lenis?.resize();
+            
+            // CRITICAL: Force Landing on Page 2 (Section 1)
+            nextTick(() => {
+                if (scrollContainer.value) {
+                    // Force the actual scroll position to effectively "skip" Section 0
+                    // Since Sections are stacked flex, Section 0 is still there but hidden or absolute.
+                    // We ensure we are at the top of Section 1.
+                    lenis?.scrollTo(0, { immediate: true });
+                    scrollContainer.value.scrollTop = 0;
+                    lenis?.resize();
+                }
+            });
         };
 
-        // --- DEFINITIVE PREMIUM TRANSITIONS ---
+        // --- ART-GRADE PREMIUM TRANSITIONS ---
         
         if (effect === 'split-screen') {
             const parent = coverEl.parentElement;
-            if (!parent) return finalize();
+            if (!parent) return finalizeAndScroll();
 
+            // Create pixel-perfect clones
             const leftHalf = coverEl.cloneNode(true) as HTMLElement;
             const rightHalf = coverEl.cloneNode(true) as HTMLElement;
             
@@ -164,54 +182,58 @@ const handleOpenInvitation = async (clickedElement: any) => {
                 el.style.position = 'absolute';
                 el.style.top = '0';
                 el.style.left = '0';
-                el.style.width = '100%';
+                el.style.width = '100.1%'; // Overlap sub-pixel gap
                 el.style.height = `${coverHeight.value}px`;
                 el.style.clipPath = clip;
-                el.style.zIndex = '100';
+                el.style.zIndex = '200';
                 el.style.pointerEvents = 'none';
-                el.style.transformOrigin = 'center center';
                 parent.appendChild(el);
             };
 
             setupHalf(leftHalf, 'inset(0 50% 0 0)');
             setupHalf(rightHalf, 'inset(0 0 0 50%)');
             
-            // Flicker-free hide
-            gsap.set(coverEl, { opacity: 0 });
+            // Synchronous hide to prevent flicker
+            coverEl.style.visibility = 'hidden';
 
-            const tl = gsap.timeline({ onComplete: () => { leftHalf.remove(); rightHalf.remove(); finalize(); } });
+            const tl = gsap.timeline({ 
+                onComplete: () => { 
+                    leftHalf.remove(); 
+                    rightHalf.remove(); 
+                    finalizeAndScroll(); 
+                } 
+            });
             tl.to(leftHalf, { xPercent: -100, duration, ease: "expo.inOut" });
             tl.to(rightHalf, { xPercent: 100, duration, ease: "expo.inOut" }, 0);
         } 
-        else if (effect === 'cube' && sectionRefs.value[1]) {
-            const nextEl = sectionRefs.value[1];
+        else if (effect === 'cube' && nextEl) {
             gsap.set(mainViewport.value, { perspective: 2000 });
-            const tl = gsap.timeline({ onComplete: () => { gsap.set([coverEl, nextEl], { clearProps: "all" }); finalize(); } });
-            tl.to(coverEl, { rotationY: -90, x: -CANVAS_WIDTH/2, z: -CANVAS_WIDTH/2, opacity: 0, duration, ease: "power3.inOut" });
-            tl.from(nextEl, { rotationY: 90, x: CANVAS_WIDTH/2, z: -CANVAS_WIDTH/2, opacity: 0, duration, ease: "power3.inOut" }, 0);
+            const tl = gsap.timeline({ onComplete: finalizeAndScroll });
+            tl.to(coverEl, { rotationY: -90, x: -CANVAS_WIDTH/2, z: -CANVAS_WIDTH/2, opacity: 0, duration, ease: "expo.inOut" });
+            tl.from(nextEl, { rotationY: 90, x: CANVAS_WIDTH/2, z: -CANVAS_WIDTH/2, opacity: 0, duration, ease: "expo.inOut" }, 0);
         }
         else if (effect === 'cards') {
-            gsap.to(coverEl, { y: -window.innerHeight, rotate: -5, scale: 0.9, opacity: 0, duration, ease: "power4.in", onComplete: finalize });
+            gsap.to(coverEl, { y: -windowHeight.value, rotate: -15, scale: 0.8, opacity: 0, duration: duration * 1.2, ease: "expo.in", onComplete: finalizeAndScroll });
         }
         else if (effect === 'curtain-reveal' || effect === 'curtain') {
-            gsap.to(coverEl, { yPercent: -100, duration, ease: "expo.inOut", onComplete: finalize });
+            gsap.to(coverEl, { yPercent: -100, duration, ease: "expo.inOut", onComplete: finalizeAndScroll });
         }
         else if (effect === 'reveal') {
-            gsap.to(coverEl, { opacity: 0, scale: 1.2, filter: 'blur(20px)', duration: duration * 1.5, ease: "sine.inOut", onComplete: finalize });
+            gsap.to(coverEl, { opacity: 0, scale: 1.15, filter: 'blur(30px)', duration: duration * 1.5, ease: "sine.inOut", onComplete: finalizeAndScroll });
         }
         else if (effect === 'smooth-reveal') {
-            gsap.to(coverEl, { opacity: 0, y: -100, duration, ease: "expo.out", onComplete: () => { finalize(); lenis?.scrollTo(0, { immediate: true }); } });
+            gsap.to(coverEl, { opacity: 0, scale: 0.9, y: -150, duration, ease: "expo.out", onComplete: finalizeAndScroll });
         }
         else if (effect === 'split-transition' || effect === 'slide-split') {
-            anime({ targets: coverEl, translateX: '-100%', opacity: 0, duration: duration * 1000, easing: 'easeInOutExpo', complete: finalize });
+            anime({ targets: coverEl, translateX: '-100%', opacity: 0, duration: duration * 1000, easing: 'easeInOutExpo', complete: finalizeAndScroll });
         }
         else {
-            finalize();
+            finalizeAndScroll();
         }
     }, triggerDelay);
 };
 
-// Dimensions Handling
+// Dimensions & Scaling
 const windowWidth = ref(0);
 const windowHeight = ref(0);
 
@@ -272,14 +294,15 @@ const getButtonStyle = (element: any) => {
             justifyContent: 'center',
             width: '100%',
             height: '100%',
-            transition: 'all 0.3s ease',
+            transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
             cursor: 'pointer',
-            border: 'none'
+            border: 'none',
+            padding: '0 20px'
         };
 
         const shape = config.buttonShape || 'pill';
         if (shape === 'pill' || shape === 'stadium') css.borderRadius = '9999px';
-        else if (shape === 'rounded') css.borderRadius = '8px';
+        else if (shape === 'rounded') css.borderRadius = '10px';
         else css.borderRadius = '0px';
 
         if (style === 'outline' || style === 'minimal') {
@@ -287,9 +310,9 @@ const getButtonStyle = (element: any) => {
             css.border = `2px solid ${color}`;
             css.color = config.textColor || color; 
         } else if (style === 'glass') {
-            css.backgroundColor = 'rgba(255,255,255,0.2)';
-            css.backdropFilter = 'blur(10px)';
-            css.border = `1px solid ${color}`;
+            css.backgroundColor = 'rgba(255,255,255,0.15)';
+            css.backdropFilter = 'blur(12px)';
+            css.border = '1px solid rgba(255,255,255,0.3)';
         } else {
             css.backgroundColor = color;
         }
@@ -297,7 +320,7 @@ const getButtonStyle = (element: any) => {
     } 
     return {
         backgroundColor: element.textStyle?.color || '#000000', color: '#ffffff',
-        borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center',
         width: '100%', height: '100%', border: 'none',
         fontSize: `${element.textStyle?.fontSize || 14}px`, fontFamily: element.textStyle?.fontFamily || 'Inter'
     };
@@ -326,7 +349,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
         ref="mainViewport" 
         class="h-screen w-screen bg-black flex flex-col items-center justify-center overflow-hidden"
     >
-        <!-- SCROLLABLE CONTAINER -->
+        <!-- WORLD-CLASS SCROLL CONTAINER -->
         <div 
             ref="scrollContainer"
             class="scroll-container flex-1 flex justify-center w-full h-full"
@@ -341,15 +364,15 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                 }"
             >
                 <!-- Controls -->
-                <div v-if="!isFullscreen" class="absolute top-3 left-0 w-full px-3 flex items-start justify-between z-[120] pointer-events-none">
-                    <button class="p-2 text-white/80 hover:text-white bg-black/20 hover:bg-black/40 rounded-full backdrop-blur-sm transition-all pointer-events-auto" @click="goBack"><ArrowLeft class="w-5 h-5" /></button>
-                    <button class="p-2 text-white/80 hover:text-white bg-black/20 hover:bg-black/40 rounded-full backdrop-blur-sm transition-all pointer-events-auto" @click="toggleFullscreen"><Maximize2 class="w-5 h-5" /></button>
+                <div v-if="!isFullscreen" class="absolute top-4 left-0 w-full px-4 flex items-start justify-between z-[210] pointer-events-none">
+                    <button class="p-2.5 text-white/90 hover:text-white bg-black/30 hover:bg-black/50 rounded-full backdrop-blur-md transition-all pointer-events-auto border border-white/10" @click="goBack"><ArrowLeft class="w-5 h-5" /></button>
+                    <button class="p-2.5 text-white/90 hover:text-white bg-black/30 hover:bg-black/50 rounded-full backdrop-blur-md transition-all pointer-events-auto border border-white/10" @click="toggleFullscreen"><Maximize2 class="w-5 h-5" /></button>
                 </div>
 
                 <div class="page-transition-wrapper relative w-full" :style="{ minHeight: isOpened ? '100dvh' : 'auto' }">
                     <!-- Layer 1: CONTENT (Sections 1+) -->
                     <div 
-                        class="content-layer flex flex-col items-center w-full transition-opacity duration-1000 ease-in-out"
+                        class="content-layer flex flex-col items-center w-full transition-opacity duration-1200 ease-in-out"
                         :class="isOpened ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'"
                     >
                         <div 
@@ -420,7 +443,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
             </div>
         </div>
 
-        <button v-if="isFullscreen" class="fixed top-4 right-4 z-[130] p-3 bg-black/50 hover:bg-black/70 text-white rounded-full transition-all" @click="toggleFullscreen"><Minimize2 class="w-5 h-5" /></button>
+        <button v-if="isFullscreen" class="fixed top-6 right-6 z-[220] p-3 bg-black/40 hover:bg-black/60 text-white rounded-full transition-all border border-white/20" @click="toggleFullscreen"><Minimize2 class="w-5 h-5" /></button>
     </div>
 </template>
 
@@ -428,6 +451,3 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 .scroll-container::-webkit-scrollbar { width: 0; height: 0; }
 .scroll-container { scrollbar-width: none; -ms-overflow-style: none; }
 </style>
-
-
-
