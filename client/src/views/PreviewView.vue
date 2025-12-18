@@ -135,11 +135,26 @@ const handleOpenInvitation = async () => {
         isRevealing.value = false;
         shutterVisible.value = false;
         
-        // Keep Lenis alive for smooth scrolling
+        // Calculate scroll position to Section 2 (UNSCALED pixel height of Section 1)
+        // Note: the container is scaled, but scrollTo works on the native scrollHeight
+        const section1Height = coverHeightComputed.value;
+        const scrollOffset = 60; // Offset to see a bit of the transition
+        const targetScroll = Math.max(0, section1Height - scrollOffset);
+        
+        // Use a more stable scroll approach
         nextTick(() => {
-            if (lenis) {
-                lenis.start();
-                lenis.resize();
+            if (scrollContainer.value) {
+                // Temporarily disable Lenis to set position immediately
+                if (lenis) lenis.stop();
+                
+                scrollContainer.value.scrollTop = targetScroll;
+                
+                setTimeout(() => {
+                    if (lenis) {
+                        lenis.resize();
+                        lenis.start();
+                    }
+                }, 100);
             }
         });
     }, triggerDelay);
@@ -342,7 +357,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :delay="el.animationDelay" 
                                         :duration="el.animationDuration" 
                                         class="absolute inset-0" 
-                                        :immediate="index === 0 && el.animationTrigger !== 'scroll'"
+                                        :immediate="index === 0"
                                         :trigger-mode="el.animationTrigger === 'scroll' ? 'auto' : 'manual'"
                                         :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : (index === 0)"
                                         :element-id="el.id"

@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted } from "vue";
 import { useElementVisibility } from "@vueuse/core";
 import { type AnimationType } from "@/lib/types";
+
+// SHARED STATE: Persist animation status across component remounts (Atomic -> Flow)
+const animatedElements = new Set<string>();
 
 interface Props {
   animation?: AnimationType;
@@ -31,11 +34,8 @@ const props = withDefaults(defineProps<Props>(), {
 const elementRef = ref<HTMLElement | null>(null);
 const isVisible = useElementVisibility(elementRef);
 
-// Global state to track animations per element ID (prevents re-triggering)
-const animatedElements = new Set<string>();
-
-// Track animation state - Force true if immediate is passed
-const shouldAnimate = ref(props.immediate || (props.elementId && animatedElements.has(props.elementId)));
+// Track animation state - Check shared state first
+const shouldAnimate = ref(props.elementId ? animatedElements.has(props.elementId) : false);
 
 const tryTriggerAnimation = () => {
     if (!shouldAnimate.value) {
@@ -45,6 +45,13 @@ const tryTriggerAnimation = () => {
         });
     }
 };
+
+// Trigger immediately if prop is set
+onMounted(() => {
+    if (props.immediate) {
+        tryTriggerAnimation();
+    }
+});
 
 // Watch visibility or forceTrigger based on mode
 watch([isVisible, () => props.forceTrigger, () => props.triggerMode], ([visible, force, mode]) => {
