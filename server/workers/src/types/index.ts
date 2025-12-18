@@ -69,6 +69,7 @@ export interface DBTemplateElement {
     animation_delay: number;
     animation_speed: number;
     animation_duration: number;
+    animation_trigger: string | null;
     content: string | null;
     image_url: string | null;
     text_style: string | null; // JSON string
@@ -144,6 +145,7 @@ export interface TemplateElement {
     animationDelay?: number;
     animationSpeed?: number;
     animationDuration?: number;
+    animationTrigger?: 'scroll' | 'click' | 'open_btn';
     content?: string;
     imageUrl?: string;
     textStyle?: TextStyle;

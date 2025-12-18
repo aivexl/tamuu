@@ -681,6 +681,7 @@ export class DatabaseService {
             animationDelay: el.animation_delay,
             animationSpeed: el.animation_speed,
             animationDuration: el.animation_duration,
+            animationTrigger: el.animation_trigger || 'scroll',
             content: el.content || undefined,
             imageUrl: el.image_url || undefined,
             textStyle: safeParseJSON(el.text_style, undefined),
