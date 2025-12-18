@@ -12,7 +12,8 @@ import {
     Trash2, ArrowUp, ArrowDown, ChevronsUp, ChevronsDown,
     FlipHorizontal2, FlipVertical2,
     AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignCenterVertical, AlignEndVertical,
-    Upload, Image as ImageIcon, Copy, GripVertical, Square
+    Upload, Image as ImageIcon, Copy, GripVertical, Square,
+    Circle, Play, Star, Minus
 } from 'lucide-vue-next';
 
 interface Props {
@@ -57,7 +58,8 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/lib/constants';
 // All elements in current section for elements list
 const currentSectionElements = computed(() => {
     if (!props.activeSection) return [];
-    return props.activeSection.elements || [];
+    // Sort by zIndex descending (topmost layer at top of list)
+    return [...(props.activeSection.elements || [])].sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0));
 });
 
 // ============================================
@@ -118,19 +120,31 @@ const handleDrop = (event: DragEvent, targetElementId: string) => {
         return;
     }
 
-    const elements = [...currentSectionElements.value];
-    const draggedIndex = elements.findIndex(el => el.id === draggedElementId.value);
-    const targetIndex = elements.findIndex(el => el.id === targetElementId);
+    const sortedElements = [...currentSectionElements.value];
+    const draggedIndex = sortedElements.findIndex(el => el.id === draggedElementId.value);
+    const targetIndex = sortedElements.findIndex(el => el.id === targetElementId);
 
     if (draggedIndex === -1 || targetIndex === -1) return;
 
-    // Swap zIndex values
-    const draggedZIndex = elements[draggedIndex].zIndex;
-    const targetZIndex = elements[targetIndex].zIndex;
+    // Move element in the sorted array
+    const [movedElement] = sortedElements.splice(draggedIndex, 1);
+    sortedElements.splice(targetIndex, 0, movedElement);
 
+    // Reassign zIndices based on new sorted order (descending)
+    // We'll use a spread of z-indices to keep relative positions but ensure the new order is respected.
+    // Top of list = highest zIndex.
     if (store.activeTemplateId && props.activeSectionType) {
-        store.updateElement(store.activeTemplateId, props.activeSectionType, draggedElementId.value, { zIndex: targetZIndex });
-        store.updateElement(store.activeTemplateId, props.activeSectionType, targetElementId, { zIndex: draggedZIndex });
+        // Calculate new z-indices. We can just use large increments.
+        // Or better, take the range of existing z-indices.
+        const allZIndices = props.activeSection.elements.map(el => el.zIndex || 0).sort((a,b) => b - a);
+        
+        sortedElements.forEach((el, index) => {
+            // New z-index mapping: topmost (index 0) gets highest available or a calculated value
+            const newZIndex = (sortedElements.length - index) * 10;
+            if (el.zIndex !== newZIndex) {
+                 store.updateElement(store.activeTemplateId!, props.activeSectionType!, el.id, { zIndex: newZIndex });
+            }
+        });
     }
 
     draggedElementId.value = null;
@@ -386,6 +400,30 @@ const getElementIcon = (type: string) => {
     }
 };
 
+const getShapeIcon = (type: string) => {
+    switch(type) {
+        case 'rectangle': return Square;
+        case 'circle': return Circle;
+        case 'ellipse': return Circle; // Use circle for both for now or find Ellipse if available
+        case 'triangle': return Play; // Rotated play for triangle
+        case 'star': return Star;
+        case 'line': return Minus;
+        default: return Square;
+    }
+};
+
+const getAlignIcon = (type: string) => {
+    switch(type) {
+        case 'left': return AlignLeft;
+        case 'center-h': return AlignCenter;
+        case 'right': return AlignRight;
+        case 'top': return AlignStartVertical;
+        case 'center-v': return AlignCenterVertical;
+        case 'bottom': return AlignEndVertical;
+        default: return AlignCenter;
+    }
+};
+
 // Copy to Section Logic
 const targetSectionForCopy = ref('');
 const availableSectionsForCopy = computed(() => {
@@ -422,18 +460,26 @@ const handleCopyToSection = async () => {
 <template>
     <div class="space-y-4 text-sm">
         <!-- ELEMENTS LIST -->
-        <div v-if="currentSectionElements.length > 0" class="space-y-2">
-            <Label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Elements (Layers)</Label>
-            <div class="max-h-48 overflow-y-auto space-y-1 border rounded-md p-2 bg-slate-50">
+        <div v-if="currentSectionElements.length > 0" class="space-y-3 pb-4 border-b border-slate-100">
+            <div class="flex items-center justify-between mb-1 px-1">
+                <Label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Layers</Label>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] text-slate-300 font-medium">{{ currentSectionElements.length }} elements</span>
+                </div>
+            </div>
+            
+            <div class="max-h-64 overflow-y-auto pr-1 -mr-1 space-y-2 pt-1 custom-scrollbar">
                 <div 
                     v-for="el in currentSectionElements" 
                     :key="el.id"
-                    class="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-white transition-all"
-                    :class="{ 
-                        'bg-white shadow-sm ring-1 ring-blue-200': store.selectedElementId === el.id,
-                        'ring-2 ring-blue-400 bg-blue-50': dragOverElementId === el.id && draggedElementId !== el.id,
-                        'opacity-50': draggedElementId === el.id
-                    }"
+                    class="group relative flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 select-none cursor-pointer"
+                    :class="[
+                        store.selectedElementId === el.id 
+                            ? 'border-indigo-100 bg-indigo-50/50 shadow-sm ring-1 ring-indigo-50' 
+                            : 'border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm',
+                        dragOverElementId === el.id && draggedElementId !== el.id ? 'border-indigo-400 bg-indigo-50 ring-2 ring-indigo-100 scale-[1.02]' : '',
+                        draggedElementId === el.id ? 'opacity-30 border-dashed bg-slate-50' : ''
+                    ]"
                     draggable="true"
                     @dragstart="handleDragStart($event, el.id)"
                     @dragover="handleDragOver($event, el.id)"
@@ -443,104 +489,169 @@ const handleCopyToSection = async () => {
                     @click="store.setSelectedElement(el.id)"
                 >
                     <!-- Drag Handle -->
-                    <div class="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600">
-                        <GripVertical class="w-4 h-4" />
+                    <div class="cursor-grab active:cursor-grabbing text-slate-300 group-hover:text-slate-500 transition-colors">
+                        <GripVertical class="w-3.5 h-3.5" />
                     </div>
                     
-                    <!-- Element Icon -->
-                    <span class="text-base flex-shrink-0">{{ getElementIcon(el.type) }}</span>
+                    <!-- Icon Background -->
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm shadow-inner transition-colors"
+                        :class="store.selectedElementId === el.id ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100'"
+                    >
+                        {{ getElementIcon(el.type) }}
+                    </div>
                     
-                    <!-- Element Name (Editable) -->
+                    <!-- Element Content -->
                     <div class="flex-1 min-w-0">
-                        <input 
-                            v-if="editingElementId === el.id"
-                            v-model="editingName"
-                            class="w-full px-1 py-0.5 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-400"
-                            @blur="saveEditingName"
-                            @keyup.enter="saveEditingName"
-                            @keyup.escape="cancelEditingName"
-                            @click.stop
-                            autofocus
-                        />
-                        <span 
-                            v-else
-                            class="truncate text-slate-700 block cursor-text"
-                            @dblclick.stop="startEditingName(el.id, el.name || `New ${el.type}`)"
-                        >{{ el.name || `New ${el.type}` }}</span>
+                        <div v-if="editingElementId === el.id" class="relative">
+                            <input 
+                                v-model="editingName"
+                                class="w-full bg-white px-2 py-1 text-xs border border-indigo-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-100 shadow-inner"
+                                @blur="saveEditingName"
+                                @keyup.enter="saveEditingName"
+                                @keyup.escape="cancelEditingName"
+                                @click.stop
+                                autofocus
+                            />
+                        </div>
+                        <div v-else class="flex flex-col">
+                            <span 
+                                class="text-xs font-semibold truncate transition-colors"
+                                :class="store.selectedElementId === el.id ? 'text-indigo-900' : 'text-slate-700'"
+                                @dblclick.stop="startEditingName(el.id, el.name || `New ${el.type}`)"
+                            >{{ el.name || `New ${el.type}` }}</span>
+                            <span class="text-[9px] text-slate-400 uppercase tracking-tight font-medium">{{ el.type.replace('_', ' ') }}</span>
+                        </div>
                     </div>
                     
-                    <!-- Delete Button -->
-                    <Button variant="ghost" size="sm" class="text-red-400 hover:text-red-600 hover:bg-red-50 p-1 h-auto flex-shrink-0" @click.stop="store.deleteElement(store.activeTemplateId!, props.activeSectionType!, el.id)">
-                        <Trash2 class="w-3.5 h-3.5" />
-                    </Button>
+                    <!-- Actions -->
+                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            class="w-7 h-7 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all active:scale-90" 
+                            @click.stop="store.deleteElement(store.activeTemplateId!, props.activeSectionType!, el.id)"
+                        >
+                            <Trash2 class="w-3.5 h-3.5" />
+                        </Button>
+                    </div>
                 </div>
             </div>
-            <p class="text-xs text-slate-400">Drag to reorder • Double-click to rename</p>
+            
+            <div class="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-50 border border-slate-100 border-dashed">
+                <span class="text-[9px] text-slate-400 font-medium italic">Drag to reorder layers • Double-click to rename</span>
+            </div>
         </div>
 
         <!-- ELEMENT PROPERTIES -->
-        <div v-if="element" class="space-y-4">
-            <div class="border-b pb-3">
-                <h3 class="font-semibold text-slate-800">Edit: {{ element.name || element.type }}</h3>
+        <div v-if="element" class="space-y-6">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mt-2">
+                <h3 class="text-sm font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                    Properties
+                </h3>
+                <span class="text-indigo-600 font-mono text-[9px] bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">#{{ element.id.slice(0, 8) }}</span>
             </div>
 
-            <!-- Name -->
-            <div class="space-y-1">
-                <Label>Name</Label>
-                <Input :model-value="element.name" @update:model-value="val => handleUpdate({ name: val })" />
-            </div>
-
-            <!-- Position -->
-            <div class="space-y-1">
-                <Label class="text-xs text-slate-500">Position</Label>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <span class="text-xs text-slate-400">X</span>
-                        <Input type="number" :model-value="Math.round(element.position.x)" @update:model-value="val => handleUpdate({ position: { ...element.position, x: Number(val) } })" />
-                    </div>
-                    <div>
-                        <span class="text-xs text-slate-400">Y</span>
-                        <Input type="number" :model-value="Math.round(element.position.y)" @update:model-value="val => handleUpdate({ position: { ...element.position, y: Number(val) } })" />
-                    </div>
+            <!-- Common Info -->
+            <div class="grid grid-cols-2 gap-4 px-1">
+                <div class="space-y-1.5">
+                    <Label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Name</Label>
+                    <Input 
+                        :model-value="element.name" 
+                        @update:model-value="val => handleUpdate({ name: val })" 
+                        placeholder="Element Name"
+                        class="h-9 rounded-xl border-slate-100 bg-white focus:ring-indigo-100 focus:border-indigo-300 text-xs font-semibold placeholder:text-slate-300"
+                    />
+                </div>
+                <div class="space-y-1.5">
+                     <Label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Type</Label>
+                     <div class="h-9 rounded-xl border border-slate-100 bg-slate-50 flex items-center px-3">
+                         <span class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{{ element.type.replace('_', ' ') }}</span>
+                     </div>
                 </div>
             </div>
 
-            <!-- Size -->
-            <div class="space-y-1">
-                <Label class="text-xs text-slate-500">Size</Label>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <span class="text-xs text-slate-400">W</span>
-                        <Input type="number" :model-value="Math.round(element.size.width)" @update:model-value="val => handleUpdate({ size: { ...element.size, width: Number(val) } })" />
+            <!-- Transform (Position & Size) -->
+            <div class="space-y-4 p-4 rounded-3xl bg-slate-50/50 border border-slate-100 shadow-sm mx-1">
+                <div class="flex items-center gap-2 mb-1">
+                     <span class="text-[10px] font-extrabold text-slate-800 uppercase tracking-widest flex-1">Transform</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-x-4 gap-y-4">
+                    <!-- Position -->
+                    <div class="flex flex-col gap-2">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Position</span>
+                        <div class="flex items-center gap-2">
+                            <div class="relative flex-1">
+                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-extrabold text-slate-300">X</span>
+                                <input 
+                                    type="number" 
+                                    :value="Math.round(element.position.x)" 
+                                    @input="(e: any) => handleUpdate({ position: { ...element.position, x: Number(e.target.value) } })"
+                                    class="w-full pl-5 pr-1.5 py-1.5 text-xs font-mono bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                                />
+                            </div>
+                            <div class="relative flex-1">
+                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-extrabold text-slate-300">Y</span>
+                                <input 
+                                    type="number" 
+                                    :value="Math.round(element.position.y)" 
+                                    @input="(e: any) => handleUpdate({ position: { ...element.position, y: Number(e.target.value) } })"
+                                    class="w-full pl-5 pr-1.5 py-1.5 text-xs font-mono bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                                />
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <span class="text-xs text-slate-400">H</span>
-                        <Input type="number" :model-value="Math.round(element.size.height)" @update:model-value="val => handleUpdate({ size: { ...element.size, height: Number(val) } })" />
+
+                    <!-- Size -->
+                    <div class="flex flex-col gap-2">
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Dimensions</span>
+                        <div class="flex items-center gap-2">
+                            <div class="relative flex-1">
+                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-extrabold text-slate-300">W</span>
+                                <input 
+                                    type="number" 
+                                    :value="Math.round(element.size.width)" 
+                                    @input="(e: any) => handleUpdate({ size: { ...element.size, width: Number(e.target.value) } })"
+                                    class="w-full pl-5 pr-1.5 py-1.5 text-xs font-mono bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                                />
+                            </div>
+                            <div class="relative flex-1">
+                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-extrabold text-slate-300">H</span>
+                                <input 
+                                    type="number" 
+                                    :value="Math.round(element.size.height)" 
+                                    @input="(e: any) => handleUpdate({ size: { ...element.size, height: Number(e.target.value) } })"
+                                    class="w-full pl-5 pr-1.5 py-1.5 text-xs font-mono bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Page Alignment -->
-            <div class="space-y-1">
-                <Label class="text-xs text-slate-500">Page Alignment</Label>
-                <div class="grid grid-cols-3 gap-1">
-                    <Button variant="outline" size="sm" @click="handleAlignment('left')" title="Align Left"><AlignLeft class="w-4 h-4" /></Button>
-                    <Button variant="outline" size="sm" @click="handleAlignment('center-h')" title="Center H"><AlignCenter class="w-4 h-4" /></Button>
-                    <Button variant="outline" size="sm" @click="handleAlignment('right')" title="Align Right"><AlignRight class="w-4 h-4" /></Button>
-                    <Button variant="outline" size="sm" @click="handleAlignment('top')" title="Align Top"><AlignStartVertical class="w-4 h-4" /></Button>
-                    <Button variant="outline" size="sm" @click="handleAlignment('center-v')" title="Center V"><AlignCenterVertical class="w-4 h-4" /></Button>
-                    <Button variant="outline" size="sm" @click="handleAlignment('bottom')" title="Align Bottom"><AlignEndVertical class="w-4 h-4" /></Button>
+                <!-- Alignment Quick Actions -->
+                <div class="pt-4 border-t border-slate-200/50 mt-1">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase block mb-3 tracking-tighter">Alignment Tools</span>
+                    <div class="grid grid-cols-6 gap-2">
+                        <button v-for="align in (['left', 'center-h', 'right', 'top', 'center-v', 'bottom'] as const)" :key="align"
+                            @click="handleAlignment(align)"
+                            class="flex items-center justify-center p-2 rounded-xl bg-white border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50 transition-all active:scale-90 shadow-sm"
+                            :title="align"
+                        >
+                            <component :is="getAlignIcon(align)" class="w-3.5 h-3.5" />
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Layer Order -->
-            <div class="space-y-1">
-                <Label class="text-xs text-slate-500">Layer Order</Label>
-                <div class="grid grid-cols-4 gap-1">
-                    <Button variant="outline" size="sm" @click="handleLayer('front')" title="Bring to Front"><ChevronsUp class="w-4 h-4" /></Button>
-                    <Button variant="outline" size="sm" @click="handleLayer('up')" title="Move Up"><ArrowUp class="w-4 h-4" /></Button>
-                    <Button variant="outline" size="sm" @click="handleLayer('down')" title="Move Down"><ArrowDown class="w-4 h-4" /></Button>
-                    <Button variant="outline" size="sm" @click="handleLayer('back')" title="Send to Back"><ChevronsDown class="w-4 h-4" /></Button>
+                <!-- Depth (Z-Order) -->
+                <div class="pt-4 border-t border-slate-200/50">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase block mb-3 tracking-tighter">Depth Control</span>
+                    <div class="grid grid-cols-4 gap-2">
+                        <Button variant="outline" size="sm" class="rounded-xl h-9 border-slate-100 hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-90 shadow-sm" @click="handleLayer('front')" title="Bring to Front"><ChevronsUp class="w-4 h-4" /></Button>
+                        <Button variant="outline" size="sm" class="rounded-xl h-9 border-slate-100 hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-90 shadow-sm" @click="handleLayer('up')" title="Move Up"><ArrowUp class="w-4 h-4" /></Button>
+                        <Button variant="outline" size="sm" class="rounded-xl h-9 border-slate-100 hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-90 shadow-sm" @click="handleLayer('down')" title="Move Down"><ArrowDown class="w-4 h-4" /></Button>
+                        <Button variant="outline" size="sm" class="rounded-xl h-9 border-slate-100 hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-90 shadow-sm" @click="handleLayer('back')" title="Send to Back"><ChevronsDown class="w-4 h-4" /></Button>
+                    </div>
                 </div>
             </div>
 
@@ -679,117 +790,141 @@ const handleCopyToSection = async () => {
             </div>
 
             <!-- SHAPE SETTINGS -->
-            <div v-if="element.type === 'shape'" class="space-y-3 pt-3 border-t">
-                <Label class="text-xs font-semibold text-slate-500 uppercase">Shape</Label>
-                
-                <!-- Shape Type -->
-                <div>
-                    <span class="text-xs text-slate-400">Shape Type</span>
-                    <select 
-                        class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white"
-                        :value="element.shapeConfig?.shapeType || 'rectangle'"
-                        @change="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, shapeType: e.target.value } })"
-                    >
-                        <option value="rectangle">Rectangle</option>
-                        <option value="circle">Circle</option>
-                        <option value="ellipse">Ellipse</option>
-                        <option value="triangle">Triangle</option>
-                        <option value="star">Star</option>
-                        <option value="line">Line</option>
-                    </select>
+            <div v-if="element.type === 'shape'" class="space-y-4 pt-4 border-t border-slate-100">
+                <div class="flex items-center justify-between mb-1">
+                    <Label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Shape Properties</Label>
+                    <Square class="w-3 h-3 text-slate-300" />
                 </div>
                 
-                <!-- Fill Color -->
-                <div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-slate-400">Fill Color</span>
-                        <label class="flex items-center gap-1 text-xs text-slate-500">
-                            <input 
-                                type="checkbox" 
-                                :checked="element.shapeConfig?.fill !== null"
-                                @change="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, fill: e.target.checked ? '#3b82f6' : null } })"
-                            />
-                            Enable Fill
-                        </label>
+                <!-- Shape Type Grid -->
+                <div class="space-y-2">
+                    <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Type</span>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button 
+                            v-for="type in (['rectangle', 'circle', 'ellipse', 'triangle', 'star', 'line'] as const)" 
+                            :key="type"
+                            class="flex flex-col items-center justify-center p-2 rounded-xl border transition-all hover:bg-slate-50 active:scale-95"
+                            :class="element.shapeConfig?.shapeType === type ? 'border-indigo-500 bg-indigo-50/50 text-indigo-600 shadow-sm' : 'border-slate-100 text-slate-400 bg-white'"
+                            @click="handleUpdate({ shapeConfig: { ...element.shapeConfig!, shapeType: type } })"
+                        >
+                            <component :is="getShapeIcon(type)" class="w-4 h-4 mb-1" :class="type === 'triangle' ? '-rotate-90' : ''" />
+                            <span class="text-[9px] font-medium capitalize">{{ type }}</span>
+                        </button>
                     </div>
-                    <input 
-                        v-if="element.shapeConfig?.fill !== null"
-                        type="color" 
-                        class="w-full h-8 rounded border border-slate-200 cursor-pointer"
-                        :value="element.shapeConfig?.fill || '#3b82f6'"
-                        @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, fill: e.target.value } })"
-                    />
-                    <p v-else class="text-xs text-slate-400 italic">No fill (transparent)</p>
                 </div>
-                
-                <!-- Stroke Color -->
-                <div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-slate-400">Stroke Color</span>
-                        <label class="flex items-center gap-1 text-xs text-slate-500">
+
+                <!-- Color Group -->
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Fill -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Fill Color</span>
+                            <div class="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    :checked="element.shapeConfig?.fill !== null"
+                                    @change="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, fill: e.target.checked ? '#6366f1' : null } })"
+                                    class="sr-only peer"
+                                />
+                                <div class="w-6 h-3 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-2 after:w-2 after:transition-all peer-checked:bg-indigo-500"></div>
+                            </div>
+                        </div>
+                        <div v-if="element.shapeConfig?.fill !== null" class="relative group h-9">
                             <input 
-                                type="checkbox" 
-                                :checked="element.shapeConfig?.stroke !== null"
-                                @change="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, stroke: e.target.checked ? '#1d4ed8' : null } })"
+                                type="color" 
+                                class="absolute inset-0 w-full h-full rounded-lg border-2 border-white shadow-sm ring-1 ring-slate-200 cursor-pointer p-0 opacity-0 z-10"
+                                :value="element.shapeConfig?.fill || '#6366f1'"
+                                @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, fill: e.target.value } })"
                             />
-                            Enable Stroke
-                        </label>
+                            <div class="w-full h-full rounded-lg border border-slate-200 p-0.5" :style="{ backgroundColor: element.shapeConfig?.fill || '#6366f1' }">
+                                <div class="w-full h-full rounded-[6px] border border-black/5 flex items-center justify-center">
+                                     <span class="text-[8px] text-white mix-blend-difference uppercase font-mono">{{ element.shapeConfig?.fill }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="h-9 rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-center border-dashed">
+                            <span class="text-[9px] text-slate-300 font-medium tracking-tight">None</span>
+                        </div>
                     </div>
-                    <input 
-                        v-if="element.shapeConfig?.stroke !== null"
-                        type="color" 
-                        class="w-full h-8 rounded border border-slate-200 cursor-pointer"
-                        :value="element.shapeConfig?.stroke || '#1d4ed8'"
-                        @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, stroke: e.target.value } })"
-                    />
-                    <p v-else class="text-xs text-slate-400 italic">No stroke</p>
+
+                    <!-- Stroke -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Stroke Color</span>
+                            <div class="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    :checked="element.shapeConfig?.stroke !== null"
+                                    @change="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, stroke: e.target.checked ? '#474554' : null } })"
+                                    class="sr-only peer"
+                                />
+                                <div class="w-6 h-3 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-2 after:w-2 after:transition-all peer-checked:bg-slate-600"></div>
+                            </div>
+                        </div>
+                        <div v-if="element.shapeConfig?.stroke !== null" class="relative group h-9">
+                            <input 
+                                type="color" 
+                                class="absolute inset-0 w-full h-full rounded-lg border-2 border-white shadow-sm ring-1 ring-slate-200 cursor-pointer p-0 opacity-0 z-10"
+                                :value="element.shapeConfig?.stroke || '#474554'"
+                                @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, stroke: e.target.value } })"
+                            />
+                            <div class="w-full h-full rounded-lg border border-slate-200 p-0.5" :style="{ backgroundColor: element.shapeConfig?.stroke || '#474554' }">
+                                 <div class="w-full h-full rounded-[6px] border border-black/5 flex items-center justify-center">
+                                     <span class="text-[8px] text-white mix-blend-difference uppercase font-mono">{{ element.shapeConfig?.stroke }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="h-9 rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-center border-dashed">
+                            <span class="text-[9px] text-slate-300 font-medium tracking-tight">None</span>
+                        </div>
+                    </div>
                 </div>
-                
-                <!-- Stroke Width -->
-                <div v-if="element.shapeConfig?.stroke !== null">
-                    <span class="text-xs text-slate-400">Stroke Width</span>
-                    <div class="flex items-center gap-2">
+
+                <!-- Sliders Group -->
+                <div class="space-y-3 pt-2">
+                    <div v-if="element.shapeConfig?.stroke !== null" class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Stroke Weight</span>
+                            <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{{ element.shapeConfig?.strokeWidth || 2 }}px</span>
+                        </div>
                         <input 
                             type="range" 
                             min="1" 
                             max="20" 
                             :value="element.shapeConfig?.strokeWidth || 2"
                             @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, strokeWidth: Number(e.target.value) } })"
-                            class="flex-1 h-2 bg-slate-200 rounded-lg"
+                            class="w-full h-1 bg-slate-100 accent-indigo-500 rounded-full appearance-none cursor-pointer"
                         />
-                        <span class="text-xs w-8 text-right">{{ element.shapeConfig?.strokeWidth || 2 }}px</span>
                     </div>
-                </div>
-                
-                <!-- Corner Radius (for rectangles) -->
-                <div v-if="element.shapeConfig?.shapeType === 'rectangle'">
-                    <span class="text-xs text-slate-400">Corner Radius</span>
-                    <div class="flex items-center gap-2">
+
+                    <div v-if="element.shapeConfig?.shapeType === 'rectangle'" class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Corner Radius</span>
+                            <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{{ element.shapeConfig?.cornerRadius || 0 }}px</span>
+                        </div>
                         <input 
                             type="range" 
                             min="0" 
                             max="50" 
                             :value="element.shapeConfig?.cornerRadius || 0"
                             @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, cornerRadius: Number(e.target.value) } })"
-                            class="flex-1 h-2 bg-slate-200 rounded-lg"
+                            class="w-full h-1 bg-slate-100 accent-indigo-500 rounded-full appearance-none cursor-pointer"
                         />
-                        <span class="text-xs w-8 text-right">{{ element.shapeConfig?.cornerRadius || 0 }}px</span>
                     </div>
-                </div>
-                
-                <!-- Star Points (for stars) -->
-                <div v-if="element.shapeConfig?.shapeType === 'star'">
-                    <span class="text-xs text-slate-400">Number of Points</span>
-                    <div class="flex items-center gap-2">
+
+                    <div v-if="element.shapeConfig?.shapeType === 'star'" class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Points</span>
+                            <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{{ element.shapeConfig?.points || 5 }}</span>
+                        </div>
                         <input 
                             type="range" 
                             min="3" 
                             max="12" 
                             :value="element.shapeConfig?.points || 5"
                             @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, points: Number(e.target.value) } })"
-                            class="flex-1 h-2 bg-slate-200 rounded-lg"
+                            class="w-full h-1 bg-slate-100 accent-indigo-500 rounded-full appearance-none cursor-pointer"
                         />
-                        <span class="text-xs w-8 text-right">{{ element.shapeConfig?.points || 5 }}</span>
                     </div>
                 </div>
             </div>
