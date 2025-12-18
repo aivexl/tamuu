@@ -9,7 +9,8 @@ import { iconPaths } from '@/lib/icon-paths';
 
 // Library Imports
 import gsap from 'gsap';
-import anime from 'animejs/lib/anime.js';
+import * as _anime from 'animejs';
+const anime: any = (_anime as any).default || _anime;
 import Lenis from 'lenis';
 
 const route = useRoute();
