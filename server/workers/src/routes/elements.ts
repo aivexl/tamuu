@@ -36,13 +36,15 @@ elementsRouter.post('/:templateId/:sectionType', async (c) => {
 // PUT /api/elements/:id - Update element
 elementsRouter.put('/:id', async (c) => {
     const id = c.req.param('id');
-    const cache = new CacheService(c.env.KV);
     const db = new DatabaseService(c.env.DB);
+    const cache = new CacheService(c.env.KV);
 
     const body = await c.req.json();
-    const templateId = body._templateId; // Optional: pass from frontend for cache invalidation
+    console.log(`[ELEMENTS ROUTE] Updating element ${id} with body:`, JSON.stringify(body, null, 2));
 
-    await db.updateElement(id, body);
+    const { templateId, ...updates } = body;
+
+    await db.updateElement(id, updates);
 
     // Invalidate template cache if templateId provided
     if (templateId) {

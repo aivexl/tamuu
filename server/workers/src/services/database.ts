@@ -477,108 +477,102 @@ export class DatabaseService {
         const values: unknown[] = [now];
 
         if (updates.name !== undefined) {
-            sets.push('name = ?');
+            sets.push('"name" = ?');
             values.push(updates.name);
         }
         if (updates.position !== undefined) {
-            sets.push('position_x = ?, position_y = ?');
+            sets.push('"position_x" = ?, "position_y" = ?');
             values.push(updates.position.x, updates.position.y);
         }
         if (updates.size !== undefined) {
-            sets.push('width = ?, height = ?');
+            sets.push('"width" = ?, "height" = ?');
             values.push(updates.size.width, updates.size.height);
         }
         if (updates.zIndex !== undefined) {
-            sets.push('z_index = ?');
+            sets.push('"z_index" = ?');
             values.push(updates.zIndex);
         }
         if (updates.animation !== undefined) {
-            sets.push('animation = ?');
+            sets.push('"animation" = ?');
             values.push(updates.animation);
         }
         if (updates.loopAnimation !== undefined) {
-            sets.push('loop_animation = ?');
+            sets.push('"loop_animation" = ?');
             values.push(updates.loopAnimation || null);
         }
         if (updates.animationDelay !== undefined) {
-            sets.push('animation_delay = ?');
+            sets.push('"animation_delay" = ?');
             values.push(updates.animationDelay);
         }
         if (updates.animationSpeed !== undefined) {
-            sets.push('animation_speed = ?');
+            sets.push('"animation_speed" = ?');
             values.push(updates.animationSpeed);
         }
         if (updates.animationDuration !== undefined) {
-            sets.push('animation_duration = ?');
+            sets.push('"animation_duration" = ?');
             values.push(updates.animationDuration);
         }
         if (updates.animationTrigger !== undefined) {
-            sets.push('animation_trigger = ?');
+            sets.push('"animation_trigger" = ?');
             values.push(updates.animationTrigger);
         }
-        if (updates.transitionEffect !== undefined) {
-            sets.push('transition_effect = ?');
-            values.push(updates.transitionEffect);
-        }
-        if (updates.transitionDuration !== undefined) {
-            sets.push('transition_duration = ?');
-            values.push(updates.transitionDuration);
-        }
-        if (updates.transitionTrigger !== undefined) {
-            sets.push('transition_trigger = ?');
-            values.push(updates.transitionTrigger);
-        }
 
-        if (sets.length === 1 && sets[0] === 'updated_at = ?') return; // No updates
         if (updates.content !== undefined) {
-            sets.push('content = ?');
+            sets.push('"content" = ?');
             values.push(updates.content || null);
         }
         if (updates.imageUrl !== undefined) {
-            sets.push('image_url = ?');
+            sets.push('"image_url" = ?');
             values.push(updates.imageUrl || null);
         }
         if (updates.textStyle !== undefined) {
-            sets.push('text_style = ?');
+            sets.push('"text_style" = ?');
             values.push(JSON.stringify(updates.textStyle));
         }
         if (updates.iconStyle !== undefined) {
-            sets.push('icon_style = ?');
+            sets.push('"icon_style" = ?');
             values.push(JSON.stringify(updates.iconStyle));
         }
         if (updates.countdownConfig !== undefined) {
-            sets.push('countdown_config = ?');
+            sets.push('"countdown_config" = ?');
             values.push(JSON.stringify(updates.countdownConfig));
         }
         if (updates.rsvpFormConfig !== undefined) {
-            sets.push('rsvp_form_config = ?');
+            sets.push('"rsvp_form_config" = ?');
             values.push(JSON.stringify(updates.rsvpFormConfig));
         }
         if (updates.guestWishesConfig !== undefined) {
-            sets.push('guest_wishes_config = ?');
+            sets.push('"guest_wishes_config" = ?');
             values.push(JSON.stringify(updates.guestWishesConfig));
         }
         if (updates.openInvitationConfig !== undefined) {
-            sets.push('open_invitation_config = ?');
+            sets.push('"open_invitation_config" = ?');
             values.push(JSON.stringify(updates.openInvitationConfig));
         }
         if (updates.rotation !== undefined) {
-            sets.push('rotation = ?');
+            sets.push('"rotation" = ?');
             values.push(updates.rotation);
         }
         if (updates.flipHorizontal !== undefined) {
-            sets.push('flip_horizontal = ?');
+            sets.push('"flip_horizontal" = ?');
             values.push(updates.flipHorizontal ? 1 : 0);
         }
         if (updates.flipVertical !== undefined) {
-            sets.push('flip_vertical = ?');
+            sets.push('"flip_vertical" = ?');
             values.push(updates.flipVertical ? 1 : 0);
         }
 
+        // Move "No Updates" check to after all possible property processing
+        if (sets.length === 1 && sets[0] === 'updated_at = ?') return;
+
         values.push(elementId);
 
+        const query = `UPDATE template_elements SET ${sets.join(', ')} WHERE id = ?`;
+        console.log(`[DB SERVICE] Updating element ${elementId} with query:`, query);
+        console.log(`[DB SERVICE] Values:`, values);
+
         await this.db
-            .prepare(`UPDATE template_elements SET ${sets.join(', ')} WHERE id = ?`)
+            .prepare(query)
             .bind(...values)
             .run();
     }
