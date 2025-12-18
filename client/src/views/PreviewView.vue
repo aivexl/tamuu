@@ -367,7 +367,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             :ref="(el) => setSectionRef(el, index)" :data-index="index"
                             class="relative w-full flex-shrink-0 page-section"
                             :style="{ 
-                                height: (index === 0 || index === 1) ? `${coverHeightComputed}px` : `${CANVAS_HEIGHT}px`,
+                                height: index === 0 ? `${coverHeightComputed}px` : `${CANVAS_HEIGHT}px`,
                                 backgroundColor: section.backgroundColor || '#ffffff',
                                 backgroundImage: section.backgroundUrl ? `url(${section.backgroundUrl})` : 'none',
                                 backgroundSize: 'cover',
