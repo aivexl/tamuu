@@ -146,7 +146,9 @@ const handleOpenInvitation = async () => {
                 if (lenis) lenis.stop();
                 
                 // Land exactly at the top of Section 2
-                scrollContainer.value.scrollTop = coverHeightComputed.value;
+                // Scroll offset must account for the CSS scale transform
+                const scrollOffset = coverHeightComputed.value * scaleFactor.value;
+                scrollContainer.value.scrollTop = scrollOffset;
                 
                 setTimeout(() => {
                     if (lenis) {
