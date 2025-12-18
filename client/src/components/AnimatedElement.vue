@@ -55,13 +55,19 @@ onMounted(() => {
 
 // Watch visibility or forceTrigger based on mode
 watch([isVisible, () => props.forceTrigger, () => props.triggerMode], ([visible, force, mode]) => {
-    // If already animated, don't un-animate
-    if (shouldAnimate.value) return;
-
     if (mode === 'manual') {
+        // MANUAL MODE: Persistence logic
+        if (shouldAnimate.value) return;
         if (force) tryTriggerAnimation();
     } else {
-        if (visible) tryTriggerAnimation();
+        // AUTO MODE: Re-trigger logic
+        if (visible) {
+            tryTriggerAnimation();
+        } else if (!props.immediate) {
+            // Reset when leaving view, so it can re-animate when entering again
+            // We only reset if NOT immediate (don't want to hide cover section elements accidentally)
+            shouldAnimate.value = false;
+        }
     }
 }, { immediate: true });
 
@@ -234,11 +240,11 @@ const getEntranceInitialStyle = () => {
       // Start at NORMAL position
       return { opacity: 1, transform: "translate(0, 0)" };
     case "slide-in-left":
-      // From Left Offscreen (-100vw) to 0
-      return { opacity: 0, transform: "translateX(-100vw)" };
+      // From Left Edge of container (using % instead of vw for better reliability in overflow-hidden)
+      return { opacity: 0, transform: "translateX(-100%)" };
     case "slide-in-right":
-      // From Right Offscreen (100vw) to 0
-      return { opacity: 0, transform: "translateX(100vw)" };
+      // From Right Edge of container
+      return { opacity: 0, transform: "translateX(100%)" };
     case "blur-in":
       return { opacity: 0, filter: "blur(10px)" };
     case "pop-in":
