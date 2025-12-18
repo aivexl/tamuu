@@ -105,139 +105,74 @@ const handleOpenInvitation = async (clickedElement: any) => {
         isRevealing.value = true;
         
         const coverEl = sectionRefs.value[0];
+        const coverSection = orderedSections.value[0];
         const effect = coverSection?.transitionEffect || 'none';
-        const duration = (coverSection?.transitionDuration || 1000) / 1000; // UI is ms, GSAP is seconds
+        const duration = (coverSection?.transitionDuration || 1000) / 1000;
 
-        if (!coverEl) return;
+        if (!coverEl) {
+            isOpened.value = true;
+            coverTransitionDone.value = true;
+            isCoverVisible.value = false;
+            return;
+        }
 
-        // --- PREMIUM TRANSITIONS (GSAP / ANIME / MOTION) ---
+        const cleanup = () => {
+            coverTransitionDone.value = true;
+            isCoverVisible.value = false;
+            isRevealing.value = false;
+        };
+
+        // --- PREMIUM TRANSITIONS ---
         
         if (effect === 'split-screen') {
-            // GSAP: Premium Real Split Screen (Cloning for impact)
             const leftHalf = coverEl.cloneNode(true) as HTMLElement;
             const rightHalf = coverEl.cloneNode(true) as HTMLElement;
             
-            // Setup halves
             const setupHalf = (el: HTMLElement, clip: string) => {
                 el.style.position = 'absolute';
                 el.style.top = '0';
-                el.style.left = '50%';
-                el.style.transform = 'translateX(-50%)';
+                el.style.left = '0';
+                el.style.width = '100%';
+                el.style.height = `${coverHeight.value}px`;
                 el.style.clipPath = clip;
-                el.style.zIndex = '55';
+                el.style.zIndex = '70';
+                el.style.pointerEvents = 'none';
                 coverEl.parentElement?.appendChild(el);
             };
 
             setupHalf(leftHalf, 'inset(0 50% 0 0)');
             setupHalf(rightHalf, 'inset(0 0 0 50%)');
-            
-            // Hide original
             coverEl.style.opacity = '0';
 
-            const tl = gsap.timeline({
-                onComplete: () => {
-                    leftHalf.remove();
-                    rightHalf.remove();
-                    coverTransitionDone.value = true;
-                    isCoverVisible.value = false;
-                }
-            });
-
-            tl.to(leftHalf, { xPercent: -150, duration: duration, ease: "power2.inOut" });
-            tl.to(rightHalf, { xPercent: 50, duration: duration, ease: "power2.inOut" }, 0);
+            const tl = gsap.timeline({ onComplete: () => { leftHalf.remove(); rightHalf.remove(); cleanup(); } });
+            tl.to(leftHalf, { xPercent: -100, duration, ease: "expo.inOut" });
+            tl.to(rightHalf, { xPercent: 100, duration, ease: "expo.inOut" }, 0);
         } 
-        else if (effect === 'cube') {
-            // GSAP: 3D Cube Transition
+        else if (effect === 'cube' && sectionRefs.value[1]) {
             const nextEl = sectionRefs.value[1];
-            if (nextEl) {
-                gsap.set(previewContainer.value, { perspective: 2000 });
-                const tl = gsap.timeline({
-                    onComplete: () => {
-                        coverTransitionDone.value = true;
-                        isCoverVisible.value = false;
-                        gsap.set([coverEl, nextEl], { clearProps: "all" });
-                    }
-                });
-                tl.to(coverEl, { rotationY: -90, x: -CANVAS_WIDTH/2, z: -CANVAS_WIDTH/2, opacity: 0, duration, ease: "slow(0.7, 0.7, false)" });
-                tl.from(nextEl, { rotationY: 90, x: CANVAS_WIDTH/2, z: -CANVAS_WIDTH/2, opacity: 0, duration, ease: "slow(0.7, 0.7, false)" }, 0);
-            }
+            gsap.set(previewContainer.value, { perspective: 2000 });
+            const tl = gsap.timeline({ onComplete: () => { gsap.set([coverEl, nextEl], { clearProps: "all" }); cleanup(); } });
+            tl.to(coverEl, { rotationY: -90, x: -CANVAS_WIDTH/2, z: -CANVAS_WIDTH/2, opacity: 0, duration, ease: "slow(0.7, 0.7, false)" });
+            tl.from(nextEl, { rotationY: 90, x: CANVAS_WIDTH/2, z: -CANVAS_WIDTH/2, opacity: 0, duration, ease: "slow(0.7, 0.7, false)" }, 0);
         }
         else if (effect === 'cards') {
-            // GSAP: Stack Cards transition
-            const tl = gsap.timeline({
-                onComplete: () => {
-                    coverTransitionDone.value = true;
-                    isCoverVisible.value = false;
-                }
-            });
-            tl.to(coverEl, { y: -window.innerHeight, rotate: -5, scale: 0.9, opacity: 0, duration, ease: "back.in(1.7)" });
+            gsap.to(coverEl, { y: -window.innerHeight, rotate: -5, scale: 0.9, opacity: 0, duration, ease: "back.in(1.7)", onComplete: cleanup });
         }
         else if (effect === 'curtain-reveal' || effect === 'curtain') {
-            // GSAP: Curtain Reveal
-            gsap.to(coverEl, {
-                yPercent: -100,
-                duration: duration,
-                ease: "expo.inOut",
-                onComplete: () => {
-                    coverTransitionDone.value = true;
-                    isCoverVisible.value = false;
-                }
-            });
+            gsap.to(coverEl, { yPercent: -100, duration, ease: "expo.inOut", onComplete: cleanup });
         }
         else if (effect === 'reveal') {
-            // GSAP: Reveal with scale and blur
-            gsap.to(coverEl, {
-                opacity: 0,
-                scale: 1.5,
-                filter: 'blur(20px)',
-                duration: duration,
-                ease: "power2.inOut",
-                onComplete: () => {
-                    coverTransitionDone.value = true;
-                    isCoverVisible.value = false;
-                }
-            });
+            gsap.to(coverEl, { opacity: 0, scale: 1.2, filter: 'blur(20px)', duration, ease: "power2.inOut", onComplete: cleanup });
         }
         else if (effect === 'smooth-reveal') {
-            // GSAP + Lenis: Smooth Reveal
-            gsap.to(coverEl, {
-                opacity: 0,
-                y: -50,
-                duration: duration,
-                ease: "expo.out",
-                onComplete: () => {
-                    coverTransitionDone.value = true;
-                    isCoverVisible.value = false;
-                    lenis?.scrollTo(0, { immediate: true });
-                }
-            });
+            gsap.to(coverEl, { opacity: 0, y: -100, duration, ease: "expo.out", onComplete: () => { cleanup(); lenis?.scrollTo(0, { immediate: true }); } });
         }
         else if (effect === 'split-transition' || effect === 'slide-split') {
-            // Anime.js: Split Transition
-            anime({
-                targets: coverEl,
-                translateX: '-100%',
-                opacity: 0,
-                duration: duration * 1000,
-                easing: 'easeInOutExpo',
-                complete: () => {
-                    coverTransitionDone.value = true;
-                    isCoverVisible.value = false;
-                }
-            });
-        }
-        else if (effect === 'none' || effect === 'scroll') {
-            // Default: Smooth scroll to Page 2
-            if (sectionRefs.value[1]) {
-                sectionRefs.value[1].scrollIntoView({ behavior: 'smooth' });
-            }
+            anime({ targets: coverEl, translateX: '-100%', opacity: 0, duration: duration * 1000, easing: 'easeInOutExpo', complete: cleanup });
         }
         else {
-            // Fallback for other effects (legacy CSS-based)
-            setTimeout(() => {
-                coverTransitionDone.value = true;
-                isCoverVisible.value = false;
-            }, (duration * 1000) + 100);
+            // Instant Reveal Fallback
+            cleanup();
         }
     }, triggerDelay);
 };
@@ -488,7 +423,7 @@ const goBack = () => {
         <!-- Preview Container - Scrollable invitation -->
         <div 
             class="flex-1 flex justify-center w-full h-full"
-            :class="isOpened ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'"
+            :class="coverTransitionDone ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'"
             ref="previewContainer"
         >
             <!-- Invitation wrapper - Scaled dynamically -->
@@ -523,21 +458,24 @@ const goBack = () => {
                         <Maximize2 class="w-5 h-5" />
                     </button>
                 </div>
-                <!-- Sections Container - REFACTORED TO STACKED LAYOUT -->
-                <div class="page-transition-wrapper relative w-full h-full min-h-screen">
+                <!-- Sections Container - REFACTORED FOR PERFECT ALIGNMENT -->
+                <div 
+                    class="page-transition-wrapper relative w-full"
+                    :style="{ minHeight: isOpened ? '100dvh' : 'auto' }"
+                >
                     <!-- Layer 1: CONTENT (Sections 1 to N) -->
-                    <!-- This layer is always in the flow, providing the scrollable content -->
+                    <!-- Rendered always but hidden from interaction until opened -->
                     <div 
-                        v-if="isOpened"
                         class="content-layer flex flex-col items-center w-full"
+                        :class="{ 'pointer-events-none': !isOpened }"
+                        :style="{ opacity: isOpened ? 1 : 0 }"
                     >
                         <div 
                             v-for="(section, index) in orderedSections.slice(1)" 
                             :key="section.key"
                             :ref="(el) => setSectionRef(el, index + 1)"
                             :data-index="index + 1"
-                            class="relative overflow-hidden flex-shrink-0 page-section transition-all duration-300 w-full"
-                            :class="getSectionClass(index + 1)"
+                            class="relative overflow-hidden flex-shrink-0 page-section w-full"
                             @click="handleSectionClick(index + 1)"
                             :style="{
                                 height: `${CANVAS_HEIGHT}px`,
@@ -546,12 +484,12 @@ const goBack = () => {
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                                 zIndex: 10,
-                                '--transition-duration': `${section.transitionDuration || 1000}ms`,
                             }"
                         >
                             <div v-if="section.overlayOpacity" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: section.overlayOpacity }" />
                             
-                            <div v-for="el in section.elements || []" :key="el.id" class="absolute" :style="getElementStyle(el, index + 1)">
+                            <!-- Elements Layer -->
+                            <div v-for="el in section.elements || []" :key="el.id" class="absolute pointer-events-auto" :style="getElementStyle(el, index + 1)">
                                 <AnimatedElement
                                     :animation="el.animation || 'none'"
                                     :loop-animation="el.loopAnimation"
@@ -584,13 +522,12 @@ const goBack = () => {
                     </div>
 
                     <!-- Layer 2: COVER (Section 0) -->
-                    <!-- This layer is absolute, sitting directly on top of Page 2 -->
+                    <!-- Absolute overlay sitting on top of the Content Layer -->
                     <div 
                         v-if="isCoverVisible && orderedSections[0]"
                         :ref="(el) => setSectionRef(el, 0)"
                         :data-index="0"
-                        class="absolute top-0 left-1/2 -translate-x-1/2 overflow-hidden flex-shrink-0 page-section transition-all duration-300 w-full"
-                        :class="getSectionClass(0)"
+                        class="absolute top-0 left-0 overflow-hidden flex-shrink-0 page-section w-full"
                         @click="handleSectionClick(0)"
                         :style="{
                             height: `${coverHeight}px`,
@@ -598,8 +535,7 @@ const goBack = () => {
                             backgroundImage: orderedSections[0].backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
-                            zIndex: 50,
-                            '--transition-duration': `${orderedSections[0].transitionDuration || 1000}ms`,
+                            zIndex: 60,
                         }"
                     >
                         <div v-if="orderedSections[0].overlayOpacity" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: orderedSections[0].overlayOpacity }" />
