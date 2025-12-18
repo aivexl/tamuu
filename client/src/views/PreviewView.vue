@@ -165,21 +165,12 @@ const handleOpenInvitation = async () => {
             flowMode.value = true;
             isRevealing.value = false;
             shutterVisible.value = false;
-
-            flowMode.value = true; // Switch to Natural Flow
             
-            // Calculate exact scroll position (Section 1 visual height)
-            const scrollAmount = coverHeightComputed.value * scaleFactor.value;
-
             nextTick(() => {
-                if (scrollContainer.value) {
-                    // Force jump to Section 2
-                    scrollContainer.value.scrollTop = scrollAmount;
-                }
+                // Start Lenis smooth scrolling without forcing scroll position
                 if (lenis) {
                     lenis.start();
                     lenis.resize();
-                    lenis.scrollTo(scrollAmount, { immediate: true });
                 }
             });
         };
