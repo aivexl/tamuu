@@ -117,34 +117,36 @@ const handleOpenInvitation = async () => {
     if (openBtnTriggered.value) return;
     openBtnTriggered.value = true;
     
+    // PHASE 1: Trigger Section 1 "Open" Animations
+    isOpened.value = true; // This starts animations in Section 1 (Atomic Mode)
+    
     const coverSection = orderedSections.value[0];
     const elements = coverSection?.elements || [];
-    let triggerDelay = 0;
+    let longestAnimationTime = 0;
 
     elements.forEach((el: any) => {
+        // Only elements triggered by open_btn contribute to the delay
         if (el.animationTrigger === 'open_btn') {
-            const total = (el.animationDuration || 1000) + (el.animationDelay || 0);
-            if (total > triggerDelay) triggerDelay = total;
+            const total = (el.animationDuration || 800) + (el.animationDelay || 0);
+            if (total > longestAnimationTime) longestAnimationTime = total;
         }
     });
-    
+
+    // Wait for Section 1 animations to complete (plus a small buffer for elegance)
+    const transitionDelay = Math.max(longestAnimationTime, 500); 
+
     setTimeout(() => {
-        // Switch directly to Flow Mode - no animations
-        isOpened.value = true;
+        // PHASE 2: Transition to Flow Mode & Scroll to Section 2
         flowMode.value = true;
         isRevealing.value = false;
         shutterVisible.value = false;
         
-        // Calculate scroll position to Section 2 (UNSCALED pixel height of Section 1)
-        // Note: the container is scaled, but scrollTo works on the native scrollHeight
         const section1Height = coverHeightComputed.value;
-        const scrollOffset = 60; // Offset to see a bit of the transition
+        const scrollOffset = 0; // Exactly at the top of Section 2
         const targetScroll = Math.max(0, section1Height - scrollOffset);
         
-        // Use a more stable scroll approach
         nextTick(() => {
             if (scrollContainer.value) {
-                // Temporarily disable Lenis to set position immediately
                 if (lenis) lenis.stop();
                 
                 scrollContainer.value.scrollTop = targetScroll;
@@ -154,10 +156,10 @@ const handleOpenInvitation = async () => {
                         lenis.resize();
                         lenis.start();
                     }
-                }, 100);
+                }, 150); // Buffer for rendering
             }
         });
-    }, triggerDelay);
+    }, transitionDelay);
 };
 
 // Dimensions & Scaling
@@ -438,13 +440,23 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             <div v-if="orderedSections[0].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
                             <div class="relative w-full h-full">
                                 <template v-for="el in orderedSections[0].elements" :key="el.id">
-                                    <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="absolute inset-0" :immediate="true" :element-id="el.id">
-                                        <img v-if="el.type === 'image'" :src="el.imageUrl" :style="getElementStyle(el, 0)" class="pointer-events-none select-none" />
-                                        <div v-else-if="el.type === 'text'" :style="[getElementStyle(el, 0), getTextStyle(el)]">{{ el.content }}</div>
-                                        <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" @click="handleOpenInvitation()">
+                                    <AnimatedElement 
+                                        :animation="el.animation" 
+                                        :loop-animation="el.loopAnimation" 
+                                        :delay="el.animationDelay" 
+                                        :duration="el.animationDuration" 
+                                        :style="getElementStyle(el, 0)"
+                                        :immediate="el.animationTrigger !== 'open_btn'" 
+                                        :trigger-mode="el.animationTrigger === 'open_btn' ? 'manual' : 'auto'"
+                                        :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : true"
+                                        :element-id="el.id"
+                                    >
+                                        <img v-if="el.type === 'image'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" />
+                                        <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
+                                        <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="w-full h-full hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" @click="handleOpenInvitation()">
                                             {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
                                         </button>
-                                         <div v-else-if="el.type === 'icon'" :style="[getElementStyle(el, 0), { color: el.iconStyle?.iconColor }]" class="w-full h-full flex items-center justify-center">
+                                        <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center">
                                             <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
                                         </div>
                                     </AnimatedElement>
