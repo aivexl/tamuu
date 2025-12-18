@@ -9,5 +9,8 @@ ALTER TABLE template_sections ADD COLUMN transition_effect TEXT DEFAULT 'none';
 ALTER TABLE template_sections ADD COLUMN transition_duration INTEGER DEFAULT 1000;
 ALTER TABLE template_sections ADD COLUMN transition_trigger TEXT DEFAULT 'scroll';
 
+-- Add animation_trigger to template_elements (IMPORTANT for element-level animation settings)
+ALTER TABLE template_elements ADD COLUMN animation_trigger TEXT DEFAULT 'scroll';
+
 -- Element level loop animation support (just in case)
 -- ALTER TABLE template_elements ADD COLUMN loop_animation TEXT; 
