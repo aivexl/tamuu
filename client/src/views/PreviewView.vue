@@ -462,7 +462,13 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                     >
                                         <img v-if="el.type === 'image'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" />
                                         <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
-                                        <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="w-full h-full hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" @click="handleOpenInvitation()">
+                                        <button 
+                                            v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" 
+                                            :style="getButtonStyle(el)" 
+                                            class="w-full h-full hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" 
+                                            :class="{ 'opacity-0 pointer-events-none': isOpened }"
+                                            @click="handleOpenInvitation()"
+                                        >
                                             {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
                                         </button>
                                         <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center">
