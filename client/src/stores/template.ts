@@ -119,6 +119,7 @@ export const useTemplateStore = defineStore("template", {
             updates: Partial<TemplateElement>,
             options: { skipDb?: boolean } = {}
         ) {
+            console.log('[Store] updateElement called:', { templateId, sectionType, elementId, updates, options });
             // Optimistic update
             const template = this.templates.find((t) => t.id === templateId);
             if (template) {
@@ -131,12 +132,17 @@ export const useTemplateStore = defineStore("template", {
                 }
             }
 
-            if (options.skipDb) return;
+            if (options.skipDb) {
+                console.log('[Store] skipDb=true, not calling API');
+                return;
+            }
 
             try {
+                console.log('[Store] Calling CloudflareAPI.updateElement...');
                 await CloudflareAPI.updateElement(elementId, updates, templateId);
+                console.log('[Store] CloudflareAPI.updateElement completed successfully');
             } catch (error: any) {
-                console.error("Failed to update element:", error);
+                console.error("[Store] Failed to update element:", error);
             }
         },
 

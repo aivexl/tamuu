@@ -227,9 +227,13 @@ watch(
 );
 
 const handleTransformEnd = (e: any) => {
+   console.log('[KonvaCanvas] handleTransformEnd TRIGGERED, event:', e);
    const transformerNode = e.target;
    const node = transformerNode.nodes()[0];
-   if (!node) return;
+   if (!node) {
+       console.warn('[KonvaCanvas] handleTransformEnd: No node found in transformer');
+       return;
+   }
 
    const scaleX = node.scaleX();
    const scaleY = node.scaleY();
@@ -243,13 +247,15 @@ const handleTransformEnd = (e: any) => {
    node.width(newWidth);
    node.height(newHeight);
    
-   emit('elementTransformEnd', props.selectedElementId, {
+   const emitPayload = {
        x: Math.round(node.x()),
        y: Math.round(node.y()),
        width: Math.round(newWidth),
        height: Math.round(newHeight),
        rotation: Math.round(node.rotation())
-   });
+   };
+   console.log('[KonvaCanvas] Emitting elementTransformEnd with:', props.selectedElementId, emitPayload);
+   emit('elementTransformEnd', props.selectedElementId, emitPayload);
 };
 
 // Countdown Logic

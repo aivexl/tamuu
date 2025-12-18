@@ -252,12 +252,14 @@ const handleElementDragEnd = async (sectionKey: string, id: string, pos: { x: nu
 };
 
 const handleElementTransformEnd = async (sectionKey: string, id: string, props: { x: number, y: number, width: number, height: number, rotation: number }) => {
+    console.log('[EditorView] handleElementTransformEnd received:', { sectionKey, id, props });
     const { x, y, width, height, rotation } = props;
     await store.updateElement(templateId.value, sectionKey, id, { 
         position: { x, y },
         size: { width, height },
         rotation
     });
+    console.log('[EditorView] store.updateElement called successfully');
 };
 </script>
 
