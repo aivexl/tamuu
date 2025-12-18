@@ -117,49 +117,56 @@ const handleOpenInvitation = async () => {
     if (openBtnTriggered.value) return;
     openBtnTriggered.value = true;
     
-    // PHASE 1: Trigger Section 1 "Open" Animations
-    isOpened.value = true; // This starts animations in Section 1 (Atomic Mode)
+    // STEP 1: Trigger Internal Section 1 Animations
+    isOpened.value = true; 
     
     const coverSection = orderedSections.value[0];
     const elements = coverSection?.elements || [];
-    let longestAnimationTime = 0;
+    let longestInternalAnim = 0;
 
     elements.forEach((el: any) => {
-        // Only elements triggered by open_btn contribute to the delay
         if (el.animationTrigger === 'open_btn') {
             const total = (el.animationDuration || 800) + (el.animationDelay || 0);
-            if (total > longestAnimationTime) longestAnimationTime = total;
+            if (total > longestInternalAnim) longestInternalAnim = total;
         }
     });
 
-    // Wait for Section 1 animations to complete (plus a small buffer for elegance)
-    const transitionDelay = Math.max(longestAnimationTime, 500); 
+    // Wait for internal elements to finish their actions
+    const internalDelay = Math.max(longestInternalAnim, 400); 
 
     setTimeout(() => {
-        // PHASE 2: Transition to Flow Mode & Scroll to Section 2
-        flowMode.value = true;
-        isRevealing.value = false;
-        shutterVisible.value = false;
+        // STEP 2: Start the Luxury Curtain Lift
+        isRevealing.value = true; // This triggers 'lift-curtain' class on the cover layer
         
-        const section1Height = coverHeightComputed.value;
-        const scrollOffset = 0; // Exactly at the top of Section 2
-        const targetScroll = Math.max(0, section1Height - scrollOffset);
-        
-        nextTick(() => {
-            if (scrollContainer.value) {
-                if (lenis) lenis.stop();
-                
-                scrollContainer.value.scrollTop = targetScroll;
-                
-                setTimeout(() => {
-                    if (lenis) {
-                        lenis.resize();
-                        lenis.start();
-                    }
-                }, 150); // Buffer for rendering
-            }
-        });
-    }, transitionDelay);
+        // Duration of the curtain lift (match CSS transition)
+        const curtainLiftDuration = 1200; 
+
+        setTimeout(() => {
+            // STEP 3: Complete Reveal & Switch to Flow Mode
+            flowMode.value = true;
+            shutterVisible.value = false;
+            
+            const section1Height = coverHeightComputed.value;
+            const targetScroll = section1Height; // Land exactly at top of Section 2
+            
+            nextTick(() => {
+                if (scrollContainer.value) {
+                    if (lenis) lenis.stop();
+                    scrollContainer.value.scrollTop = targetScroll;
+                    
+                    setTimeout(() => {
+                        if (lenis) {
+                            lenis.resize();
+                            lenis.start();
+                        }
+                        // Transition complete, clean up reveal state
+                        isRevealing.value = false;
+                    }, 150);
+                }
+            });
+        }, curtainLiftDuration);
+
+    }, internalDelay);
 };
 
 // Dimensions & Scaling
@@ -432,8 +439,13 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             </div>
                         </div>
 
-                        <!-- TOP LAYER: Section 1 -->
-                        <div v-if="orderedSections[0]" class="absolute inset-0 z-[2] atomic-cover-layer" :style="{ backgroundColor: orderedSections[0].backgroundColor || '#cccccc', backgroundImage: orderedSections[0].backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
+                        <!-- TOP LAYER: Section 1 (Theater Curtain) -->
+                        <div 
+                            v-if="orderedSections[0]" 
+                            class="absolute inset-0 z-[2] atomic-cover-layer will-change-transform" 
+                            :class="{ 'lift-curtain': isRevealing }"
+                            :style="{ backgroundColor: orderedSections[0].backgroundColor || '#cccccc', backgroundImage: orderedSections[0].backgroundUrl ? `url(${orderedSections[0].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }"
+                        >
                             <div v-if="orderedSections[0].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: orderedSections[0].overlayOpacity }" />
                             <div class="relative w-full h-full">
                                 <template v-for="el in orderedSections[0].elements" :key="el.id">
@@ -479,5 +491,14 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 .scroll-container::-webkit-scrollbar { width: 0; height: 0; }
 .scroll-container { scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch; }
 .page-section { backface-visibility: hidden; transform: translateZ(0); }
-.will-change-transform { will-change: transform; transition: none; }
+.will-change-transform { will-change: transform; }
+
+.atomic-cover-layer {
+    transition: transform 1.2s cubic-bezier(0.65, 0, 0.35, 1);
+    transform-origin: top;
+}
+
+.lift-curtain {
+    transform: translateY(-100%);
+}
 </style>
