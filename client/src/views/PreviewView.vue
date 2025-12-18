@@ -171,17 +171,27 @@ const handleOpenInvitation = async () => {
             const scrollOffset = 50 * scaleFactor.value;
             const targetScroll = Math.max(0, section1ScaledHeight - scrollOffset);
             
-            nextTick(() => {
-                // Disable Lenis completely - just use native scrolling
-                if (lenis) {
-                    lenis.destroy();
-                    lenis = null;
-                }
-                
-                // Set scroll position directly with native scrolling
+            // Restore Lenis for smooth scrolling
+            if (lenis) {
+                lenis.destroy();
+                lenis = null;
+            }
+            
+            // Use setTimeout to wait for full layout completion
+            // Set scroll position multiple times to prevent jump
+            const setScrollPosition = () => {
                 if (scrollContainer.value) {
                     scrollContainer.value.scrollTop = targetScroll;
                 }
+            };
+            
+            // Immediately set
+            nextTick(() => {
+                setScrollPosition();
+                // Set again after 50ms
+                setTimeout(setScrollPosition, 50);
+                // Set again after 100ms to lock it in
+                setTimeout(setScrollPosition, 100);
             });
         };
     }, triggerDelay);
