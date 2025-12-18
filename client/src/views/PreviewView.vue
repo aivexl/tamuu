@@ -166,11 +166,18 @@ const handleOpenInvitation = async () => {
             isRevealing.value = false;
             shutterVisible.value = false;
             
+            // Calculate scroll position to Section 2 (after Section 1)
+            const section1ScaledHeight = coverHeightComputed.value * scaleFactor.value;
+            
             nextTick(() => {
-                // Start Lenis smooth scrolling without forcing scroll position
+                if (scrollContainer.value) {
+                    // Jump to Section 2
+                    scrollContainer.value.scrollTop = section1ScaledHeight;
+                }
                 if (lenis) {
                     lenis.start();
                     lenis.resize();
+                    lenis.scrollTo(section1ScaledHeight, { immediate: true });
                 }
             });
         };
