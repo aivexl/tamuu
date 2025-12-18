@@ -392,7 +392,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" @click="handleOpenInvitation()">
                                             {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
                                         </button>
-                                        <div v-else-if="el.type === 'icon'" :style="getElementStyle(el, index)" class="w-full h-full flex items-center justify-center opacity-100" :style="{ color: el.iconStyle?.iconColor }">
+                                        <div v-else-if="el.type === 'icon'" :style="[getElementStyle(el, index), { color: el.iconStyle?.iconColor }]" class="w-full h-full flex items-center justify-center opacity-100">
                                             <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
                                         </div>
                                         <div v-else-if="el.type === 'countdown'" :style="getElementStyle(el, index)" class="flex justify-center items-center gap-2">
@@ -424,7 +424,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                     <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" class="w-full h-full" :trigger-mode="'manual'" :force-trigger="isRevealing || isOpened" :element-id="el.id">
                                         <img v-if="el.type === 'image'" :src="el.imageUrl" :style="getElementStyle(el, 1)" class="pointer-events-none select-none" />
                                         <div v-else-if="el.type === 'text'" :style="[getElementStyle(el, 1), getTextStyle(el)]">{{ el.content }}</div>
-                                        <div v-else-if="el.type === 'icon'" :style="getElementStyle(el, 1)" class="w-full h-full flex items-center justify-center" :style="{ color: el.iconStyle?.iconColor }">
+                                        <div v-else-if="el.type === 'icon'" :style="[getElementStyle(el, 1), { color: el.iconStyle?.iconColor }]" class="w-full h-full flex items-center justify-center">
                                             <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
                                         </div>
                                         <div v-else-if="el.type === 'countdown'" :style="getElementStyle(el, 1)" class="flex justify-center items-center gap-2">
@@ -449,7 +449,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" @click="handleOpenInvitation()">
                                             {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
                                         </button>
-                                         <div v-else-if="el.type === 'icon'" :style="getElementStyle(el, 0)" class="w-full h-full flex items-center justify-center" :style="{ color: el.iconStyle?.iconColor }">
+                                         <div v-else-if="el.type === 'icon'" :style="[getElementStyle(el, 0), { color: el.iconStyle?.iconColor }]" class="w-full h-full flex items-center justify-center">
                                             <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
                                         </div>
                                     </AnimatedElement>
