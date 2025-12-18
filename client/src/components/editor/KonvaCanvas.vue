@@ -227,9 +227,17 @@ watch(
 );
 
 const handleTransformEnd = (e: any) => {
-   console.log('[KonvaCanvas] handleTransformEnd TRIGGERED, event:', e);
-   const transformerNode = e.target;
-   const node = transformerNode.nodes()[0];
+   console.log('[KonvaCanvas] handleTransformEnd TRIGGERED');
+   
+   // Use the transformer ref, not e.target (e.target is the transformed node, not the transformer)
+   if (!transformer.value) {
+       console.warn('[KonvaCanvas] handleTransformEnd: No transformer ref');
+       return;
+   }
+   
+   const tr = transformer.value.getNode();
+   const node = tr.nodes()[0];
+   
    if (!node) {
        console.warn('[KonvaCanvas] handleTransformEnd: No node found in transformer');
        return;
