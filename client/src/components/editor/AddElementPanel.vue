@@ -2,7 +2,7 @@
 import { useTemplateStore } from '@/stores/template';
 import { type TemplateElement, type ElementType } from '@/lib/types';
 import Button from '@/components/ui/Button.vue';
-import { Type, Image as ImageIcon, Clock, MessageSquare, MailOpen, Users, Heart, Square } from 'lucide-vue-next';
+import { Type, Image as ImageIcon, Clock, MessageSquare, MailOpen, Users, Heart, Square, Film } from 'lucide-vue-next';
 
 interface Props {
   activeSection: string;
@@ -54,6 +54,16 @@ const handleAddElement = async (type: ElementType) => {
         case 'image':
              newElement = {
                 ...newElement,
+                // No default image URL - user uploads their own
+                size: { width: 200, height: 200 },
+                id: newId
+            };
+            break;
+        case 'gif':
+             newElement = {
+                ...newElement,
+                type: 'image', // GIF uses image type but with isGif flag
+                isGif: true,
                 // No default image URL - user uploads their own
                 size: { width: 200, height: 200 },
                 id: newId
@@ -212,6 +222,15 @@ const handleAddElement = async (type: ElementType) => {
             >
                 <Type class="w-6 h-6 text-gray-600" />
                 <span class="text-xs">Text</span>
+            </Button>
+
+            <Button 
+                variant="outline" 
+                class="flex flex-col items-center justify-center h-20 gap-2 hover:bg-purple-50 hover:border-purple-200 transition-all"
+                @click="handleAddElement('gif' as ElementType)"
+            >
+                <Film class="w-6 h-6 text-purple-600" />
+                <span class="text-xs">GIF</span>
             </Button>
             
             <Button 
