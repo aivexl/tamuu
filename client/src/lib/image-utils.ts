@@ -15,7 +15,7 @@ const R2_DOMAINS = [
 ];
 
 // API URL for proxying (uses environment variable or defaults)
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://tamuu-api.workers.dev";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://tamuu-api.shafania57.workers.dev";
 
 // Preload cache - prevents duplicate image loads
 const preloadedImages = new Set<string>();

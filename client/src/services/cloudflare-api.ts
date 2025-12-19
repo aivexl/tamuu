@@ -12,7 +12,7 @@ import type {
 } from "@/lib/types";
 
 // API Base URL - uses environment variable or defaults
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://tamuu-api.workers.dev";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://tamuu-api.shafania57.workers.dev";
 
 // ============================================
 // HTTP CLIENT WITH RETRY
