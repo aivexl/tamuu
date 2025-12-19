@@ -208,7 +208,28 @@ const getLoopingAnimationStyle = (anim: AnimationType) => {
 
   // Define Wing animations (Flapping)
   let wingStyle = {};
-  const wingAnimName = isButterfly.value ? "butterfly-flap" : "bird-flap";
+  
+  // Asset-specific animation mapping based on R2 file keys
+  const assetAnimations: Record<string, string> = {
+    '1766118233945-5hn7z': 'bird-warm-flight',   // Bird Warm
+    '1766118287972-657f6o': 'bird-cool-flight',  // Bird Cool
+    '1766118295218-q7dx3c': 'butterfly-gold-flight', // Butterfly Gold
+    '1766118302329-grvg9g': 'butterfly-blue-flight', // Butterfly Blue
+  };
+  
+  // Extract asset ID from imageUrl
+  const getAssetAnimation = (): string => {
+    const url = props.imageUrl || '';
+    for (const [key, animName] of Object.entries(assetAnimations)) {
+      if (url.includes(key)) {
+        return animName;
+      }
+    }
+    // Fallback to generic animations
+    return isButterfly.value ? 'butterfly-flap' : 'bird-flap';
+  };
+  
+  const wingAnimName = getAssetAnimation();
   // Birds flap faster (~400ms per cycle) for realistic motion
   const wingDuration = isButterfly.value ? props.duration * 0.5 : props.duration * 0.4;
 

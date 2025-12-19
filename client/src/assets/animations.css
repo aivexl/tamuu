@@ -180,7 +180,7 @@
     }
 }
 
-/* Butterfly - 3D perspective wing fold with rotateY and scaleX */
+/* Butterfly - 3D perspective wing fold with rotateY and scaleX (GENERIC FALLBACK) */
 @keyframes butterfly-flap {
 
     0%,
@@ -190,6 +190,99 @@
 
     50% {
         transform: perspective(400px) rotateY(70deg) scaleX(0.7);
+    }
+}
+
+/* ============================================
+   DEDICATED PER-IMAGE ANIMATIONS
+   Each asset has unique animation based on its specific shape
+   ============================================ */
+
+/* Bird Warm - Rising/soaring dove with right wing dominant */
+@keyframes bird-warm-flight {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(-2deg);
+    }
+
+    30% {
+        transform: translateY(-8px) rotate(0deg);
+    }
+
+    60% {
+        transform: translateY(-4px) rotate(-1deg);
+    }
+}
+
+/* Bird Cool - Classic flight profile with both wings in upstroke */
+@keyframes bird-cool-flight {
+
+    0%,
+    100% {
+        transform: translateY(0) scaleY(1) rotate(0deg);
+    }
+
+    20% {
+        transform: translateY(-4px) scaleY(0.95) rotate(-1deg);
+    }
+
+    40% {
+        transform: translateY(-8px) scaleY(0.88) rotate(-2deg);
+    }
+
+    60% {
+        transform: translateY(-5px) scaleY(0.92) rotate(-1deg);
+    }
+
+    80% {
+        transform: translateY(-2px) scaleY(0.97) rotate(0deg);
+    }
+}
+
+/* Butterfly Gold - Top-down symmetrical with rounded wings */
+@keyframes butterfly-gold-flight {
+
+    0%,
+    100% {
+        transform: perspective(400px) rotateY(0deg) scaleX(1) translateY(0);
+    }
+
+    25% {
+        transform: perspective(400px) rotateY(45deg) scaleX(0.75) translateY(-3px);
+    }
+
+    50% {
+        transform: perspective(400px) rotateY(0deg) scaleX(1) translateY(-5px);
+    }
+
+    75% {
+        transform: perspective(400px) rotateY(-45deg) scaleX(0.75) translateY(-2px);
+    }
+}
+
+/* Butterfly Blue - Angled V-shape with pointed wings */
+@keyframes butterfly-blue-flight {
+
+    0%,
+    100% {
+        transform: perspective(400px) rotateX(0deg) scaleY(1) translateY(0);
+    }
+
+    20% {
+        transform: perspective(400px) rotateX(15deg) scaleY(0.9) translateY(-4px);
+    }
+
+    40% {
+        transform: perspective(400px) rotateX(-10deg) scaleY(0.85) translateY(-6px);
+    }
+
+    60% {
+        transform: perspective(400px) rotateX(10deg) scaleY(0.9) translateY(-3px);
+    }
+
+    80% {
+        transform: perspective(400px) rotateX(-5deg) scaleY(0.95) translateY(-1px);
     }
 }
 
