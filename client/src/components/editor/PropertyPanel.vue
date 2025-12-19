@@ -564,7 +564,8 @@ const handleCopyToSection = async () => {
 // FLYING DECORATIONS
 // ============================================
 // Use API base URL for direct R2 access (bypasses SSL issues with R2 public bucket)
-const API_URL = import.meta.env.VITE_API_URL || 'https://tamuu-api.shafania57.workers.dev';
+// Hardcoded to ensure production uses correct worker
+const API_URL = 'https://tamuu-api.shafania57.workers.dev';
 
 // R2 file keys (as stored in bucket)
 const flyingDecorationKeys = [

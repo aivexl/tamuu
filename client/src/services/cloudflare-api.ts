@@ -12,7 +12,8 @@ import type {
 } from "@/lib/types";
 
 // API Base URL - uses environment variable or defaults
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://tamuu-api.shafania57.workers.dev";
+// Hardcoded to ensure production uses correct worker
+const API_BASE_URL = "https://tamuu-api.shafania57.workers.dev";
 
 // ============================================
 // HTTP CLIENT WITH RETRY
