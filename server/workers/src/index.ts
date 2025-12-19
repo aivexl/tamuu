@@ -8,7 +8,6 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
-import { compress } from 'hono/compress';
 import type { Env } from './types';
 
 // Import routes
@@ -25,8 +24,9 @@ const app = new Hono<{ Bindings: Env }>();
 // MIDDLEWARE (OPTIMIZED)
 // ============================================
 
-// Gzip compression for all responses
-app.use('*', compress());
+// Note: Cloudflare Workers automatically handles gzip compression at the edge
+// Don't use compress() middleware here as it causes double-compression issues
+
 
 // Request timing middleware
 app.use('*', async (c, next) => {
