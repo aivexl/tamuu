@@ -135,6 +135,51 @@ uploadRouter.post('/', async (c) => {
 });
 
 // ============================================
+// GET /api/upload/r2/* - Direct R2 file serving
+// Serves files directly from R2 bucket without external URL access
+// This bypasses SSL certificate issues with R2 public bucket
+// ============================================
+uploadRouter.get('/r2/*', async (c) => {
+    // Extract key from the URL path after /r2/
+    const fullPath = c.req.path;
+    const r2Prefix = '/api/upload/r2/';
+    const key = fullPath.startsWith(r2Prefix)
+        ? fullPath.slice(r2Prefix.length)
+        : c.req.param('*');
+
+    console.log('[R2 Direct] Requested key:', key, 'Full path:', fullPath);
+
+    if (!key) {
+        return c.json({ error: 'Missing file key', path: fullPath }, 400);
+    }
+
+    try {
+        const object = await c.env.R2.get(key);
+
+        if (!object) {
+            return c.json({ error: 'File not found', key }, 404);
+        }
+
+        const headers = new Headers();
+        headers.set('Content-Type', object.httpMetadata?.contentType || 'application/octet-stream');
+        headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+        headers.set('CDN-Cache-Control', 'max-age=31536000');
+        headers.set('Access-Control-Allow-Origin', '*');
+        headers.set('ETag', `"${object.etag}"`);
+        headers.set('Content-Length', String(object.size));
+        headers.set('X-Cache-Status', 'DIRECT-R2');
+
+        return new Response(object.body, { headers });
+    } catch (error) {
+        console.error('[R2 Direct] Error:', error);
+        return c.json({
+            error: 'Failed to fetch file from R2',
+            details: error instanceof Error ? error.message : String(error),
+        }, 500);
+    }
+});
+
+// ============================================
 // GET /api/upload/proxy - Proxy image from R2
 // OPTIMIZED: Direct R2 bucket access (faster than HTTP fetch)
 // ============================================
@@ -164,9 +209,15 @@ uploadRouter.get('/proxy', async (c) => {
 
         // Extract key from R2 URL for direct bucket access
         const key = decodeURIComponent(parsedUrl.pathname.slice(1));
+        console.log(`[PROXY] Attempting to fetch key: ${key}`);
 
         // Try to get from R2 bucket directly (FASTER than HTTP fetch)
-        const object = await c.env.R2.get(key);
+        let object = null;
+        try {
+            object = await c.env.R2.get(key);
+        } catch (r2Error) {
+            console.log(`[PROXY] Direct R2 access failed, falling back to HTTP: ${r2Error}`);
+        }
 
         if (object) {
             const headers = new Headers();
@@ -187,10 +238,15 @@ uploadRouter.get('/proxy', async (c) => {
         }
 
         // Fallback: Fetch via HTTP if direct R2 access fails
-        console.log(`[UPLOAD PROXY] Fallback to HTTP fetch for: ${key}`);
-        const response = await fetch(imageUrl);
+        console.log(`[PROXY] Fallback to HTTP fetch for: ${imageUrl}`);
+        const response = await fetch(imageUrl, {
+            headers: {
+                'User-Agent': 'Tamuu-Proxy/1.0',
+            },
+        });
 
         if (!response.ok) {
+            console.error(`[PROXY] HTTP fetch failed: ${response.status} ${response.statusText}`);
             return c.json({ error: `Failed to fetch image: ${response.status}` }, 500);
         }
 
@@ -208,8 +264,11 @@ uploadRouter.get('/proxy', async (c) => {
             },
         });
     } catch (error) {
-        console.error('Proxy error:', error);
-        return c.json({ error: 'Proxy failed' }, 500);
+        console.error('[PROXY] Error:', error);
+        return c.json({
+            error: 'Proxy failed',
+            details: error instanceof Error ? error.message : String(error)
+        }, 500);
     }
 });
 

@@ -27,7 +27,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 // Image sources from Cloudflare R2
-const R2_BASE = 'https://pub-1e0a9ae6152440268987d00a564a8da5.r2.dev/photos/2024/12';
+const R2_BASE = 'https://pub-1e0a9ae6152440268987d00a564a8da5.r2.dev/photos/2025/12';
 const images: Record<string, string> = {
   'bird': `${R2_BASE}/1766118233945-5hn7z.png`,        // bird-warm
   'bird-warm': `${R2_BASE}/1766118233945-5hn7z.png`,

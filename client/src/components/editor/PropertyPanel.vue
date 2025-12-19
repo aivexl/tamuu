@@ -560,16 +560,25 @@ const handleCopyToSection = async () => {
 // ============================================
 // FLYING DECORATIONS
 // ============================================
-const R2_BASE = 'https://pub-1e0a9ae6152440268987d00a564a8da5.r2.dev/photos/2024/12';
+// Use API base URL for direct R2 access (bypasses SSL issues with R2 public bucket)
+const API_URL = import.meta.env.VITE_API_URL || 'https://tamuu-api.shafania57.workers.dev';
 
-const flyingDecorations = [
-    { id: 'bird-warm', name: 'Bird (Warm)', url: `${R2_BASE}/1766118233945-5hn7z.png` },
-    { id: 'bird-cool', name: 'Bird (Cool)', url: `${R2_BASE}/1766118287972-657f6o.png` },
-    { id: 'butterfly-gold', name: 'Butterfly Gold', url: `${R2_BASE}/1766118295218-q7dx3c.png` },
-    { id: 'butterfly-blue', name: 'Butterfly Blue', url: `${R2_BASE}/1766118302329-grvg9g.png` },
+// R2 file keys (as stored in bucket)
+const flyingDecorationKeys = [
+    { id: 'bird-warm', name: 'Bird (Warm)', key: 'photos/2025/12/1766118233945-5hn7z.png' },
+    { id: 'bird-cool', name: 'Bird (Cool)', key: 'photos/2025/12/1766118287972-657f6o.png' },
+    { id: 'butterfly-gold', name: 'Butterfly Gold', key: 'photos/2025/12/1766118295218-q7dx3c.png' },
+    { id: 'butterfly-blue', name: 'Butterfly Blue', key: 'photos/2025/12/1766118302329-grvg9g.png' },
 ];
 
-const handleAddFlyingDecoration = async (decoration: typeof flyingDecorations[0]) => {
+// Use direct R2 endpoint (bypasses SSL certificate issues)
+const flyingDecorationsWithProxy = flyingDecorationKeys.map(d => ({
+    ...d,
+    url: `${API_URL}/api/upload/r2/${d.key}`,  // Original URL for saving
+    proxyUrl: `${API_URL}/api/upload/r2/${d.key}`,  // Same URL for display
+}));
+
+const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWithProxy[0]) => {
     if (!store.activeTemplateId || !props.activeSectionType) return;
     
     const newId = `el-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
@@ -948,14 +957,14 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorations[0]
                     <Label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Flying Decorations</Label>
                     <div class="grid grid-cols-4 gap-2">
                         <button 
-                            v-for="deco in flyingDecorations" 
+                            v-for="deco in flyingDecorationsWithProxy" 
                             :key="deco.id"
                             @click="handleAddFlyingDecoration(deco)"
                             class="group relative aspect-square rounded-xl border border-slate-100 bg-white overflow-hidden hover:border-indigo-300 hover:shadow-md transition-all active:scale-95"
                             :title="deco.name"
                         >
                             <img 
-                                :src="deco.url" 
+                                :src="deco.proxyUrl" 
                                 :alt="deco.name"
                                 class="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform"
                             />
@@ -1592,14 +1601,14 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorations[0]
                 <Label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quick Add: Flying Decorations</Label>
                 <div class="grid grid-cols-4 gap-2">
                     <button 
-                        v-for="deco in flyingDecorations" 
+                        v-for="deco in flyingDecorationsWithProxy" 
                         :key="deco.id"
                         @click="handleAddFlyingDecoration(deco)"
                         class="group relative aspect-square rounded-xl border border-slate-100 bg-white overflow-hidden hover:border-indigo-300 hover:shadow-md transition-all active:scale-95"
                         :title="deco.name"
                     >
                         <img 
-                            :src="deco.url" 
+                            :src="deco.proxyUrl" 
                             :alt="deco.name"
                             class="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform"
                         />
