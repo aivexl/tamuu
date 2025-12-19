@@ -22,6 +22,7 @@ interface Props {
   triggerMode?: 'auto' | 'manual';
   elementId?: string;
   immediate?: boolean;
+  imageUrl?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -34,6 +35,7 @@ const props = withDefaults(defineProps<Props>(), {
   triggerMode: 'auto',
   elementId: '',
   immediate: false,
+  imageUrl: '',
 });
 
 const elementRef = ref<HTMLElement | null>(null);
@@ -161,6 +163,14 @@ const loopAnim = computed(() =>
     : undefined
 );
 
+// Determine if the element is a bird or butterfly for auto-flapping logic
+const isButterfly = computed(() => 
+    props.class?.toLowerCase().includes('butterfly') || 
+    props.style?.id?.toLowerCase().includes('butterfly') || 
+    props.elementId?.toLowerCase().includes('butterfly') ||
+    props.imageUrl?.toLowerCase().includes('butterfly')
+);
+
 const getLoopingAnimationStyle = (anim: AnimationType) => {
   const baseStyle: any = {
     animationDelay: `${props.delay}ms`,
@@ -168,138 +178,55 @@ const getLoopingAnimationStyle = (anim: AnimationType) => {
     animationTimingFunction: "ease-in-out",
   };
 
-  switch (anim) {
-    case "sway":
-      return {
-        ...baseStyle,
-        animationName: "sway",
-        animationDuration: `${props.duration * 2}ms`,
-        transformOrigin: "bottom center",
-      };
-    case "float":
-      return {
-        ...baseStyle,
-        animationName: "float",
-        animationDuration: `${props.duration * 3}ms`,
-      };
-    case "pulse":
-      return {
-        ...baseStyle,
-        animationName: "pulse",
-        animationDuration: `${props.duration * 2}ms`,
-      };
-    case "sparkle":
-      return {
-        ...baseStyle,
-        animationName: "sparkle",
-        animationDuration: `${props.duration * 1.5}ms`,
-      };
-    case "spin":
-      return {
-        ...baseStyle,
-        animationName: "spin",
-        animationDuration: `${props.duration * 4}ms`,
-        animationTimingFunction: "linear",
-      };
-    case "shake":
-      return {
-        ...baseStyle,
-        animationName: "shake",
-        animationDuration: `${props.duration}ms`,
-      };
-    case "swing":
-      return {
-        ...baseStyle,
-        animationName: "swing",
-        animationDuration: `${props.duration * 2}ms`,
-        transformOrigin: "top center",
-      };
-    case "heartbeat":
-      return {
-        ...baseStyle,
-        animationName: "heartbeat",
-        animationDuration: `${props.duration * 1.5}ms`,
-      };
-    case "glow":
-      return {
-        ...baseStyle,
-        animationName: "glow",
-        animationDuration: `${props.duration * 2}ms`,
-      };
-    case "bird-flap":
-      return {
-        ...baseStyle,
-        animationName: "bird-flap",
-        animationDuration: `${props.duration}ms`,
-        transformOrigin: "center",
-      };
-    case "butterfly-flap":
-      return {
-        ...baseStyle,
-        animationName: "butterfly-flap",
-        animationDuration: `${props.duration * 0.5}ms`,
-        transformOrigin: "center",
-      };
-    // Combined flight animations (path + flap)
-    case "flap-bob":
-      return {
-        animationName: "flap-bob, bird-flap",
-        animationDuration: `${props.duration * 2}ms, ${props.duration}ms`,
-        animationIterationCount: "infinite, infinite",
-        animationTimingFunction: "ease-in-out, ease-in-out",
-        animationDelay: `${props.delay}ms, ${props.delay}ms`,
-      };
-    case "float-flap":
-      return {
-        animationName: "float, bird-flap",
-        animationDuration: `${props.duration * 3}ms, ${props.duration}ms`,
-        animationIterationCount: "infinite, infinite",
-        animationTimingFunction: "ease-in-out, ease-in-out",
-        animationDelay: `${props.delay}ms, ${props.delay}ms`,
-      };
-    case "fly-left":
-      return {
-        animationName: "fly-left, bird-flap",
-        animationDuration: `${props.duration * 10}ms, ${props.duration}ms`,
-        animationIterationCount: "infinite, infinite",
-        animationTimingFunction: "linear, ease-in-out",
-        animationDelay: `${props.delay}ms, ${props.delay}ms`,
-      };
-    case "fly-right":
-      return {
-        animationName: "fly-right, bird-flap",
-        animationDuration: `${props.duration * 10}ms, ${props.duration}ms`,
-        animationIterationCount: "infinite, infinite",
-        animationTimingFunction: "linear, ease-in-out",
-        animationDelay: `${props.delay}ms, ${props.delay}ms`,
-      };
-    case "fly-up":
-      return {
-        animationName: "fly-up, bird-flap",
-        animationDuration: `${props.duration * 8}ms, ${props.duration}ms`,
-        animationIterationCount: "infinite, infinite",
-        animationTimingFunction: "linear, ease-in-out",
-        animationDelay: `${props.delay}ms, ${props.delay}ms`,
-      };
-    case "fly-down":
-      return {
-        animationName: "fly-down, bird-flap",
-        animationDuration: `${props.duration * 8}ms, ${props.duration}ms`,
-        animationIterationCount: "infinite, infinite",
-        animationTimingFunction: "linear, ease-in-out",
-        animationDelay: `${props.delay}ms, ${props.delay}ms`,
-      };
-    case "fly-random":
-      return {
-        animationName: "fly-random, bird-flap",
-        animationDuration: `${props.duration * 6}ms, ${props.duration}ms`,
-        animationIterationCount: "infinite, infinite",
-        animationTimingFunction: "ease-in-out, ease-in-out",
-        animationDelay: `${props.delay}ms, ${props.delay}ms`,
-      };
-    default:
-      return {};
+  // Define Path animations (Movement)
+  const pathAnims: Record<string, any> = {
+    "sway": { animationName: "sway", animationDuration: `${props.duration * 2}ms`, transformOrigin: "bottom center" },
+    "float": { animationName: "float", animationDuration: `${props.duration * 3}ms` },
+    "pulse": { animationName: "pulse", animationDuration: `${props.duration * 2}ms` },
+    "sparkle": { animationName: "sparkle", animationDuration: `${props.duration * 1.5}ms` },
+    "spin": { animationName: "spin", animationDuration: `${props.duration * 4}ms`, animationTimingFunction: "linear" },
+    "shake": { animationName: "shake", animationDuration: `${props.duration}ms` },
+    "swing": { animationName: "swing", animationDuration: `${props.duration * 2}ms`, transformOrigin: "top center" },
+    "heartbeat": { animationName: "heartbeat", animationDuration: `${props.duration * 1.5}ms` },
+    "glow": { animationName: "glow", animationDuration: `${props.duration * 2}ms` },
+    "fly-left": { animationName: "fly-left", animationDuration: `${props.duration * 10}ms`, animationTimingFunction: "linear" },
+    "fly-right": { animationName: "fly-right", animationDuration: `${props.duration * 10}ms`, animationTimingFunction: "linear" },
+    "fly-up": { animationName: "fly-up", animationDuration: `${props.duration * 8}ms`, animationTimingFunction: "linear" },
+    "fly-down": { animationName: "fly-down", animationDuration: `${props.duration * 8}ms`, animationTimingFunction: "linear" },
+    "fly-random": { animationName: "fly-random", animationDuration: `${props.duration * 6}ms` },
+    "flap-bob": { animationName: "flap-bob", animationDuration: `${props.duration * 1.5}ms` },
+    "float-flap": { animationName: "float", animationDuration: `${props.duration * 3}ms` },
+  };
+
+  // Determine which path to use
+  let pathStyle = {};
+  if (pathAnims[anim]) {
+    pathStyle = { ...baseStyle, ...pathAnims[anim] };
+  } else if (anim === "bird-flap" || anim === "butterfly-flap") {
+    // These are purely wing flaps, no path
   }
+
+  // Define Wing animations (Flapping)
+  let wingStyle = {};
+  const wingAnimName = isButterfly.value ? "butterfly-flap" : "bird-flap";
+  const wingDuration = isButterfly.value ? props.duration * 0.5 : props.duration;
+
+  // Decide if flapping should be active
+  const shouldFlap = [
+    "bird-flap", "butterfly-flap", "flap-bob", "float-flap", 
+    "fly-left", "fly-right", "fly-up", "fly-down", "fly-random"
+  ].includes(anim);
+
+  if (shouldFlap) {
+    wingStyle = {
+      ...baseStyle,
+      animationName: wingAnimName,
+      animationDuration: `${wingDuration}ms`,
+      transformOrigin: "center"
+    };
+  }
+
+  return { pathStyle, wingStyle };
 };
 
 // Initial style (before animation) - INCLUDING TRANSITION FOR SMOOTH EXIT
@@ -431,30 +358,28 @@ const rootStyle = computed(() => {
   };
 });
 
-// 2. Animation Styles (Entrance & Loop)
-const animationStyle = computed(() => {
-  let animS: any = {};
-
-  if (entranceAnim.value !== "none") {
-    if (shouldAnimate.value) {
-      animS = { ...getEntranceAnimatedStyle() };
-    } else {
-      animS = { ...getEntranceInitialStyle() };
-    }
-  }
-
-  if (loopAnim.value && shouldAnimate.value) {
-    animS = { ...animS, ...getLoopingAnimationStyle(loopAnim.value!) };
-  }
-
+// 2. Entrance Animation Style
+const entranceStyle = computed(() => {
+  if (entranceAnim.value === 'none') return { width: '100%', height: '100%' };
+  
+  const animS = shouldAnimate.value 
+    ? getEntranceAnimatedStyle() 
+    : getEntranceInitialStyle();
+    
   return {
-      ...animS,
-      width: '100%',
-      height: '100%'
+    ...animS,
+    width: '100%',
+    height: '100%'
   };
 });
 
-// 3. Static/Content Styles (Rotate, Flip, Opacity, etc.)
+// 3. Path & Wing Animation Styles
+const loopStyles = computed(() => {
+  if (!loopAnim.value || !shouldAnimate.value) return { pathStyle: {}, wingStyle: {} };
+  return getLoopingAnimationStyle(loopAnim.value!);
+});
+
+// 4. Static/Content Styles (Rotate, Flip, Opacity, etc.)
 const staticContentStyle = computed(() => {
   const s = { ...props.style };
   // Remove layout keys so they aren't applied twice
@@ -473,155 +398,58 @@ const staticContentStyle = computed(() => {
 <template>
   <!-- ROOT: The 'Box' that browser sees for visibility -->
   <div ref="elementRef" :class="class" :style="rootStyle">
-    <!-- MIDDLE: The 'Actor' that performs the entrance/loop animations -->
-    <div :style="animationStyle" class="relative">
-      <!-- DEEPEST: The 'Canvas' that holds static transforms like rotate/flip -->
-      <div :style="staticContentStyle" class="relative">
-        <slot />
-        
-        <!-- Border Drawing Lines -->
-        <template v-if="animation === 'draw-border'">
-          <!-- Top -->
-          <span 
-            class="absolute top-0 left-0 h-[2px] transition-all duration-[1000ms] ease-out"
-            :style="{ 
-                width: shouldAnimate ? '100%' : '0%', 
-                backgroundColor: style?.borderColor || style?.color || '#000',
-                transitionDelay: `${delay}ms` 
-            }"
-          />
-          <!-- Right -->
-          <span 
-            class="absolute top-0 right-0 w-[2px] transition-all duration-[1000ms] ease-out"
-            :style="{ 
-                height: shouldAnimate ? '100%' : '0%', 
-                backgroundColor: style?.borderColor || style?.color || '#000',
-                transitionDelay: `${delay + 200}ms` 
-            }"
-          />
-          <!-- Bottom -->
-          <span 
-            class="absolute bottom-0 right-0 h-[2px] transition-all duration-[1000ms] ease-out"
-            :style="{ 
-                width: shouldAnimate ? '100%' : '0%', 
-                backgroundColor: style?.borderColor || style?.color || '#000',
-                transitionDelay: `${delay + 400}ms` 
-            }"
-          />
-          <!-- Left -->
-          <span 
-            class="absolute bottom-0 left-0 w-[2px] transition-all duration-[1000ms] ease-out"
-            :style="{ 
-                height: shouldAnimate ? '100%' : '0%', 
-                backgroundColor: style?.borderColor || style?.color || '#000',
-                transitionDelay: `${delay + 600}ms` 
-            }"
-          />
-        </template>
+    <!-- 1. Entrance Layer -->
+    <div :style="entranceStyle" class="relative">
+      <!-- 2. Path Layer (Float, Fly, Sway) -->
+      <div :style="loopStyles.pathStyle" class="relative w-full h-full">
+        <!-- 3. Wing Layer (Flap) -->
+        <div :style="loopStyles.wingStyle" class="relative w-full h-full">
+          <!-- 4. Content Layer (Static transforms) -->
+          <div :style="staticContentStyle" class="relative w-full h-full">
+            <slot />
+            
+            <!-- Border Drawing Lines -->
+            <template v-if="animation === 'draw-border'">
+              <span 
+                class="absolute top-0 left-0 h-[2px] transition-all duration-[1000ms] ease-out"
+                :style="{ 
+                    width: shouldAnimate ? '100%' : '0%', 
+                    backgroundColor: style?.borderColor || style?.color || '#000',
+                    transitionDelay: `${delay}ms` 
+                }"
+              />
+              <span 
+                class="absolute top-0 right-0 w-[2px] transition-all duration-[1000ms] ease-out"
+                :style="{ 
+                    height: shouldAnimate ? '100%' : '0%', 
+                    backgroundColor: style?.borderColor || style?.color || '#000',
+                    transitionDelay: `${delay + 200}ms` 
+                }"
+              />
+              <span 
+                class="absolute bottom-0 right-0 h-[2px] transition-all duration-[1000ms] ease-out"
+                :style="{ 
+                    width: shouldAnimate ? '100%' : '0%', 
+                    backgroundColor: style?.borderColor || style?.color || '#000',
+                    transitionDelay: `${delay + 400}ms` 
+                }"
+              />
+              <span 
+                class="absolute bottom-0 left-0 w-[2px] transition-all duration-[1000ms] ease-out"
+                :style="{ 
+                    height: shouldAnimate ? '100%' : '0%', 
+                    backgroundColor: style?.borderColor || style?.color || '#000',
+                    transitionDelay: `${delay + 600}ms` 
+                }"
+              />
+            </template>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-@keyframes sway {
-  0%, 100% { transform: rotate(-5deg); }
-  50% { transform: rotate(5deg); }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-@keyframes sparkle {
-  0%, 100% { opacity: 1; filter: brightness(1); }
-  50% { opacity: 0.7; filter: brightness(1.3); }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-
-@keyframes swing {
-  0%, 100% { transform: rotate(-10deg); }
-  50% { transform: rotate(10deg); }
-}
-
-@keyframes heartbeat {
-  0%, 100% { transform: scale(1); }
-  25% { transform: scale(1.1); }
-  40% { transform: scale(1.2); }
-}
-
-@keyframes glow {
-  0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5)); }
-  50% { filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8)); }
-}
-
-/* New Wing Flapping Animations */
-@keyframes bird-flap {
-  0%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(0.7) translateY(2px); }
-}
-
-@keyframes butterfly-flap {
-  0%, 100% { transform: perspective(400px) rotateY(0deg); }
-  50% { transform: perspective(400px) rotateY(60deg) scaleX(0.8); }
-}
-
-/* Combined Flight Animations */
-@keyframes flap-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
-}
-
-@keyframes fly-left {
-  0% { transform: translateX(100vw); opacity: 0; }
-  5% { opacity: 1; }
-  95% { opacity: 1; }
-  100% { transform: translateX(-100px); opacity: 0; }
-}
-
-@keyframes fly-right {
-  0% { transform: translateX(-100px); opacity: 0; }
-  5% { opacity: 1; }
-  95% { opacity: 1; }
-  100% { transform: translateX(100vw); opacity: 0; }
-}
-
-@keyframes fly-up {
-  0% { transform: translateY(100vh); opacity: 0; }
-  5% { opacity: 1; }
-  95% { opacity: 1; }
-  100% { transform: translateY(-100px); opacity: 0; }
-}
-
-@keyframes fly-down {
-  0% { transform: translateY(-100px); opacity: 0; }
-  5% { opacity: 1; }
-  95% { opacity: 1; }
-  100% { transform: translateY(100vh); opacity: 0; }
-}
-
-@keyframes fly-random {
-  0% { transform: translate(0, 0); }
-  20% { transform: translate(40px, -25px); }
-  40% { transform: translate(-30px, 15px); }
-  60% { transform: translate(25px, 35px); }
-  80% { transform: translate(-20px, -10px); }
-  100% { transform: translate(0, 0); }
-}
+/* Animations moved to global animations.css to allow dynamic application */
 </style>

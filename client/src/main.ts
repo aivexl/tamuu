@@ -4,6 +4,7 @@ import VueKonva from 'vue-konva'
 import router from './router'
 import './style.css'
 import './assets/transitions.css'
+import './assets/animations.css'
 import App from './App.vue'
 
 const app = createApp(App)

@@ -1,0 +1,280 @@
+/* ============================================
+   GLOBAL ANIMATIONS
+   All keyframes for flying decorations and elements
+   ============================================ */
+
+/* Basic Looping Animations */
+@keyframes sway {
+
+    0%,
+    100% {
+        transform: rotate(-5deg);
+    }
+
+    50% {
+        transform: rotate(5deg);
+    }
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+@keyframes sparkle {
+
+    0%,
+    100% {
+        opacity: 1;
+        filter: brightness(1);
+    }
+
+    50% {
+        opacity: 0.7;
+        filter: brightness(1.3);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-5px);
+    }
+
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+@keyframes swing {
+
+    0%,
+    100% {
+        transform: rotate(-10deg);
+    }
+
+    50% {
+        transform: rotate(10deg);
+    }
+}
+
+@keyframes heartbeat {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    25% {
+        transform: scale(1.1);
+    }
+
+    40% {
+        transform: scale(1.2);
+    }
+}
+
+@keyframes glow {
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8));
+    }
+}
+
+/* ============================================
+   WING FLAPPING ANIMATIONS
+   ============================================ */
+
+/* Bird - Graceful wing flap using scaleY and translateY */
+@keyframes bird-flap {
+
+    0%,
+    100% {
+        transform: scaleY(1) translateY(0);
+    }
+
+    50% {
+        transform: scaleY(0.6) translateY(4px);
+    }
+}
+
+/* Butterfly - 3D perspective wing fold with rotateY and scaleX */
+@keyframes butterfly-flap {
+
+    0%,
+    100% {
+        transform: perspective(400px) rotateY(0deg) scaleX(1);
+    }
+
+    50% {
+        transform: perspective(400px) rotateY(70deg) scaleX(0.7);
+    }
+}
+
+/* ============================================
+   COMBINED FLIGHT ANIMATIONS
+   Path + Flap combined
+   ============================================ */
+
+/* Flap in place + bob up/down slightly */
+@keyframes flap-bob {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+/* Fly Left - Exit canvas from right to left */
+@keyframes fly-left {
+    0% {
+        transform: translateX(600px);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(-600px);
+        opacity: 0;
+    }
+}
+
+/* Fly Right - Exit canvas from left to right */
+@keyframes fly-right {
+    0% {
+        transform: translateX(-600px);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(600px);
+        opacity: 0;
+    }
+}
+
+/* Fly Up - Exit canvas from bottom to top */
+@keyframes fly-up {
+    0% {
+        transform: translateY(800px);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-800px);
+        opacity: 0;
+    }
+}
+
+/* Fly Down - Exit canvas from top to bottom */
+@keyframes fly-down {
+    0% {
+        transform: translateY(-800px);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(800px);
+        opacity: 0;
+    }
+}
+
+/* Fly Random - Zigzag erratic movement */
+@keyframes fly-random {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    20% {
+        transform: translate(60px, -40px);
+    }
+
+    40% {
+        transform: translate(-50px, 30px);
+    }
+
+    60% {
+        transform: translate(40px, 60px);
+    }
+
+    80% {
+        transform: translate(-30px, -20px);
+    }
+
+    100% {
+        transform: translate(0, 0);
+    }
+}

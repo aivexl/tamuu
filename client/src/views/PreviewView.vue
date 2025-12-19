@@ -366,6 +366,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :trigger-mode="el.animationTrigger === 'scroll' ? 'auto' : 'manual'"
                                         :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : (index === 0)"
                                         :element-id="el.id"
+                                        :image-url="el.imageUrl"
                                     >
                                         <img v-if="el.type === 'image'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" />
                                         <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
@@ -427,6 +428,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :trigger-mode="'manual'" 
                                         :force-trigger="isOpened"
                                         :element-id="el.id"
+                                        :image-url="el.imageUrl"
                                     >
                                         <img v-if="el.type === 'image'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" />
                                         <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
@@ -483,6 +485,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :trigger-mode="el.animationTrigger === 'open_btn' ? 'manual' : 'auto'"
                                         :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : true"
                                         :element-id="el.id"
+                                        :image-url="el.imageUrl"
                                     >
                                         <img v-if="el.type === 'image'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" />
                                         <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
