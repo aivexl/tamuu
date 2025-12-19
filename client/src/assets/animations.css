@@ -124,16 +124,59 @@
    WING FLAPPING ANIMATIONS
    ============================================ */
 
-/* Bird - Graceful wing flap using scaleY and translateY */
+/* Bird - Professional multi-phase wing cycle with natural body motion */
 @keyframes bird-flap {
 
     0%,
     100% {
-        transform: scaleY(1) translateY(0);
+        /* Glide/Hover - Wings fully extended */
+        transform: translateY(0) rotate(0deg) scaleY(1);
+    }
+
+    15% {
+        /* Downstroke begin - slight lift */
+        transform: translateY(-3px) rotate(-1deg) scaleY(0.95);
+    }
+
+    30% {
+        /* Downstroke peak - maximum lift, wings compressed */
+        transform: translateY(-6px) rotate(-2deg) scaleY(0.85);
+    }
+
+    45% {
+        /* Upstroke begin - start recovery */
+        transform: translateY(-4px) rotate(0deg) scaleY(0.9);
+    }
+
+    60% {
+        /* Upstroke mid - wings rising */
+        transform: translateY(-2px) rotate(1deg) scaleY(0.95);
+    }
+
+    75% {
+        /* Recovery - approaching neutral */
+        transform: translateY(0) rotate(0.5deg) scaleY(0.98);
+    }
+}
+
+/* Bird Glide - Smooth horizontal soaring motion */
+@keyframes bird-glide {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(-1deg);
+    }
+
+    25% {
+        transform: translateY(-4px) rotate(0deg);
     }
 
     50% {
-        transform: scaleY(0.6) translateY(4px);
+        transform: translateY(-2px) rotate(1deg);
+    }
+
+    75% {
+        transform: translateY(-5px) rotate(0deg);
     }
 }
 

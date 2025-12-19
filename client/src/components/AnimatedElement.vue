@@ -209,7 +209,8 @@ const getLoopingAnimationStyle = (anim: AnimationType) => {
   // Define Wing animations (Flapping)
   let wingStyle = {};
   const wingAnimName = isButterfly.value ? "butterfly-flap" : "bird-flap";
-  const wingDuration = isButterfly.value ? props.duration * 0.5 : props.duration;
+  // Birds flap faster (~400ms per cycle) for realistic motion
+  const wingDuration = isButterfly.value ? props.duration * 0.5 : props.duration * 0.4;
 
   // Decide if flapping should be active
   const shouldFlap = [
