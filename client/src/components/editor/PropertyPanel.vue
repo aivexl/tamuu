@@ -939,14 +939,25 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                     :value="element.loopAnimation || 'none'"
                     @change="(e: any) => handleUpdate({ loopAnimation: e.target.value })"
                 >
-                    <option value="none">None</option>
-                    <option value="pulse">Pulse</option>
-                    <option value="float">Float</option>
-                    <option value="sway">Sway</option>
-                    <option value="spin">Spin</option>
-                    <option value="shake">Shake</option>
-                    <option value="glow">Glow</option>
-                    <option value="heartbeat">Heartbeat</option>
+                    <optgroup label="Basic">
+                        <option value="none">None</option>
+                        <option value="pulse">Pulse</option>
+                        <option value="float">Float</option>
+                        <option value="sway">Sway</option>
+                        <option value="spin">Spin</option>
+                        <option value="shake">Shake</option>
+                        <option value="glow">Glow</option>
+                        <option value="heartbeat">Heartbeat</option>
+                    </optgroup>
+                    <optgroup label="Flying + Kepak">
+                        <option value="float-flap">Melayang + Kepak</option>
+                        <option value="flap-bob">Kepak di Tempat</option>
+                        <option value="fly-left">Terbang Kiri</option>
+                        <option value="fly-right">Terbang Kanan</option>
+                        <option value="fly-up">Terbang Atas</option>
+                        <option value="fly-down">Terbang Bawah</option>
+                        <option value="fly-random">Terbang Acak (Zigzag)</option>
+                    </optgroup>
                 </select>
                 <p class="text-xs text-slate-400">Combines with entrance animation above</p>
             </div>
