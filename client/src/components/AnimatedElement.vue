@@ -67,7 +67,12 @@ onMounted(() => {
 // DIRECTIONAL VISIBILITY LOGIC (Pro Standard)
 useIntersectionObserver(
     elementRef,
-    ([{ isIntersecting, boundingClientRect, rootBounds }], observerElement) => {
+    (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        
+        const { isIntersecting, boundingClientRect, rootBounds } = entry;
+        
         if (isIntersecting) {
             // Element entered viewport (from any direction)
             tryTriggerAnimation();
@@ -84,10 +89,6 @@ useIntersectionObserver(
                 // We scrolled UP, the element is now below the screen. 
                 // We can reset it to allow it to 're-animate' when we scroll back DOWN.
                 resetAnimation();
-            } else {
-                // The element is ABOVE the viewport. 
-                // DO NOT RESET. Elements above the screen must remain as they are 
-                // so they are already there when you scroll back UP.
             }
         }
     },
@@ -114,6 +115,8 @@ const LOOPING_ANIMATIONS: AnimationType[] = [
   "swing",
   "heartbeat",
   "glow",
+  "bird-flap",
+  "butterfly-flap",
 ];
 
 const ENTRANCE_ANIMATIONS: AnimationType[] = [
@@ -214,6 +217,20 @@ const getLoopingAnimationStyle = (anim: AnimationType) => {
         ...baseStyle,
         animationName: "glow",
         animationDuration: `${props.duration * 2}ms`,
+      };
+    case "bird-flap":
+      return {
+        ...baseStyle,
+        animationName: "bird-flap",
+        animationDuration: `${props.duration}ms`,
+        transformOrigin: "center",
+      };
+    case "butterfly-flap":
+      return {
+        ...baseStyle,
+        animationName: "butterfly-flap",
+        animationDuration: `${props.duration * 0.5}ms`, // Butterflies flap faster
+        transformOrigin: "center",
       };
     default:
       return {};
@@ -401,37 +418,37 @@ const staticContentStyle = computed(() => {
         <template v-if="animation === 'draw-border'">
           <!-- Top -->
           <span 
-            class="absolute top-0 left-0 h-[2px] bg-current transition-all duration-[1000ms] ease-out"
+            class="absolute top-0 left-0 h-[2px] transition-all duration-[1000ms] ease-out"
             :style="{ 
                 width: shouldAnimate ? '100%' : '0%', 
-                backgroundColor: style.borderColor || style.color || '#000',
+                backgroundColor: style?.borderColor || style?.color || '#000',
                 transitionDelay: `${delay}ms` 
             }"
           />
           <!-- Right -->
           <span 
-            class="absolute top-0 right-0 w-[2px] bg-current transition-all duration-[1000ms] ease-out"
+            class="absolute top-0 right-0 w-[2px] transition-all duration-[1000ms] ease-out"
             :style="{ 
                 height: shouldAnimate ? '100%' : '0%', 
-                backgroundColor: style.borderColor || style.color || '#000',
+                backgroundColor: style?.borderColor || style?.color || '#000',
                 transitionDelay: `${delay + 200}ms` 
             }"
           />
           <!-- Bottom -->
           <span 
-            class="absolute bottom-0 right-0 h-[2px] bg-current transition-all duration-[1000ms] ease-out"
+            class="absolute bottom-0 right-0 h-[2px] transition-all duration-[1000ms] ease-out"
             :style="{ 
                 width: shouldAnimate ? '100%' : '0%', 
-                backgroundColor: style.borderColor || style.color || '#000',
+                backgroundColor: style?.borderColor || style?.color || '#000',
                 transitionDelay: `${delay + 400}ms` 
             }"
           />
           <!-- Left -->
           <span 
-            class="absolute bottom-0 left-0 w-[2px] bg-current transition-all duration-[1000ms] ease-out"
+            class="absolute bottom-0 left-0 w-[2px] transition-all duration-[1000ms] ease-out"
             :style="{ 
                 height: shouldAnimate ? '100%' : '0%', 
-                backgroundColor: style.borderColor || style.color || '#000',
+                backgroundColor: style?.borderColor || style?.color || '#000',
                 transitionDelay: `${delay + 600}ms` 
             }"
           />
@@ -441,3 +458,62 @@ const staticContentStyle = computed(() => {
   </div>
 </template>
 
+<style scoped>
+@keyframes sway {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50% { opacity: 0.7; filter: brightness(1.3); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+@keyframes swing {
+  0%, 100% { transform: rotate(-10deg); }
+  50% { transform: rotate(10deg); }
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.1); }
+  40% { transform: scale(1.2); }
+}
+
+@keyframes glow {
+  0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5)); }
+  50% { filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8)); }
+}
+
+/* New Wing Flapping Animations */
+@keyframes bird-flap {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.7) translateY(2px); }
+}
+
+@keyframes butterfly-flap {
+  0%, 100% { transform: perspective(400px) rotateY(0deg); }
+  50% { transform: perspective(400px) rotateY(60deg) scaleX(0.8); }
+}
+</style>

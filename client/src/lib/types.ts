@@ -205,7 +205,9 @@ export type AnimationType =
     | 'pop-in'
     | 'swing'         // Pendulum swing
     | 'heartbeat'     // Love heartbeat effect
-    | 'glow';         // Soft glowing aura
+    | 'glow'          // Soft glowing aura
+    | 'bird-flap'     // Bird wing flapping
+    | 'butterfly-flap'; // Butterfly wing flapping
 
 export type ElementType = 'image' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'rsvp-form' | 'guest_wishes' | 'open_invitation_button' | 'button' | 'shape';
 

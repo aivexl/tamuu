@@ -74,14 +74,19 @@ const computedStyle = computed(() => ({
 }
 
 /* Bird specific animation */
-.bird .flying-image {
-  animation: wing-flap 0.4s ease-in-out infinite;
+.bird .flying-image,
+.bird-warm .flying-image,
+.bird-cool .flying-image {
+  animation: bird-flap 0.6s ease-in-out infinite;
+  transform-origin: center;
 }
 
 /* Butterfly specific animation */
 .butterfly-gold .flying-image,
 .butterfly-blue .flying-image {
-  animation: wing-flutter 0.2s ease-in-out infinite;
+  animation: butterfly-flap 0.3s ease-in-out infinite;
+  perspective: 1000px;
+  transform-origin: center;
 }
 
 /* Horizontal flying path */
@@ -122,23 +127,23 @@ const computedStyle = computed(() => ({
   }
 }
 
-/* Bird wing flapping */
-@keyframes wing-flap {
+/* Bird - Graceful wing flap (ScaleY) */
+@keyframes bird-flap {
   0%, 100% {
     transform: scaleY(1);
   }
   50% {
-    transform: scaleY(0.9);
+    transform: scaleY(0.7) translateY(2px);
   }
 }
 
-/* Butterfly wing flutter */
-@keyframes wing-flutter {
+/* Butterfly - 3D fold flap (RotateY) */
+@keyframes butterfly-flap {
   0%, 100% {
-    transform: scaleX(1) rotateY(0deg);
+    transform: perspective(400px) rotateY(0deg);
   }
   50% {
-    transform: scaleX(0.8) rotateY(20deg);
+    transform: perspective(400px) rotateY(60deg) scaleX(0.8);
   }
 }
 </style>

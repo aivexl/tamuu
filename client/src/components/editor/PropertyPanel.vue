@@ -581,6 +581,10 @@ const flyingDecorationsWithProxy = flyingDecorationKeys.map(d => ({
 const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWithProxy[0]) => {
     if (!store.activeTemplateId || !props.activeSectionType) return;
     
+    // Determine loop animation based on decoration type
+    const isButterfly = decoration.id.startsWith('butterfly');
+    const loopAnim = isButterfly ? 'butterfly-flap' : 'bird-flap';
+    
     const newId = `el-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
     const newElement: TemplateElement = {
         id: newId,
@@ -594,8 +598,9 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
         flipHorizontal: false,
         flipVertical: false,
         animation: 'fade-in',
-        loopAnimation: 'float', // Flying effect
+        loopAnimation: loopAnim as any, // Dedicated wing flapping
         animationSpeed: 3000,
+        animationDuration: isButterfly ? 300 : 800, // Faster for butterfly
     };
     
     await store.addElement(store.activeTemplateId, props.activeSectionType, newElement);
