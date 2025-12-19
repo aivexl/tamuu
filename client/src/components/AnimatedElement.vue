@@ -230,8 +230,8 @@ const getLoopingAnimationStyle = (anim: AnimationType) => {
   };
   
   const wingAnimName = getAssetAnimation();
-  // Butterflies flutter slower (~800ms), birds flap faster (~400ms)
-  const wingDuration = isButterfly.value ? props.duration * 0.8 : props.duration * 0.4;
+  // Butterflies flutter much slower (~1200ms) for graceful motion, birds flap faster (~400ms)
+  const wingDuration = isButterfly.value ? props.duration * 1.2 : props.duration * 0.4;
 
   // Decide if flapping should be active
   const shouldFlap = [
