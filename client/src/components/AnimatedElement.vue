@@ -117,6 +117,14 @@ const LOOPING_ANIMATIONS: AnimationType[] = [
   "glow",
   "bird-flap",
   "butterfly-flap",
+  // Combined flight animations
+  "flap-bob",
+  "float-flap",
+  "fly-left",
+  "fly-right",
+  "fly-up",
+  "fly-down",
+  "fly-random",
 ];
 
 const ENTRANCE_ANIMATIONS: AnimationType[] = [
@@ -229,8 +237,65 @@ const getLoopingAnimationStyle = (anim: AnimationType) => {
       return {
         ...baseStyle,
         animationName: "butterfly-flap",
-        animationDuration: `${props.duration * 0.5}ms`, // Butterflies flap faster
+        animationDuration: `${props.duration * 0.5}ms`,
         transformOrigin: "center",
+      };
+    // Combined flight animations (path + flap)
+    case "flap-bob":
+      return {
+        animationName: "flap-bob, bird-flap",
+        animationDuration: `${props.duration * 2}ms, ${props.duration}ms`,
+        animationIterationCount: "infinite, infinite",
+        animationTimingFunction: "ease-in-out, ease-in-out",
+        animationDelay: `${props.delay}ms, ${props.delay}ms`,
+      };
+    case "float-flap":
+      return {
+        animationName: "float, bird-flap",
+        animationDuration: `${props.duration * 3}ms, ${props.duration}ms`,
+        animationIterationCount: "infinite, infinite",
+        animationTimingFunction: "ease-in-out, ease-in-out",
+        animationDelay: `${props.delay}ms, ${props.delay}ms`,
+      };
+    case "fly-left":
+      return {
+        animationName: "fly-left, bird-flap",
+        animationDuration: `${props.duration * 10}ms, ${props.duration}ms`,
+        animationIterationCount: "infinite, infinite",
+        animationTimingFunction: "linear, ease-in-out",
+        animationDelay: `${props.delay}ms, ${props.delay}ms`,
+      };
+    case "fly-right":
+      return {
+        animationName: "fly-right, bird-flap",
+        animationDuration: `${props.duration * 10}ms, ${props.duration}ms`,
+        animationIterationCount: "infinite, infinite",
+        animationTimingFunction: "linear, ease-in-out",
+        animationDelay: `${props.delay}ms, ${props.delay}ms`,
+      };
+    case "fly-up":
+      return {
+        animationName: "fly-up, bird-flap",
+        animationDuration: `${props.duration * 8}ms, ${props.duration}ms`,
+        animationIterationCount: "infinite, infinite",
+        animationTimingFunction: "linear, ease-in-out",
+        animationDelay: `${props.delay}ms, ${props.delay}ms`,
+      };
+    case "fly-down":
+      return {
+        animationName: "fly-down, bird-flap",
+        animationDuration: `${props.duration * 8}ms, ${props.duration}ms`,
+        animationIterationCount: "infinite, infinite",
+        animationTimingFunction: "linear, ease-in-out",
+        animationDelay: `${props.delay}ms, ${props.delay}ms`,
+      };
+    case "fly-random":
+      return {
+        animationName: "fly-random, bird-flap",
+        animationDuration: `${props.duration * 6}ms, ${props.duration}ms`,
+        animationIterationCount: "infinite, infinite",
+        animationTimingFunction: "ease-in-out, ease-in-out",
+        animationDelay: `${props.delay}ms, ${props.delay}ms`,
       };
     default:
       return {};
@@ -515,5 +580,48 @@ const staticContentStyle = computed(() => {
 @keyframes butterfly-flap {
   0%, 100% { transform: perspective(400px) rotateY(0deg); }
   50% { transform: perspective(400px) rotateY(60deg) scaleX(0.8); }
+}
+
+/* Combined Flight Animations */
+@keyframes flap-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes fly-left {
+  0% { transform: translateX(100vw); opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { transform: translateX(-100px); opacity: 0; }
+}
+
+@keyframes fly-right {
+  0% { transform: translateX(-100px); opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { transform: translateX(100vw); opacity: 0; }
+}
+
+@keyframes fly-up {
+  0% { transform: translateY(100vh); opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { transform: translateY(-100px); opacity: 0; }
+}
+
+@keyframes fly-down {
+  0% { transform: translateY(-100px); opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+@keyframes fly-random {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(40px, -25px); }
+  40% { transform: translate(-30px, 15px); }
+  60% { transform: translate(25px, 35px); }
+  80% { transform: translate(-20px, -10px); }
+  100% { transform: translate(0, 0); }
 }
 </style>

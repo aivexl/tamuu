@@ -95,6 +95,9 @@ const draggedElementId = ref<string | null>(null);
 const dragOverElementId = ref<string | null>(null);
 const dragOverPosition = ref<'above' | 'below' | null>(null);
 
+// Selected flight mode for flying decorations
+const selectedFlightMode = ref('float-flap');
+
 const handleDragStart = (event: DragEvent, elementId: string) => {
     draggedElementId.value = elementId;
     if (event.dataTransfer) {
@@ -578,14 +581,23 @@ const flyingDecorationsWithProxy = flyingDecorationKeys.map(d => ({
     proxyUrl: `${API_URL}/api/upload/r2/${d.key}`,  // Same URL for display
 }));
 
-const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWithProxy[0]) => {
+// Flight mode options for flying decorations
+const flightModeOptions = [
+    { value: 'flap-bob', label: '🪶 Kepak + Naik-Turun', icon: '↕️' },
+    { value: 'float-flap', label: '🌊 Melayang + Kepak', icon: '〰️' },
+    { value: 'fly-left', label: '⬅️ Terbang Kiri', icon: '←' },
+    { value: 'fly-right', label: '➡️ Terbang Kanan', icon: '→' },
+    { value: 'fly-up', label: '⬆️ Terbang Atas', icon: '↑' },
+    { value: 'fly-down', label: '⬇️ Terbang Bawah', icon: '↓' },
+    { value: 'fly-random', label: '🎲 Gerakan Acak', icon: '✧' },
+];
+
+const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWithProxy[0], flightMode: string = 'float-flap') => {
     if (!store.activeTemplateId || !props.activeSectionType) return;
     
-    // Determine loop animation based on decoration type
-    const isButterfly = decoration.id.startsWith('butterfly');
-    const loopAnim = isButterfly ? 'butterfly-flap' : 'bird-flap';
-    
     const newId = `el-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const isButterfly = decoration.id.startsWith('butterfly');
+    
     const newElement: TemplateElement = {
         id: newId,
         type: 'image',
@@ -598,9 +610,9 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
         flipHorizontal: false,
         flipVertical: false,
         animation: 'fade-in',
-        loopAnimation: loopAnim as any, // Dedicated wing flapping
+        loopAnimation: flightMode as any,
         animationSpeed: 3000,
-        animationDuration: isButterfly ? 300 : 800, // Faster for butterfly
+        animationDuration: isButterfly ? 400 : 800,
     };
     
     await store.addElement(store.activeTemplateId, props.activeSectionType, newElement);
@@ -959,26 +971,41 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 
                 <!-- Flying Decorations Quick Add -->
                 <div class="pt-3 border-t border-slate-100">
-                    <Label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Flying Decorations</Label>
+                    <Label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 block">Flying Decorations</Label>
+                    
+                    <!-- Flight Mode Selector -->
+                    <div class="mb-3">
+                        <span class="text-[9px] text-slate-400 block mb-1">Flight Mode</span>
+                        <select 
+                            v-model="selectedFlightMode"
+                            class="w-full rounded-lg border border-slate-200 bg-white/80 backdrop-blur px-3 py-2 text-xs font-medium text-slate-600 shadow-sm transition-all hover:border-indigo-300 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
+                        >
+                            <option v-for="mode in flightModeOptions" :key="mode.value" :value="mode.value">
+                                {{ mode.label }}
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <!-- Decoration Thumbnails -->
                     <div class="grid grid-cols-4 gap-2">
                         <button 
                             v-for="deco in flyingDecorationsWithProxy" 
                             :key="deco.id"
-                            @click="handleAddFlyingDecoration(deco)"
-                            class="group relative aspect-square rounded-xl border border-slate-100 bg-white overflow-hidden hover:border-indigo-300 hover:shadow-md transition-all active:scale-95"
+                            @click="handleAddFlyingDecoration(deco, selectedFlightMode)"
+                            class="group relative aspect-square rounded-xl border border-slate-100 bg-gradient-to-b from-white to-slate-50 overflow-hidden hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-100/50 transition-all active:scale-95"
                             :title="deco.name"
                         >
                             <img 
                                 :src="deco.proxyUrl" 
                                 :alt="deco.name"
-                                class="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform"
+                                class="w-full h-full object-contain p-1.5 group-hover:scale-110 transition-transform duration-200"
                             />
-                            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-1">
-                                <span class="text-[7px] text-white font-medium block truncate text-center">{{ deco.name.split(' ')[0] }}</span>
+                            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/70 via-slate-900/40 to-transparent p-1">
+                                <span class="text-[7px] text-white font-medium block truncate text-center drop-shadow">{{ deco.name.split(' ')[0] }}</span>
                             </div>
                         </button>
                     </div>
-                    <p class="text-[9px] text-slate-400 mt-2 italic">Click to add with floating animation</p>
+                    <p class="text-[9px] text-slate-400 mt-2 text-center">Click to add • Auto wing-flapping</p>
                 </div>
             </div>
 

@@ -207,7 +207,15 @@ export type AnimationType =
     | 'heartbeat'     // Love heartbeat effect
     | 'glow'          // Soft glowing aura
     | 'bird-flap'     // Bird wing flapping
-    | 'butterfly-flap'; // Butterfly wing flapping
+    | 'butterfly-flap' // Butterfly wing flapping
+    // Combined flight animations (path + flap)
+    | 'flap-bob'      // Flap in place + bob up/down
+    | 'float-flap'    // Float + flap
+    | 'fly-left'      // Fly left + flap
+    | 'fly-right'     // Fly right + flap
+    | 'fly-up'        // Fly up + flap
+    | 'fly-down'      // Fly down + flap
+    | 'fly-random';   // Random zigzag + flap
 
 export type ElementType = 'image' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'rsvp-form' | 'guest_wishes' | 'open_invitation_button' | 'button' | 'shape';
 
