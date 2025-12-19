@@ -557,6 +557,41 @@ const handleCopyToSection = async () => {
     targetSectionForCopy.value = '';
 };
 
+// ============================================
+// FLYING DECORATIONS
+// ============================================
+const R2_BASE = 'https://pub-1e0a9ae6152440268987d00a564a8da5.r2.dev/photos/2024/12';
+
+const flyingDecorations = [
+    { id: 'bird-warm', name: 'Bird (Warm)', url: `${R2_BASE}/1766118233945-5hn7z.png` },
+    { id: 'bird-cool', name: 'Bird (Cool)', url: `${R2_BASE}/1766118287972-657f6o.png` },
+    { id: 'butterfly-gold', name: 'Butterfly Gold', url: `${R2_BASE}/1766118295218-q7dx3c.png` },
+    { id: 'butterfly-blue', name: 'Butterfly Blue', url: `${R2_BASE}/1766118302329-grvg9g.png` },
+];
+
+const handleAddFlyingDecoration = async (decoration: typeof flyingDecorations[0]) => {
+    if (!store.activeTemplateId || !props.activeSectionType) return;
+    
+    const newId = `el-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const newElement: TemplateElement = {
+        id: newId,
+        type: 'image',
+        name: decoration.name,
+        imageUrl: decoration.url,
+        position: { x: 50, y: 50 },
+        size: { width: 80, height: 80 },
+        zIndex: 100,
+        rotation: 0,
+        flipHorizontal: false,
+        flipVertical: false,
+        animation: 'fade-in',
+        loopAnimation: 'float', // Flying effect
+        animationSpeed: 3000,
+    };
+    
+    await store.addElement(store.activeTemplateId, props.activeSectionType, newElement);
+};
+
 </script>
 
 <template>
@@ -906,6 +941,30 @@ const handleCopyToSection = async () => {
                         <input type="range" min="0" max="1" step="0.05" :value="element.opacity ?? 1" @input="(e: any) => handleUpdate({ opacity: Number(e.target.value) })" class="flex-1 h-2 bg-slate-200 rounded-lg" />
                         <span class="text-xs w-10 text-right">{{ Math.round((element.opacity ?? 1) * 100) }}%</span>
                     </div>
+                </div>
+                
+                <!-- Flying Decorations Quick Add -->
+                <div class="pt-3 border-t border-slate-100">
+                    <Label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Flying Decorations</Label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button 
+                            v-for="deco in flyingDecorations" 
+                            :key="deco.id"
+                            @click="handleAddFlyingDecoration(deco)"
+                            class="group relative aspect-square rounded-xl border border-slate-100 bg-white overflow-hidden hover:border-indigo-300 hover:shadow-md transition-all active:scale-95"
+                            :title="deco.name"
+                        >
+                            <img 
+                                :src="deco.url" 
+                                :alt="deco.name"
+                                class="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform"
+                            />
+                            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-1">
+                                <span class="text-[7px] text-white font-medium block truncate text-center">{{ deco.name.split(' ')[0] }}</span>
+                            </div>
+                        </button>
+                    </div>
+                    <p class="text-[9px] text-slate-400 mt-2 italic">Click to add with floating animation</p>
                 </div>
             </div>
 
@@ -1527,6 +1586,31 @@ const handleCopyToSection = async () => {
                     />
                 </div>
             </div>
+            
+            <!-- FLYING DECORATIONS (Section Level) -->
+            <div class="space-y-3 pt-4 border-t border-slate-100">
+                <Label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quick Add: Flying Decorations</Label>
+                <div class="grid grid-cols-4 gap-2">
+                    <button 
+                        v-for="deco in flyingDecorations" 
+                        :key="deco.id"
+                        @click="handleAddFlyingDecoration(deco)"
+                        class="group relative aspect-square rounded-xl border border-slate-100 bg-white overflow-hidden hover:border-indigo-300 hover:shadow-md transition-all active:scale-95"
+                        :title="deco.name"
+                    >
+                        <img 
+                            :src="deco.url" 
+                            :alt="deco.name"
+                            class="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform"
+                        />
+                        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-1">
+                            <span class="text-[7px] text-white font-medium block truncate text-center">{{ deco.name.split(' ')[0] }}</span>
+                        </div>
+                    </button>
+                </div>
+                <p class="text-[9px] text-slate-400 italic">Click to add birds/butterflies with floating animation</p>
+            </div>
+            
             <div class="p-4 bg-slate-50 rounded-lg text-center text-slate-400 text-sm">
                 Select an element to edit its properties.
             </div>
