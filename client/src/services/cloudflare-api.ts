@@ -196,21 +196,48 @@ export async function getRSVPResponses(
 }
 
 // ============================================
-// UPLOAD API
+// UPLOAD API (WITH AUTO-COMPRESSION)
 // ============================================
+
+import { compressImageToFile, shouldCompress } from "@/lib/image-compress";
 
 interface UploadResult {
     success: boolean;
     url: string;
+    directUrl?: string;
     key: string;
     filename: string;
     size: number;
     type: string;
+    // Compression info
+    originalSize?: number;
+    compressedSize?: number;
+    compressionRatio?: number;
 }
 
 export async function uploadFile(file: File): Promise<UploadResult> {
+    // Auto-compress large images before upload
+    let fileToUpload = file;
+    let wasCompressed = false;
+
+    if (shouldCompress(file)) {
+        try {
+            console.log(`🔄 Compressing ${file.name}...`);
+            fileToUpload = await compressImageToFile(file, {
+                maxWidth: 1920,
+                maxHeight: 1920,
+                quality: 0.85,
+                outputType: 'jpeg', // Use JPEG for best compression
+            });
+            wasCompressed = true;
+        } catch (err) {
+            console.warn('Compression failed, uploading original:', err);
+            fileToUpload = file;
+        }
+    }
+
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", fileToUpload);
 
     const response = await fetch(`${API_BASE_URL}/api/upload`, {
         method: "POST",
@@ -224,7 +251,29 @@ export async function uploadFile(file: File): Promise<UploadResult> {
         );
     }
 
-    return response.json();
+    const result = await response.json() as UploadResult;
+
+    // Add compression info to result
+    if (wasCompressed) {
+        const compressionRatio = Math.round((1 - fileToUpload.size / file.size) * 100);
+        console.log(`✅ Upload complete. Compressed ${compressionRatio}% (${formatBytes(file.size)} → ${formatBytes(fileToUpload.size)})`);
+
+        return {
+            ...result,
+            originalSize: file.size,
+            compressedSize: fileToUpload.size,
+            compressionRatio,
+        };
+    }
+
+    return result;
+}
+
+// Helper to format bytes
+function formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function getProxyImageUrl(originalUrl: string): string {

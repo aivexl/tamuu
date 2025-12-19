@@ -1,3 +1,13 @@
+/**
+ * Image Utilities
+ * Optimized for 10,000 users/month - FREE TIER
+ * 
+ * Features:
+ * - Proxy URL generation for R2 images
+ * - Preload caching (prevents duplicate loads)
+ * - Batch preloading for sections
+ */
+
 // R2 domains that need proxying
 const R2_DOMAINS = [
     "pub-1e0a9ae6152440268987d00a564a8da5.r2.dev",
@@ -5,19 +15,26 @@ const R2_DOMAINS = [
 ];
 
 // API URL for proxying (uses environment variable or defaults)
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://tamuu-api.shafania57.workers.dev";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://tamuu-api.workers.dev";
+
+// Preload cache - prevents duplicate image loads
+const preloadedImages = new Set<string>();
+const imageLoadPromises = new Map<string, Promise<void>>();
 
 /**
  * Converts an R2 URL to a proxied URL
- *
- * @param url - Original image URL
- * @returns Proxied URL or original if not R2
+ * Returns immediately if already proxied
  */
 export function getProxiedImageUrl(url: string | null | undefined): string {
     if (!url) return "";
 
     // Skip data URLs (base64)
     if (url.startsWith("data:")) {
+        return url;
+    }
+
+    // Skip if already proxied
+    if (url.includes('/api/upload/proxy')) {
         return url;
     }
 
@@ -40,7 +57,6 @@ export function getProxiedImageUrl(url: string | null | undefined): string {
     return url;
 }
 
-
 /**
  * Checks if a URL is from R2 storage
  */
@@ -58,19 +74,105 @@ export function isR2Url(url: string | null | undefined): boolean {
 }
 
 /**
- * Preload an image URL (useful for critical images)
+ * Check if image is already preloaded
+ */
+export function isPreloaded(url: string | null | undefined): boolean {
+    if (!url) return true;
+    const proxiedUrl = getProxiedImageUrl(url);
+    return preloadedImages.has(proxiedUrl);
+}
+
+/**
+ * Preload an image URL with caching
+ * Returns cached promise if already loading, resolves immediately if already loaded
  */
 export function preloadImage(url: string | null | undefined): Promise<void> {
-    return new Promise((resolve, reject) => {
-        if (!url) {
-            resolve();
-            return;
-        }
+    if (!url) return Promise.resolve();
 
-        const proxiedUrl = getProxiedImageUrl(url);
+    const proxiedUrl = getProxiedImageUrl(url);
+
+    // Already preloaded - resolve immediately
+    if (preloadedImages.has(proxiedUrl)) {
+        return Promise.resolve();
+    }
+
+    // Currently loading - return existing promise
+    const existingPromise = imageLoadPromises.get(proxiedUrl);
+    if (existingPromise) {
+        return existingPromise;
+    }
+
+    // Start new preload
+    const promise = new Promise<void>((resolve, reject) => {
         const img = new Image();
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error(`Failed to preload: ${url}`));
+
+        img.onload = () => {
+            preloadedImages.add(proxiedUrl);
+            imageLoadPromises.delete(proxiedUrl);
+            resolve();
+        };
+
+        img.onerror = () => {
+            imageLoadPromises.delete(proxiedUrl);
+            reject(new Error(`Failed to preload: ${url}`));
+        };
+
         img.src = proxiedUrl;
     });
+
+    imageLoadPromises.set(proxiedUrl, promise);
+    return promise;
+}
+
+/**
+ * Batch preload multiple images
+ * Useful for preloading all images in a section
+ */
+export async function preloadImages(urls: (string | null | undefined)[]): Promise<void> {
+    const validUrls = urls.filter((url): url is string => !!url && !isPreloaded(url));
+
+    if (validUrls.length === 0) return;
+
+    // Load in parallel, but don't fail if some images fail
+    await Promise.allSettled(validUrls.map(preloadImage));
+}
+
+/**
+ * Preload critical images for a section
+ * Prioritizes background and first few elements
+ */
+export async function preloadSectionImages(
+    backgroundUrl?: string | null,
+    elementUrls?: (string | null | undefined)[]
+): Promise<void> {
+    // Load background first (critical)
+    if (backgroundUrl) {
+        await preloadImage(backgroundUrl).catch(() => {
+            console.warn('Failed to preload background:', backgroundUrl);
+        });
+    }
+
+    // Load element images (first 3 only for initial view)
+    if (elementUrls?.length) {
+        const priorityUrls = elementUrls.slice(0, 3);
+        await preloadImages(priorityUrls);
+    }
+}
+
+/**
+ * Get preload statistics
+ */
+export function getPreloadStats(): { loaded: number; loading: number } {
+    return {
+        loaded: preloadedImages.size,
+        loading: imageLoadPromises.size,
+    };
+}
+
+/**
+ * Clear preload cache (useful for memory management)
+ */
+export function clearPreloadCache(): void {
+    preloadedImages.clear();
+    imageLoadPromises.clear();
 }

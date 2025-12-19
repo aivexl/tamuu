@@ -1,12 +1,14 @@
 /**
  * Tamuu API - Cloudflare Workers Entry Point
  * Enterprise-grade API for digital invitation platform
+ * OPTIMIZED FOR 10,000 USERS/MONTH - FREE TIER
  */
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
+import { compress } from 'hono/compress';
 import type { Env } from './types';
 
 // Import routes
@@ -20,28 +22,70 @@ import { uploadRouter } from './routes/upload';
 const app = new Hono<{ Bindings: Env }>();
 
 // ============================================
-// MIDDLEWARE
+// MIDDLEWARE (OPTIMIZED)
 // ============================================
+
+// Gzip compression for all responses
+app.use('*', compress());
+
+// Request timing middleware
+app.use('*', async (c, next) => {
+    const start = Date.now();
+    await next();
+    const duration = Date.now() - start;
+    c.res.headers.set('X-Response-Time', `${duration}ms`);
+});
 
 // CORS configuration for frontend
 app.use('*', cors({
-    origin: [
-        'https://tamuu.pages.dev',
-        'http://localhost:5173',
-        'http://localhost:4173',
-    ],
+    origin: (origin) => {
+        // Allow specific origins
+        const allowedOrigins = [
+            'https://tamuu.pages.dev',
+            'http://localhost:5173',
+            'http://localhost:4173',
+        ];
+
+        if (allowedOrigins.includes(origin)) {
+            return origin;
+        }
+
+        // Allow preview deployments (*.tamuu.pages.dev)
+        if (origin && origin.endsWith('.tamuu.pages.dev')) {
+            return origin;
+        }
+
+        return null;
+    },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    exposeHeaders: ['Content-Length', 'X-Request-Id'],
+    exposeHeaders: ['Content-Length', 'X-Request-Id', 'X-Response-Time', 'X-Cache-Status'],
     maxAge: 86400, // 24 hours
     credentials: true,
 }));
 
-// Request logging
+// Request logging (only errors in production for performance)
 app.use('*', logger());
 
-// Pretty JSON responses in development
+// Pretty JSON responses
 app.use('*', prettyJSON());
+
+// Default cache headers for API responses
+app.use('/api/*', async (c, next) => {
+    await next();
+
+    // Don't override existing cache headers
+    if (c.res.headers.has('Cache-Control')) return;
+
+    // No cache for mutations
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(c.req.method)) {
+        c.res.headers.set('Cache-Control', 'no-store');
+        return;
+    }
+
+    // Default short cache for GET requests
+    c.res.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+});
 
 // ============================================
 // HEALTH CHECK

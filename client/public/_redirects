@@ -1,0 +1,6 @@
+# Cloudflare Pages Redirects
+# SPA routing - all routes to index.html
+# OPTIMIZED FOR 10,000 USERS/MONTH - FREE TIER
+
+# SPA fallback - catch all routes and serve index.html
+/*    /index.html    200

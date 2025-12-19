@@ -578,6 +578,20 @@ export class DatabaseService {
     }
 
     /**
+     * Get single element by ID
+     * Used for cleanup operations
+     */
+    async getElement(elementId: string): Promise<TemplateElement | null> {
+        const result = await this.db
+            .prepare('SELECT * FROM template_elements WHERE id = ?')
+            .bind(elementId)
+            .first<DBTemplateElement>();
+
+        if (!result) return null;
+        return this.mapElementToResponse(result);
+    }
+
+    /**
      * Delete element
      */
     async deleteElement(elementId: string): Promise<void> {
@@ -675,7 +689,7 @@ export class DatabaseService {
             animationDelay: el.animation_delay,
             animationSpeed: el.animation_speed,
             animationDuration: el.animation_duration,
-            animationTrigger: el.animation_trigger || 'scroll',
+            animationTrigger: (el.animation_trigger || 'scroll') as 'scroll' | 'click' | 'open_btn',
             content: el.content || undefined,
             imageUrl: el.image_url || undefined,
             textStyle: safeParseJSON(el.text_style, undefined),

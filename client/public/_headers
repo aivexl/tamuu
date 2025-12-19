@@ -1,0 +1,42 @@
+# Cloudflare Pages Headers
+# OPTIMIZED FOR 10,000 USERS/MONTH - FREE TIER
+
+# HTML pages - short cache, revalidate
+/*.html
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Index file - shorter cache for updates
+/index.html
+  Cache-Control: public, max-age=1800, stale-while-revalidate=86400
+  X-Content-Type-Options: nosniff
+
+# JavaScript chunks - long cache (hashed filenames)
+/assets/js/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# CSS files - long cache (hashed filenames)
+/assets/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+# Images - long cache
+/assets/images/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Fonts - very long cache
+/assets/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+# All other static assets - default long cache
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Security headers for all pages
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
