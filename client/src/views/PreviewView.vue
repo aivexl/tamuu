@@ -76,32 +76,34 @@ const setSectionRef = (el: any, index: number) => {
 
 
 
-const visibleSections = ref<Set<number>>(new Set());
+const visibleSections = ref<number[]>([]);
 // Track which sections have been clicked (for click trigger)
-const clickedSections = ref<Set<number>>(new Set());
+const clickedSections = ref<number[]>([]);
+
+// Helper: Check if section index is in the visible list
+const isSectionVisible = (index: number): boolean => {
+    return visibleSections.value.includes(index);
+};
 
 // Helper: Determine if zoom animation should be active based on trigger
 const shouldZoom = (section: any, index: number): boolean => {
-    if (!section.zoomConfig?.enabled) return false;
+    if (!section.zoomConfig?.enabled) {
+        return false;
+    }
     const trigger = section.zoomConfig?.trigger || 'scroll';
     let active = false;
     switch (trigger) {
         case 'scroll':
-            active = visibleSections.value.has(index);
+            active = isSectionVisible(index);
             break;
         case 'click':
-            active = clickedSections.value.has(index);
+            active = clickedSections.value.includes(index);
             break;
         case 'open_btn':
             active = isOpened.value;
             break;
         default:
-            active = visibleSections.value.has(index);
-    }
-    
-    // DEBUG: Only log if active or if it was recently toggled to avoid spam
-    if (active) {
-        console.log(`[Preview] Zoom ACTIVE for section ${index} (${trigger})`);
+            active = isSectionVisible(index);
     }
     return active;
 };
@@ -109,7 +111,9 @@ const shouldZoom = (section: any, index: number): boolean => {
 // Handler for click-triggered zoom on sections
 const handleSectionClick = (index: number, section: any) => {
     if (section.zoomConfig?.enabled && section.zoomConfig?.trigger === 'click') {
-        clickedSections.value.add(index);
+        if (!clickedSections.value.includes(index)) {
+            clickedSections.value.push(index);
+        }
     }
 };
 
@@ -146,10 +150,20 @@ onMounted(async () => {
         entries.forEach(entry => {
             const index = parseInt((entry.target as HTMLElement).dataset.index || '-1');
             if (entry.isIntersecting && index !== -1) {
-                visibleSections.value.add(index);
+                // Only add if not already present (for reactivity)
+                if (!visibleSections.value.includes(index)) {
+                    visibleSections.value.push(index);
+                }
             }
         });
     }, { threshold: 0.1 });
+    
+    // Auto-trigger Section 0 visibility (it's already in view on mount)
+    setTimeout(() => {
+        if (!visibleSections.value.includes(0)) {
+            visibleSections.value.push(0);
+        }
+    }, 100);
 
     // Initialize Lenis
     if (scrollContainer.value) {
