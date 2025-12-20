@@ -78,7 +78,8 @@ useIntersectionObserver(
         if (isIntersecting) {
             // Element entered viewport (from any direction)
             tryTriggerAnimation();
-        } else if (rootBounds && props.triggerMode === 'auto') {
+        } else if (rootBounds && props.triggerMode === 'auto' && !props.immediate) {
+            // Only reset if NOT immediate - immediate elements should always stay visible
             /**
              * DIRECTIONAL RESET: 
              * 'Pro' standard means we only reset an animation if the element is currently 
