@@ -99,6 +99,8 @@ CREATE TABLE IF NOT EXISTS template_elements (
     flip_horizontal INTEGER DEFAULT 0, -- Boolean as INTEGER
     flip_vertical INTEGER DEFAULT 0, -- Boolean as INTEGER
     motion_path_config TEXT, -- JSON object for custom paths
+    zoom_config TEXT, -- JSON object for zoom animation
+    parallax_factor REAL DEFAULT 0, -- Mouse parallax effect
     can_edit_position INTEGER DEFAULT 0, -- User Permission
     can_edit_content INTEGER DEFAULT 0, -- User Permission
     is_content_protected INTEGER DEFAULT 0, -- User Permission

@@ -438,10 +438,11 @@ export class DatabaseService {
           content, image_url, text_style, icon_style, countdown_config,
           rsvp_form_config, guest_wishes_config, open_invitation_config,
           rotation, flip_horizontal, flip_vertical, motion_path_config,
+          zoom_config,
           can_edit_position, can_edit_content, is_content_protected, show_copy_button,
           created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
             .bind(
                 id,
@@ -471,6 +472,7 @@ export class DatabaseService {
                 element.flipHorizontal ? 1 : 0,
                 element.flipVertical ? 1 : 0,
                 element.motionPathConfig ? JSON.stringify(element.motionPathConfig) : null,
+                element.zoomConfig ? JSON.stringify(element.zoomConfig) : null,
                 element.canEditPosition ? 1 : 0,
                 element.canEditContent ? 1 : 0,
                 element.isContentProtected ? 1 : 0,
@@ -585,6 +587,14 @@ export class DatabaseService {
             sets.push('"motion_path_config" = ?');
             values.push(updates.motionPathConfig ? JSON.stringify(updates.motionPathConfig) : null);
         }
+        if (updates.zoomConfig !== undefined) {
+            sets.push('"zoom_config" = ?');
+            values.push(updates.zoomConfig ? JSON.stringify(updates.zoomConfig) : null);
+        }
+        if (updates.parallaxFactor !== undefined) {
+            sets.push('"parallax_factor" = ?');
+            values.push(updates.parallaxFactor);
+        }
 
         // Permissions
         if (updates.canEditPosition !== undefined) {
@@ -602,10 +612,6 @@ export class DatabaseService {
         if (updates.showCopyButton !== undefined) {
             sets.push('"show_copy_button" = ?');
             values.push(updates.showCopyButton ? 1 : 0);
-        }
-        if (updates.parallaxFactor !== undefined) {
-            sets.push('"parallax_factor" = ?');
-            values.push(updates.parallaxFactor);
         }
 
         // Move "No Updates" check to after all possible property processing
@@ -748,6 +754,7 @@ export class DatabaseService {
             flipHorizontal: el.flip_horizontal === 1,
             flipVertical: el.flip_vertical === 1,
             motionPathConfig: safeParseJSON(el.motion_path_config, undefined),
+            zoomConfig: safeParseJSON(el.zoom_config, undefined),
             parallaxFactor: el.parallax_factor || 0,
 
             // Permissions

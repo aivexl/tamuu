@@ -391,11 +391,19 @@ const updateRSVPConfig = (updates: Partial<RSVPFormConfig>) => {
     handleUpdate({ rsvpFormConfig: { ...current, ...updates } });
 };
 
-// Icon config update helper
-const updateIconStyle = (updates: Partial<IconStyle>) => {
+// Zoom config update helper
+const updateZoomConfig = (updates: Partial<ZoomAnimationConfig>) => {
     if (!element.value) return;
-    const current = element.value.iconStyle || { iconName: 'instagram', iconColor: '#b8860b', iconSize: 48 };
-    handleUpdate({ iconStyle: { ...current, ...updates } });
+    const current = element.value.zoomConfig || {
+        enabled: false,
+        direction: 'in' as const,
+        scale: 1.5,
+        duration: 2000,
+        targetRegion: { x: 50, y: 50, width: 50, height: 50 },
+        behavior: 'reset' as const,
+        trigger: 'scroll' as const
+    };
+    handleUpdate({ zoomConfig: { ...current, ...updates } });
 };
 
 // Define extended icon lists
@@ -1525,6 +1533,110 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                         <option value="gift">Gift</option>
                         <option value="feather">Feather</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- ZOOM ANIMATION SETTINGS -->
+            <div class="pt-4 border-t space-y-3">
+                <div class="flex items-center justify-between">
+                    <Label class="text-xs font-semibold text-slate-500 uppercase">Zoom Effect</Label>
+                    <div class="flex items-center gap-1">
+                        <span class="text-[10px] text-slate-400">{{ element.zoomConfig?.enabled ? 'ON' : 'OFF' }}</span>
+                        <input 
+                            type="checkbox" 
+                            :checked="element.zoomConfig?.enabled" 
+                            @change="(e: any) => updateZoomConfig({ enabled: e.target.checked })"
+                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3 h-3"
+                        />
+                    </div>
+                </div>
+
+                <div v-if="element.zoomConfig?.enabled" class="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <span class="text-[10px] text-slate-400">Direction</span>
+                            <select 
+                                class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
+                                :value="element.zoomConfig?.direction || 'in'"
+                                @change="(e: any) => updateZoomConfig({ direction: e.target.value })"
+                            >
+                                <option value="in">Zoom In</option>
+                                <option value="out">Zoom Out</option>
+                            </select>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400">After Animation</span>
+                            <select 
+                                class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
+                                :value="element.zoomConfig?.behavior || 'reset'"
+                                @change="(e: any) => updateZoomConfig({ behavior: e.target.value })"
+                            >
+                                <option value="reset">Return to Normal</option>
+                                <option value="stay">Stay Zoomed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center text-[10px] mb-1">
+                            <span class="text-slate-400">Zoom Scale</span>
+                            <span class="font-medium text-slate-600">{{ element.zoomConfig?.scale || 1.5 }}x</span>
+                        </div>
+                        <input 
+                            type="range" 
+                            min="1.1" 
+                            max="3.0" 
+                            step="0.1" 
+                            :value="element.zoomConfig?.scale || 1.5"
+                            @input="(e: any) => updateZoomConfig({ scale: Number(e.target.value) })"
+                            class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                        />
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center text-[10px] mb-1">
+                            <span class="text-slate-400">Animation Duration</span>
+                            <span class="font-medium text-slate-600">{{ element.zoomConfig?.duration || 2000 }}ms</span>
+                        </div>
+                        <input 
+                            type="range" 
+                            min="500" 
+                            max="5000" 
+                            step="100" 
+                            :value="element.zoomConfig?.duration || 2000"
+                            @input="(e: any) => updateZoomConfig({ duration: Number(e.target.value) })"
+                            class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                        />
+                    </div>
+
+                    <div class="space-y-2 pt-1">
+                        <span class="text-[10px] font-semibold text-slate-500 uppercase">Target Focal Point (%)</span>
+                        <div class="grid grid-cols-2 gap-x-3 gap-y-2">
+                            <div class="flex flex-col gap-1">
+                                <span class="text-[9px] text-slate-400 uppercase">Horizontal (X)</span>
+                                <input 
+                                    type="number" 
+                                    :value="element.zoomConfig?.targetRegion?.x" 
+                                    @input="(e: any) => updateZoomConfig({ targetRegion: { ...element.zoomConfig!.targetRegion, x: Number(e.target.value) } })"
+                                    class="w-full rounded border border-slate-200 p-1 text-xs"
+                                    min="0" max="100"
+                                />
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <span class="text-[9px] text-slate-400 uppercase">Vertical (Y)</span>
+                                <input 
+                                    type="number" 
+                                    :value="element.zoomConfig?.targetRegion?.y" 
+                                    @input="(e: any) => updateZoomConfig({ targetRegion: { ...element.zoomConfig!.targetRegion, y: Number(e.target.value) } })"
+                                    class="w-full rounded border border-slate-200 p-1 text-xs"
+                                    min="0" max="100"
+                                />
+                            </div>
+                        </div>
+                        <p class="text-[9px] text-slate-400 italic mt-1">
+                            (50, 50) is the center. 0 is top/left, 100 is bottom/right.
+                        </p>
+                    </div>
                 </div>
             </div>
 

@@ -32,6 +32,7 @@ interface Props {
   showCopyButton?: boolean;
   elementContent?: string;
   parallaxFactor?: number; // -1 to 1, for mouse-tracking 3D depth
+  zoomConfig?: import("@/lib/types").ZoomAnimationConfig;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -50,6 +51,7 @@ const props = withDefaults(defineProps<Props>(), {
   showCopyButton: false,
   elementContent: '',
   parallaxFactor: 0,
+  zoomConfig: undefined,
 });
 
 import { Copy, Check } from 'lucide-vue-next';
@@ -204,6 +206,72 @@ watch(() => props.forceTrigger, (force) => {
         tryTriggerAnimation();
     }
 }, { immediate: true });
+
+// --- ZOOM ANIMATION LOGIC ---
+const isZoomActive = ref(false);
+const zoomTimeout = ref<number | null>(null);
+
+const zoomStyle = computed(() => {
+    if (!props.zoomConfig?.enabled) return { width: '100%', height: '100%' };
+    
+    const config = props.zoomConfig;
+    const originX = config.targetRegion?.x ?? 50;
+    const originY = config.targetRegion?.y ?? 50;
+    
+    // Zoom In: Scale > 1, Zoom Out: Scale < 1 initially or reversed
+    // For "Zoom In", we start at 1, go to Config.Scale
+    // For "Zoom Out", technically we should start at Config.Scale and go to 1, 
+    // but usually "Zoom Out" means starting from a zoomed state.
+    // Let's implement Zoom In as 1 -> Scale, and Zoom Out as Scale -> 1 (resetting).
+    // Or simpler: Direction 'in' means scale is Scale, Direction 'out' could mean start at Scale.
+    // User requested "zoom in dan zoom out".
+    
+    const scale = isZoomActive.value 
+        ? (config.direction === 'in' ? config.scale : 1)
+        : (config.direction === 'in' ? 1 : config.scale);
+
+    return {
+        width: '100%',
+        height: '100%',
+        transition: `transform ${config.duration}ms ease-in-out`,
+        transformOrigin: `${originX}% ${originY}%`,
+        transform: `scale(${scale})`,
+    };
+});
+
+const startZoomAnimation = () => {
+    if (!props.zoomConfig?.enabled) return;
+    
+    // Clear any existing reset timeout
+    if (zoomTimeout.value) {
+        clearTimeout(zoomTimeout.value);
+        zoomTimeout.value = null;
+    }
+
+    requestAnimationFrame(() => {
+        isZoomActive.value = true;
+
+        if (props.zoomConfig!.behavior === 'reset') {
+            zoomTimeout.value = window.setTimeout(() => {
+                isZoomActive.value = false;
+                zoomTimeout.value = null;
+            }, (props.zoomConfig!.duration || 2000) + (props.zoomConfig!.resetDelay || 1000));
+        }
+    });
+};
+
+// Hook into the trigger logic
+watch(shouldAnimate, (active) => {
+    if (active && props.zoomConfig?.enabled) {
+        startZoomAnimation();
+    } else if (!active) {
+        isZoomActive.value = false;
+        if (zoomTimeout.value) {
+            clearTimeout(zoomTimeout.value);
+            zoomTimeout.value = null;
+        }
+    }
+});
 
 const LOOPING_ANIMATIONS: AnimationType[] = [
   "sway",
@@ -550,15 +618,17 @@ const parallaxStyle = computed(() => {
   <div ref="elementRef" :class="class" :style="rootStyle" @click="handleClick">
     <!-- 1. Entrance Layer -->
     <div :style="entranceStyle" class="relative">
-      <!-- 2. Path Layer (Float, Fly, Sway) -->
-      <div :style="loopStyles.pathStyle" class="relative w-full h-full">
-        <!-- 3. Wing Layer (Flap) -->
-        <div :style="loopStyles.wingStyle" class="relative w-full h-full">
-          <!-- 4. Parallax Layer (Mouse 3D) -->
-          <div :style="parallaxStyle" class="relative w-full h-full">
-            <!-- 5. Content Layer (Static transforms) -->
-            <div 
-              :style="staticContentStyle" 
+      <!-- 2. Zoom Layer -->
+      <div :style="zoomStyle" class="relative overflow-hidden">
+        <!-- 3. Path Layer (Float, Fly, Sway) -->
+        <div :style="loopStyles.pathStyle" class="relative w-full h-full">
+          <!-- 4. Wing Layer (Flap) -->
+          <div :style="loopStyles.wingStyle" class="relative w-full h-full">
+            <!-- 5. Parallax Layer (Mouse 3D) -->
+            <div :style="parallaxStyle" class="relative w-full h-full">
+              <!-- 6. Content Layer (Static transforms) -->
+              <div 
+                :style="staticContentStyle" 
               class="relative w-full h-full"
               :class="{ 'select-none pointer-events-none': isContentProtected && !showCopyButton }"
             >

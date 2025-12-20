@@ -300,6 +300,22 @@ export interface CountdownConfig {
     };
 }
 
+export interface ZoomAnimationConfig {
+    enabled: boolean;
+    direction: 'in' | 'out';           // Zoom in or out
+    scale: number;                     // Target scale (e.g., 1.5 = 150%)
+    duration: number;                  // Animation duration in ms
+    targetRegion: {                    // Virtual box (relative coordinates 0-100%)
+        x: number;                       // Left offset %
+        y: number;                       // Top offset %
+        width: number;                   // Width %
+        height: number;                  // Height %
+    };
+    behavior: 'stay' | 'reset';        // After animation: stay zoomed or reset
+    resetDelay?: number;               // Delay before reset (if behavior = 'reset')
+    trigger: 'scroll' | 'click' | 'open_btn';
+}
+
 export type ElementStyle = 'classic' | 'minimal' | 'modern' | 'elegant' | 'rustic' | 'romantic' | 'bold' | 'vintage' | 'boho' | 'luxury' | 'dark' | 'glass' | 'outline' | 'geometric' | 'floral' | 'pastel' | 'monochrome' | 'neon' | 'brutalist' | 'cloud';
 
 export interface RSVPFormConfig {
@@ -379,6 +395,7 @@ export interface TemplateElement {
 
     // 3D Motion & Effects
     parallaxFactor?: number;         // -1 to 1, where 0 is static, positive = moves with mouse, negative = opposite
+    zoomConfig?: ZoomAnimationConfig; // Custom zoom in/out with target region
 
     // Legacy fields - keeping for backward compat if needed, but prioritizing above
     isUserEditable?: boolean;

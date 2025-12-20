@@ -102,8 +102,9 @@ export interface DBTemplateElement {
     rotation: number;
     flip_horizontal: number; // SQLite boolean
     flip_vertical: number; // SQLite boolean
+    zoom_config: string | null;         // JSON string (ZoomAnimationConfig)
     motion_path_config: string | null; // JSON string
-    parallax_factor: number;
+    parallax_factor: number | null;
     can_edit_position: number;
     can_edit_content: number;
     is_content_protected: number;
@@ -208,6 +209,7 @@ export interface TemplateElement {
     flipHorizontal?: boolean;
     flipVertical?: boolean;
     motionPathConfig?: MotionPathConfig;
+    zoomConfig?: ZoomAnimationConfig;
     parallaxFactor?: number;
     canEditPosition?: boolean;
     canEditContent?: boolean;
@@ -357,4 +359,19 @@ export interface MotionPathConfig {
     loop?: boolean;
     enabled?: boolean;
     closed?: boolean; // Whether the path is a closed loop
+}
+export interface ZoomAnimationConfig {
+    enabled: boolean;
+    direction: 'in' | 'out';
+    scale: number;
+    duration: number;
+    targetRegion: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
+    behavior: 'stay' | 'reset';
+    resetDelay?: number;
+    trigger: 'scroll' | 'click' | 'open_btn';
 }

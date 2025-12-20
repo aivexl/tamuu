@@ -27,3 +27,6 @@ ALTER TABLE template_sections ADD COLUMN ken_burns_enabled INTEGER DEFAULT 0;
 
 -- Parallax Factor for 3D Mouse Tracking  
 ALTER TABLE template_elements ADD COLUMN parallax_factor REAL DEFAULT 0;
+
+-- Zoom Animation Configuration
+ALTER TABLE template_elements ADD COLUMN zoom_config TEXT;
