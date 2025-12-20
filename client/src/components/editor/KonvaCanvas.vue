@@ -436,15 +436,18 @@ watch(
         if (props.selectedElementId) return; // Element selection takes priority
 
         await nextTick();
-        const tr = transformer.value.getNode();
-        const stageNode = stage.value.getStage();
+        const tr = transformer.value?.getNode?.();
+        if (!tr) return; // Early exit if transformer node is not available
+        
+        const stageNode = stage.value?.getStage?.();
+        if (!stageNode) return;
 
         if (active && enabled) {
             const zoomBoxNode = stageNode.findOne('#zoom-target-box');
             if (zoomBoxNode) {
                 tr.nodes([zoomBoxNode]);
                 tr.moveToTop();
-                tr.getLayer().batchDraw();
+                tr.getLayer()?.batchDraw();
             }
         } else if (!props.selectedElementId) {
             tr.nodes([]);
