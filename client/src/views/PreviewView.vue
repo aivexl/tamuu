@@ -84,16 +84,26 @@ const clickedSections = ref<Set<number>>(new Set());
 const shouldZoom = (section: any, index: number): boolean => {
     if (!section.zoomConfig?.enabled) return false;
     const trigger = section.zoomConfig?.trigger || 'scroll';
+    let active = false;
     switch (trigger) {
         case 'scroll':
-            return visibleSections.value.has(index);
+            active = visibleSections.value.has(index);
+            break;
         case 'click':
-            return clickedSections.value.has(index);
+            active = clickedSections.value.has(index);
+            break;
         case 'open_btn':
-            return isOpened.value;
+            active = isOpened.value;
+            break;
         default:
-            return visibleSections.value.has(index);
+            active = visibleSections.value.has(index);
     }
+    
+    // DEBUG: Only log if active or if it was recently toggled to avoid spam
+    if (active) {
+        console.log(`[Preview] Zoom ACTIVE for section ${index} (${trigger})`);
+    }
+    return active;
 };
 
 // Handler for click-triggered zoom on sections

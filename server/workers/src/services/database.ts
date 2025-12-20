@@ -352,13 +352,18 @@ export class DatabaseService {
                 values.push(updates.kenBurnsEnabled ? 1 : 0);
             }
             if (updates.zoomConfig !== undefined) {
+                console.log(`[Database] Updating zoom_config for ${sectionType}:`, JSON.stringify(updates.zoomConfig));
                 sets.push('zoom_config = ?');
                 values.push(updates.zoomConfig ? JSON.stringify(updates.zoomConfig) : null);
             }
 
             if (sets.length > 1) {
                 const query = `UPDATE template_sections SET ${sets.join(', ')} WHERE id = ?`;
+                console.log(`[Database] Executing UPDATE query for section ${existing.id}`);
                 await this.db.prepare(query).bind(...values, existing.id).run();
+                console.log(`[Database] UPDATE SUCCESS for section ${existing.id}`);
+            } else {
+                console.log(`[Database] No updates needed for section ${existing.id}`);
             }
 
             return existing.id;

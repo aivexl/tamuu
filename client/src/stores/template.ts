@@ -60,8 +60,13 @@ export const useTemplateStore = defineStore("template", {
             this.error = null;
 
             try {
+                console.log(`[Store] Fetching template ${id}...`);
                 const template = await CloudflareAPI.getTemplate(id);
+                console.log(`[Store] Fetch result for ${id}:`, template ? 'FOUND' : 'NOT FOUND');
                 if (template) {
+                    console.log(`[Store] Section zoomConfigs from DB:`,
+                        Object.keys(template.sections).map(s => ({ section: s, zoom: template.sections[s]?.zoomConfig }))
+                    );
                     const existing = this.templates.find((t) => t.id === id);
                     if (existing) {
                         // CTO-LEVEL FIX: DB is authoritative for all PERSISTED data.
@@ -228,13 +233,20 @@ export const useTemplateStore = defineStore("template", {
             if (template) {
                 const section = template.sections[sectionType];
                 if (section) {
+                    console.log(`[Store] Optimistically updating section ${sectionType}:`, updates);
                     // Optimistic update
                     Object.assign(section, updates);
+                } else {
+                    console.warn(`[Store] Section ${sectionType} not found in template ${templateId}`);
                 }
+            } else {
+                console.warn(`[Store] Template ${templateId} not found`);
             }
 
             try {
+                console.log(`[Store] Sending section update to API: ${sectionType}`, updates);
                 await CloudflareAPI.updateSection(templateId, sectionType, updates);
+                console.log(`[Store] API updateSection SUCCESS for ${sectionType}`);
             } catch (error: any) {
                 console.error("[Store] Failed to update section:", error);
                 throw error;
