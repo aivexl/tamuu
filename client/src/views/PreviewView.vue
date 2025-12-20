@@ -144,29 +144,30 @@ const handleOpenInvitation = async () => {
     // Step 1: Trigger any elements in Section 1 set to 'Open' animation
     isOpened.value = true; 
     
-    // Step 2: Brief elegant delay (let the button click/S1 anims breathe)
+    // Step 2: Immediate elegant reveal
     setTimeout(() => {
         flowMode.value = true;
         isRevealing.value = false;
         
         nextTick(() => {
             if (scrollContainer.value) {
-                if (lenis) lenis.stop();
-                
                 // Land exactly at the top of Section 2
-                // Scroll offset must account for the CSS scale transform
                 const scrollOffset = coverHeightComputed.value * scaleFactor.value;
-                scrollContainer.value.scrollTop = scrollOffset;
                 
-                setTimeout(() => {
-                    if (lenis) {
-                        lenis.resize();
-                        lenis.start();
-                    }
-                }, 50);
+                if (lenis) {
+                    lenis.stop();
+                    lenis.scrollTo(scrollOffset, { immediate: true });
+                    
+                    setTimeout(() => {
+                        lenis?.resize();
+                        lenis?.start();
+                    }, 50);
+                } else {
+                    scrollContainer.value.scrollTop = scrollOffset;
+                }
             }
         });
-    }, 400); // Quick transition for a "Direct" feel
+    }, 300); // Slightly faster for responsiveness
 };
 
 // Dimensions & Scaling
@@ -342,16 +343,16 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 </script>
 
 <template>
-    <div ref="mainViewport" class="h-[100dvh] w-screen overflow-hidden transition-colors duration-500 relative bg-white" :style="viewportBackgroundStyle">
+    <div ref="mainViewport" class="h-[100dvh] w-screen overflow-hidden transition-colors duration-500 relative bg-white flex flex-col items-center" :style="viewportBackgroundStyle">
         
         <!-- MAIN SCROLL ENGINE -->
         <div ref="scrollContainer" class="scroll-container w-full h-full" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'" :style="!flowMode ? { height: '100%' } : {}">
                 <div 
-                    class="invitation-parent absolute top-0 left-1/2" 
+                    class="invitation-parent relative mx-auto" 
                     :style="{ 
                         width: `${CANVAS_WIDTH}px`, 
                         height: flowMode ? 'auto' : `${coverHeightComputed}px`,
-                        transform: `translateX(-50%) scale(${scaleFactor})`, 
+                        transform: `scale(${scaleFactor})`, 
                         transformOrigin: 'top center'
                     }"
                 >
