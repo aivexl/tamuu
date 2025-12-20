@@ -141,33 +141,35 @@ const handleOpenInvitation = async () => {
     if (openBtnTriggered.value) return;
     openBtnTriggered.value = true;
     
-    // Step 1: Trigger any elements in Section 1 set to 'Open' animation
+    // Step 1: Open state
     isOpened.value = true; 
     
-    // Step 2: Immediate elegant reveal
+    // Step 2: Transition to Flow Mode
     setTimeout(() => {
         flowMode.value = true;
-        isRevealing.value = false;
         
-        nextTick(() => {
+        nextTick(async () => {
             if (scrollContainer.value) {
-                // Land exactly at the top of Section 2
+                // Ensure Lenis and DOM know about the new height
+                if (lenis) {
+                    lenis.resize();
+                    lenis.start();
+                }
+
                 const scrollOffset = coverHeightComputed.value * scaleFactor.value;
                 
+                // Jump to Section 2
                 if (lenis) {
-                    lenis.stop();
-                    lenis.scrollTo(scrollOffset, { immediate: true });
-                    
-                    setTimeout(() => {
-                        lenis?.resize();
-                        lenis?.start();
-                    }, 50);
+                    lenis.scrollTo(scrollOffset, { immediate: true, force: true });
                 } else {
                     scrollContainer.value.scrollTop = scrollOffset;
                 }
+
+                // Final sync
+                setTimeout(() => lenis?.resize(), 100);
             }
         });
-    }, 300); // Slightly faster for responsiveness
+    }, 400); 
 };
 
 // Dimensions & Scaling
@@ -178,17 +180,21 @@ const scaleFactor = computed(() => {
     const isPortrait = windowHeight.value >= windowWidth.value;
     
     if (isPortrait) {
-        // Fit width perfectly
         return windowWidth.value / CANVAS_WIDTH;
     }
-    // Fit height perfectly
     return windowHeight.value / CANVAS_HEIGHT;
 });
 
 const coverHeightComputed = computed(() => {
     if (typeof scaleFactor.value !== 'number') return CANVAS_HEIGHT; 
-    // This is the height required for section 1 to fill the visible viewport at current scale
     return Math.max(CANVAS_HEIGHT, windowHeight.value / scaleFactor.value);
+});
+
+const scaledTotalHeight = computed(() => {
+    if (!orderedSections.value.length) return 0;
+    // Section 1 height + (Number of sections - 1) * CANVAS_HEIGHT
+    const totalContentHeight = coverHeightComputed.value + (orderedSections.value.length - 1) * CANVAS_HEIGHT;
+    return totalContentHeight * scaleFactor.value;
 });
 
 const getElementStyle = (el: any, sectionIndex: number) => {
@@ -346,13 +352,15 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
     <div ref="mainViewport" class="h-[100dvh] w-screen overflow-hidden transition-colors duration-500 relative bg-white flex flex-col items-center" :style="viewportBackgroundStyle">
         
         <!-- MAIN SCROLL ENGINE -->
-        <div ref="scrollContainer" class="scroll-container w-full h-full" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'" :style="!flowMode ? { height: '100%' } : {}">
+        <div ref="scrollContainer" class="scroll-container w-full h-full" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'">
+            <!-- Height Spacer (Essential for scaled scroll) -->
+            <div :style="{ height: flowMode ? `${scaledTotalHeight}px` : '100%', width: '100%' }" class="relative overflow-hidden">
                 <div 
-                    class="invitation-parent relative mx-auto" 
+                    class="invitation-parent absolute top-0 left-1/2" 
                     :style="{ 
                         width: `${CANVAS_WIDTH}px`, 
                         height: flowMode ? 'auto' : `${coverHeightComputed}px`,
-                        transform: `scale(${scaleFactor})`, 
+                        transform: `translateX(-50%) scale(${scaleFactor})`, 
                         transformOrigin: 'top center'
                     }"
                 >
@@ -365,7 +373,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                 <!-- 
                     THE UNIFIED ATOMIC CONTAINER
                 -->
-                <div class="relative w-full overflow-hidden" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? 'auto' : `${coverHeightComputed}px` }">
+                <div class="relative w-full" :class="!flowMode ? 'overflow-hidden' : ''" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? 'auto' : `${coverHeightComputed}px` }">
                     
                     <!-- NATURAL FLOW MODE (Active after Reveal) -->
                     <div v-if="flowMode" class="flex flex-col w-full relative h-auto">
