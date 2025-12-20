@@ -28,7 +28,7 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const getR2PublicUrl = (env: Env) => env.R2_PUBLIC_URL || 'https://pub-1e0a9ae6152440268987d00a564a8da5.r2.dev';
 
 // API Base URL for proxy
-const getApiBaseUrl = () => 'https://tamuu-api.workers.dev';
+const getApiBaseUrl = () => 'https://tamuu-api.shafania57.workers.dev';
 
 /**
  * Extract R2 key from various URL formats
