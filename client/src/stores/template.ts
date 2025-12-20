@@ -64,33 +64,39 @@ export const useTemplateStore = defineStore("template", {
                 if (template) {
                     const existing = this.templates.find((t) => t.id === id);
                     if (existing) {
-                        // ENTERPRISE FIX: Merge element properties instead of replacing
-                        // This preserves local changes that haven't synced yet
+                        // ENTERPRISE FIX: Merge section & element properties instead of replacing
                         Object.keys(template.sections).forEach(sectionType => {
-                            const section = template.sections[sectionType];
-                            if (!section) return;
+                            const dbSection = template.sections[sectionType];
+                            const localSection = existing.sections[sectionType];
+                            if (!dbSection || !localSection) return;
 
-                            const dbElements = section.elements || [];
-                            const localElements = existing.sections[sectionType]?.elements || [];
+                            // 1. Merge section-level properties (backgroundColor, particleType, etc.)
+                            // Local properties override DB properties unless they are undefined
+                            Object.keys(dbSection).forEach(key => {
+                                const k = key as keyof SectionDesign;
+                                if (k !== 'elements' && localSection[k] !== undefined) {
+                                    (dbSection as any)[k] = localSection[k];
+                                }
+                            });
 
-                            // Merge strategy: for each DB element, check if we have local changes
-                            // Local properties take precedence (they're more recent user changes)
+                            // 2. Merge elements
+                            const dbElements = dbSection.elements || [];
+                            const localElements = localSection.elements || [];
+
                             const mergedElements = dbElements.map(dbEl => {
                                 const localEl = localElements.find(e => e.id === dbEl.id);
                                 if (localEl) {
-                                    // Merge: local changes override stale server data
                                     return { ...dbEl, ...localEl };
                                 }
                                 return dbEl;
                             });
 
-                            // Also keep any temp elements that are pending creation
                             const pendingElements = localElements.filter(el =>
                                 (el.id.startsWith('temp-') || el.id.startsWith('el-')) &&
                                 !mergedElements.find(e => e.id === el.id)
                             );
 
-                            section.elements = [...mergedElements, ...pendingElements];
+                            dbSection.elements = [...mergedElements, ...pendingElements];
                         });
 
                         // Replace the template (with merged sections)
@@ -201,6 +207,30 @@ export const useTemplateStore = defineStore("template", {
                 await CloudflareAPI.updateElement(targetId, updates, templateId);
             } catch (error: any) {
                 console.error("[Store] Failed to update element:", error);
+            }
+        },
+
+        async updateSection(
+            templateId: string,
+            sectionType: string,
+            updates: Partial<SectionDesign>
+        ) {
+            console.log('[Store] updateSection called:', { templateId, sectionType, updates });
+
+            const template = this.templates.find((t) => t.id === templateId);
+            if (template) {
+                const section = template.sections[sectionType];
+                if (section) {
+                    // Optimistic update
+                    Object.assign(section, updates);
+                }
+            }
+
+            try {
+                await CloudflareAPI.updateSection(templateId, sectionType, updates);
+            } catch (error: any) {
+                console.error("[Store] Failed to update section:", error);
+                throw error;
             }
         },
 

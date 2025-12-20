@@ -5,10 +5,11 @@ import { useTemplateStore } from '@/stores/template';
 import { PREDEFINED_SECTION_TYPES, type SectionDesign } from '@/lib/types';
 import KonvaCanvas from '@/components/editor/KonvaCanvas.vue';
 import PropertyPanel from '@/components/editor/PropertyPanel.vue';
+import ParticleOverlay from '@/components/effects/ParticleOverlay.vue';
 import AddElementPanel from '@/components/editor/AddElementPanel.vue';
 import Button from '@/components/ui/Button.vue';
 import * as CloudflareAPI from '@/services/cloudflare-api';
-import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, Maximize, Check, Upload } from 'lucide-vue-next';
+import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, Maximize, Check, Upload, Play } from 'lucide-vue-next';
 
 const route = useRoute();
 const router = useRouter();
@@ -502,7 +503,13 @@ const handleElementTransformEnd = async (sectionKey: string, id: string, props: 
                         </div>
 
                         <!-- Canvas Konva -->
-                        <div :class="{'opacity-40 grayscale': section.isVisible === false}" class="transition-all duration-300">
+                        <div 
+                            :class="{
+                                'opacity-40 grayscale': section.isVisible === false,
+                                'ken-burns': getSectionData(section.key).kenBurnsEnabled
+                            }" 
+                            class="transition-all duration-300 relative overflow-hidden"
+                        >
                              <KonvaCanvas 
                                 :section-type="section.key"
                                 :elements="getSectionData(section.key).elements || []"
@@ -510,10 +517,18 @@ const handleElementTransformEnd = async (sectionKey: string, id: string, props: 
                                 :background-color="getSectionData(section.key).backgroundColor"
                                 :background-url="getSectionData(section.key).backgroundUrl"
                                 :overlay-opacity="getSectionData(section.key).overlayOpacity"
+                                :particle-type="getSectionData(section.key).particleType"
+                                :ken-burns-enabled="getSectionData(section.key).kenBurnsEnabled"
                                 @elementSelect="(id) => { activeSection = section.key; handleElementSelect(id); }"
                                 @elementDrag="(id, pos) => handleElementDrag(section.key, id, pos)"
                                 @elementDragEnd="(id, pos) => handleElementDragEnd(section.key, id, pos)"
                                 @elementTransformEnd="(id, props) => handleElementTransformEnd(section.key, id, props)"
+                             />
+
+                             <!-- Particle Overlay -->
+                             <ParticleOverlay 
+                                v-if="getSectionData(section.key).particleType && getSectionData(section.key).particleType !== 'none'"
+                                :type="getSectionData(section.key).particleType!" 
                              />
                         </div>
                     </div>

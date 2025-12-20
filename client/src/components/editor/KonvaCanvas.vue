@@ -39,6 +39,8 @@ interface Props {
   overlayOpacity?: number;
   scale?: number;
   viewMode?: 'admin' | 'user';
+  particleType?: 'none' | 'butterflies' | 'petals' | 'leaves' | 'sparkles';
+  kenBurnsEnabled?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {

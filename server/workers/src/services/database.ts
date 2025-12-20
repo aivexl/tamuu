@@ -152,9 +152,7 @@ export class DatabaseService {
                 transitionEffect: (section.transition_effect as string) || 'none',
                 transitionDuration: (section.transition_duration as number) || 1000,
                 transitionTrigger: (section.transition_trigger as any) || 'scroll',
-                // @ts-ignore - new fields
                 particleType: (section.particle_type as any) || 'none',
-                // @ts-ignore - new fields
                 kenBurnsEnabled: section.ken_burns_enabled === 1,
                 elements: sectionElements.map((el) => this.mapElementToResponse(el)),
             };
@@ -605,6 +603,10 @@ export class DatabaseService {
             sets.push('"show_copy_button" = ?');
             values.push(updates.showCopyButton ? 1 : 0);
         }
+        if (updates.parallaxFactor !== undefined) {
+            sets.push('"parallax_factor" = ?');
+            values.push(updates.parallaxFactor);
+        }
 
         // Move "No Updates" check to after all possible property processing
         if (sets.length === 1 && sets[0] === 'updated_at = ?') return;
@@ -746,12 +748,13 @@ export class DatabaseService {
             flipHorizontal: el.flip_horizontal === 1,
             flipVertical: el.flip_vertical === 1,
             motionPathConfig: safeParseJSON(el.motion_path_config, undefined),
+            parallaxFactor: el.parallax_factor || 0,
 
             // Permissions
-            canEditPosition: (el as any).can_edit_position === 1,
-            canEditContent: (el as any).can_edit_content === 1,
-            isContentProtected: (el as any).is_content_protected === 1,
-            showCopyButton: (el as any).show_copy_button === 1,
+            canEditPosition: el.can_edit_position === 1,
+            canEditContent: el.can_edit_content === 1,
+            isContentProtected: el.is_content_protected === 1,
+            showCopyButton: el.show_copy_button === 1,
         };
     }
 }

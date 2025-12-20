@@ -4,15 +4,12 @@ import { useTemplateStore } from '@/stores/template';
 import { type TemplateElement, type SectionDesign, type CountdownConfig, type RSVPFormConfig, type IconStyle, type ElementStyle } from '@/lib/types';
 import { iconPaths } from '@/lib/icon-paths';
 import { uploadFile } from '@/services/cloudflare-api';
-import * as CloudflareAPI from '@/services/cloudflare-api';
 import Input from '@/components/ui/Input.vue';
 import Label from '@/components/ui/Label.vue';
 import Button from '@/components/ui/Button.vue';
 import { 
-    Upload, Image as ImageIcon, Copy, GripVertical, Square,
-    Circle, Play, Star, Minus, Heart, Cloud, Leaf, Flower, Sun, Moon,
-    MessageCircle, MessageSquare, Phone, Flag, Shield, Hexagon,
-    Award, Bell, Bookmark, Camera, Gift, Music, Umbrella,
+    Upload, Square, Circle, Star, Minus, Heart, Cloud, Leaf, Flower, Sun, Moon,
+    MessageCircle, MessageSquare, Hexagon,
     AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignCenterVertical, AlignEndVertical,
     Trash2, ChevronsUp, ArrowUp, ArrowDown, ChevronsDown,
     FlipHorizontal2, FlipVertical2
@@ -218,55 +215,12 @@ const handleUpdate = (updates: Partial<TemplateElement>) => {
 
 // Section update handler - updates local state AND persists to DB
 const handleSectionUpdate = async (updates: Partial<SectionDesign>) => {
-    console.log('[PropertyPanel] handleSectionUpdate called', {
-        activeSectionType: props.activeSectionType,
-        activeTemplateId: store.activeTemplateId,
-        updates
-    });
+    if (!props.activeSectionType || !store.activeTemplateId) return;
     
-    if (!props.activeSectionType || !store.activeTemplateId) {
-        console.error('[PropertyPanel] Missing required data', {
-            activeSectionType: props.activeSectionType,
-            activeTemplateId: store.activeTemplateId
-        });
-        return;
-    }
-    
-    const template = store.templates.find(t => t.id === store.activeTemplateId);
-    if (!template) {
-        console.error('[PropertyPanel] Template not found:', store.activeTemplateId);
-        return;
-    }
-    
-    if (!template.sections) {
-        console.error('[PropertyPanel] Template has no sections object');
-        template.sections = {};
-    }
-    
-    const section = template.sections[props.activeSectionType];
-    if (!section) {
-        console.error('[PropertyPanel] Section not found:', props.activeSectionType);        // Initialize section if missing
-        template.sections[props.activeSectionType] = { elements: [], ...updates };
-    } else {
-        // 1. Optimistic local update
-        Object.assign(section, updates);
-        console.log('[PropertyPanel] Local state updated:', section);
-    }
-    
-    // 2. Persist to database (sending FULL data for robust inserts)
     try {
-        const sectionToSend = template.sections[props.activeSectionType];
-        console.log('[PropertyPanel] Sending to API:', {
-            templateId: store.activeTemplateId,
-            sectionType: props.activeSectionType,
-            data: sectionToSend
-        });
-        
-        await CloudflareAPI.updateSection(store.activeTemplateId, props.activeSectionType, sectionToSend);
-        console.log('[PropertyPanel] API call successful');
+        await store.updateSection(store.activeTemplateId, props.activeSectionType, updates);
     } catch (error) {
-        console.error('[PropertyPanel] Failed to persist section update:', error);
-        // Optional: revert optimistic update on failure
+        console.error('[PropertyPanel] Failed to update section:', error);
     }
 };
 
@@ -427,6 +381,7 @@ const updateCountdownConfig = (updates: Partial<CountdownConfig>) => {
 const updateRSVPConfig = (updates: Partial<RSVPFormConfig>) => {
     if (!element.value) return;
     const current = element.value.rsvpFormConfig || {
+        style: 'classic' as ElementStyle,
         backgroundColor: '#ffffff', textColor: '#000000', buttonColor: '#b8860b', buttonTextColor: '#ffffff',
         borderColor: '#e5e5e5', title: 'RSVP Form', showNameField: true, showEmailField: true, showPhoneField: true,
         showMessageField: true, showAttendanceField: true, nameLabel: 'Nama', emailLabel: 'Email',
@@ -1223,7 +1178,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                         />
                     </div>
 
-                    <div v-if="element.shapeConfig?.shapeType === 'star'" class="space-y-1.5">
+                    <div v-if="element.shapeConfig?.shapeType.startsWith('star')" class="space-y-1.5">
                         <div class="flex justify-between items-center">
                             <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Points</span>
                             <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{{ element.shapeConfig?.points || 5 }}</span>

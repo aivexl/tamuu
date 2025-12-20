@@ -69,6 +69,8 @@ export interface DBTemplateSection {
     transition_effect: string | null;
     transition_duration: number | null;
     transition_trigger: string | null;
+    particle_type: string | null;
+    ken_burns_enabled: number; // SQLite boolean
     created_at: string;
     updated_at: string;
 }
@@ -101,6 +103,11 @@ export interface DBTemplateElement {
     flip_horizontal: number; // SQLite boolean
     flip_vertical: number; // SQLite boolean
     motion_path_config: string | null; // JSON string
+    parallax_factor: number;
+    can_edit_position: number;
+    can_edit_content: number;
+    is_content_protected: number;
+    show_copy_button: number;
     created_at: string;
     updated_at: string;
 }
@@ -171,6 +178,8 @@ export interface SectionDesign {
     transitionEffect?: string;
     transitionDuration?: number;
     transitionTrigger?: 'scroll' | 'click' | 'open_btn';
+    particleType?: 'none' | 'butterflies' | 'petals' | 'leaves' | 'sparkles';
+    kenBurnsEnabled?: boolean;
     elements: TemplateElement[];
 }
 
@@ -199,6 +208,11 @@ export interface TemplateElement {
     flipHorizontal?: boolean;
     flipVertical?: boolean;
     motionPathConfig?: MotionPathConfig;
+    parallaxFactor?: number;
+    canEditPosition?: boolean;
+    canEditContent?: boolean;
+    isContentProtected?: boolean;
+    showCopyButton?: boolean;
 }
 
 export interface CustomSection {
