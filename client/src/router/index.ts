@@ -6,6 +6,7 @@ const DashboardView = () => import("../views/DashboardView.vue");
 const EditorView = () => import("../views/EditorView.vue");
 const AdminView = () => import("../views/AdminView.vue");
 const PreviewView = () => import("../views/PreviewView.vue");
+const TemplateStoreView = () => import("../views/TemplateStoreView.vue");
 
 // Auth views
 const LoginView = () => import("../views/auth/LoginView.vue");
@@ -50,6 +51,11 @@ const router = createRouter({
             path: "/admin/templates",
             name: "admin",
             component: AdminView,
+        },
+        {
+            path: "/templates",
+            name: "template-store",
+            component: TemplateStoreView,
         },
         // Customer routes (protected) - placeholder for now
         {

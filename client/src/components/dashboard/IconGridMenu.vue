@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
 import {
   Palette,
   Music,
@@ -11,6 +12,7 @@ import {
 } from "lucide-vue-next";
 import { useInvitationStore } from "@/stores/invitation";
 
+const router = useRouter();
 const store = useInvitationStore();
 
 const menuItems = [
@@ -25,6 +27,13 @@ const menuItems = [
 ];
 
 const handleMenuClick = (id: string) => {
+  // Navigate to dedicated pages for certain menus
+  if (id === 'templates') {
+    router.push('/templates');
+    return;
+  }
+  
+  // Open modal for other menus
   store.setActivePanel(id);
 };
 </script>

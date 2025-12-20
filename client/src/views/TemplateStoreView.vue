@@ -1,0 +1,133 @@
+<script setup lang="ts">
+import { onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { useTemplateStore } from '@/stores/template';
+import { useInvitationStore } from '@/stores/invitation';
+import { ArrowLeft, Eye, Check, Loader2 } from 'lucide-vue-next';
+import Button from '@/components/ui/Button.vue';
+import SafeImage from '@/components/ui/SafeImage.vue';
+
+const router = useRouter();
+const templateStore = useTemplateStore();
+const invitationStore = useInvitationStore();
+
+// Current selected template
+const currentTemplateId = computed(() => invitationStore.invitation.templateId);
+
+onMounted(async () => {
+    if (templateStore.templates.length === 0) {
+        await templateStore.fetchTemplates();
+    }
+});
+
+const selectTemplate = (templateId: string) => {
+    invitationStore.updateTemplateId(templateId);
+    router.push('/dashboard');
+};
+
+const previewTemplate = (templateId: string) => {
+    window.open(`/preview/${templateId}`, '_blank');
+};
+
+const goBack = () => {
+    router.push('/dashboard');
+};
+</script>
+
+<template>
+    <div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-teal-50">
+        <!-- Header -->
+        <header class="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-10">
+            <div class="max-w-6xl mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <button 
+                            @click="goBack"
+                            class="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                            <ArrowLeft class="w-5 h-5 text-gray-600" />
+                        </button>
+                        <div>
+                            <h1 class="text-xl font-bold text-gray-900">Pilih Template</h1>
+                            <p class="text-sm text-gray-500">Pilih desain untuk undangan Anda</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div v-if="templateStore.isLoading" class="flex flex-col items-center justify-center py-20">
+            <Loader2 class="w-10 h-10 text-teal-600 animate-spin mb-4" />
+            <p class="text-gray-500">Memuat template...</p>
+        </div>
+
+        <!-- Template Grid -->
+        <main v-else class="max-w-6xl mx-auto px-4 py-8">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <div 
+                    v-for="template in templateStore.templates" 
+                    :key="template.id"
+                    class="bg-white rounded-2xl shadow-lg overflow-hidden border-2 transition-all duration-200 hover:shadow-xl"
+                    :class="currentTemplateId === template.id ? 'border-teal-500 ring-2 ring-teal-200' : 'border-transparent'"
+                >
+                    <!-- Thumbnail -->
+                    <div class="aspect-[3/4] bg-gray-100 relative">
+                        <SafeImage 
+                            :src="template.thumbnail" 
+                            :alt="template.name"
+                            class="w-full h-full object-cover"
+                        />
+                        
+                        <!-- Selected Badge -->
+                        <div 
+                            v-if="currentTemplateId === template.id"
+                            class="absolute top-3 right-3 bg-teal-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1"
+                        >
+                            <Check class="w-3 h-3" />
+                            Terpilih
+                        </div>
+                    </div>
+
+                    <!-- Info & Actions -->
+                    <div class="p-4 space-y-3">
+                        <div>
+                            <h3 class="font-semibold text-gray-900 truncate">{{ template.name }}</h3>
+                            <p class="text-xs text-gray-500 capitalize">{{ template.globalTheme?.category || 'Modern' }}</p>
+                        </div>
+
+                        <!-- Always Visible Buttons -->
+                        <div class="flex gap-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                class="flex-1 flex items-center justify-center gap-1"
+                                @click="previewTemplate(template.id)"
+                            >
+                                <Eye class="w-4 h-4" />
+                                Preview
+                            </Button>
+                            <Button 
+                                :variant="currentTemplateId === template.id ? 'secondary' : 'primary'"
+                                size="sm" 
+                                class="flex-1 flex items-center justify-center gap-1"
+                                @click="selectTemplate(template.id)"
+                            >
+                                <Check class="w-4 h-4" />
+                                {{ currentTemplateId === template.id ? 'Terpilih' : 'Pilih' }}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="templateStore.templates.length === 0 && !templateStore.isLoading" class="text-center py-20">
+                <p class="text-gray-500 mb-4">Belum ada template tersedia</p>
+                <Button variant="outline" @click="templateStore.fetchTemplates()">
+                    Muat Ulang
+                </Button>
+            </div>
+        </main>
+    </div>
+</template>
