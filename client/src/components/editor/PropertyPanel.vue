@@ -1753,7 +1753,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <select 
                                     class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
                                     :value="currentSection.zoomConfig?.direction || 'in'"
-                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, direction: e.target.value } })"
+                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), direction: e.target.value } })"
                                 >
                                     <option value="in">Zoom In</option>
                                     <option value="out">Zoom Out</option>
@@ -1764,7 +1764,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <select 
                                     class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
                                     :value="currentSection.zoomConfig?.trigger || 'scroll'"
-                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, trigger: e.target.value } })"
+                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), trigger: e.target.value } })"
                                 >
                                     <option value="scroll">On Scroll</option>
                                     <option value="click">On Click</option>
@@ -1778,7 +1778,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <select 
                                     class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
                                     :value="currentSection.zoomConfig?.behavior || 'reset'"
-                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, behavior: e.target.value } })"
+                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), behavior: e.target.value } })"
                                 >
                                     <option value="reset">Return to Normal</option>
                                     <option value="stay">Stay Zoomed</option>

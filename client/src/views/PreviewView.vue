@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useTemplateStore } from '@/stores/template';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/lib/constants';
 import AnimatedElement from '@/components/AnimatedElement.vue';
-import { ArrowLeft, Maximize2 } from 'lucide-vue-next';
+import { ArrowLeft, Maximize2, Minimize2 } from 'lucide-vue-next';
 import { iconPaths } from '@/lib/icon-paths';
 import { shapePaths } from '@/lib/shape-paths';
 import { getProxiedImageUrl } from "@/lib/image-utils";
@@ -80,21 +80,19 @@ const visibleSections = ref<number[]>([]);
 // Track which sections have been clicked (for click trigger)
 const clickedSections = ref<number[]>([]);
 
-// Helper: Check if section index is in the visible list
-const isSectionVisible = (index: number): boolean => {
-    return visibleSections.value.includes(index);
-};
-
 // Helper: Determine if zoom animation should be active based on trigger
 const shouldZoom = (section: any, index: number): boolean => {
-    if (!section.zoomConfig?.enabled) {
+    const config = section?.zoomConfig;
+    if (!config || !config.enabled) {
         return false;
     }
-    const trigger = section.zoomConfig?.trigger || 'scroll';
+
+    const trigger = config.trigger || 'scroll';
     let active = false;
+
     switch (trigger) {
         case 'scroll':
-            active = isSectionVisible(index);
+            active = visibleSections.value.includes(index);
             break;
         case 'click':
             active = clickedSections.value.includes(index);
@@ -103,16 +101,19 @@ const shouldZoom = (section: any, index: number): boolean => {
             active = isOpened.value;
             break;
         default:
-            active = isSectionVisible(index);
+            active = visibleSections.value.includes(index);
     }
+    
     return active;
 };
 
 // Handler for click-triggered zoom on sections
 const handleSectionClick = (index: number, section: any) => {
+    console.log(`[Zoom] handleSectionClick called for section ${index}, trigger:`, section.zoomConfig?.trigger);
     if (section.zoomConfig?.enabled && section.zoomConfig?.trigger === 'click') {
         if (!clickedSections.value.includes(index)) {
             clickedSections.value.push(index);
+            console.log(`[Zoom] Section ${index} added to clickedSections:`, clickedSections.value);
         }
     }
 };
@@ -156,7 +157,7 @@ onMounted(async () => {
                 }
             }
         });
-    }, { threshold: 0.1 });
+    }, { threshold: 0.1, root: scrollContainer.value });
     
     // Auto-trigger Section 0 visibility (it's already in view on mount)
     setTimeout(() => {
@@ -209,6 +210,11 @@ const handleOpenInvitation = async () => {
     // Step 1: Trigger any elements in Section 1 set to 'Open' animation
     isOpened.value = true; 
     
+    // Step 1.5: Add Section 1 to visibleSections to trigger its scroll-based zoom
+    if (!visibleSections.value.includes(1)) {
+        visibleSections.value.push(1);
+    } 
+    
     // Step 2: Brief elegant delay (let the button click/S1 anims breathe)
     setTimeout(() => {
         flowMode.value = true;
@@ -222,6 +228,35 @@ const handleOpenInvitation = async () => {
                 // Scroll offset must account for the CSS scale transform
                 const scrollOffset = coverHeightComputed.value * scaleFactor.value;
                 scrollContainer.value.scrollTop = scrollOffset;
+                
+                // Setup scroll listener to detect visible sections
+                const handleScroll = () => {
+                    if (!scrollContainer.value) return;
+                    const containerRect = scrollContainer.value.getBoundingClientRect();
+                    const containerTop = containerRect.top;
+                    const containerBottom = containerRect.bottom;
+                    
+                    sectionRefs.value.forEach((sectionEl, index) => {
+                        if (!sectionEl) return;
+                        const rect = sectionEl.getBoundingClientRect();
+                        // Check if section is at least 10% visible in the container
+                        const sectionTop = rect.top;
+                        const sectionBottom = rect.bottom;
+                        const sectionHeight = rect.height;
+                        const visibleHeight = Math.min(sectionBottom, containerBottom) - Math.max(sectionTop, containerTop);
+                        const isVisible = visibleHeight >= sectionHeight * 0.1;
+                        
+                        if (isVisible && !visibleSections.value.includes(index)) {
+                            visibleSections.value.push(index);
+                        }
+                    });
+                };
+                
+                // Add scroll listener
+                scrollContainer.value.addEventListener('scroll', handleScroll);
+                
+                // Run once to catch initially visible sections
+                setTimeout(handleScroll, 100);
                 
                 setTimeout(() => {
                     if (lenis) {
@@ -482,34 +517,40 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             }"
                             @click="handleSectionClick(index, section)"
                         >
-                            <!-- Background Image with Zoom/Ken Burns Effect -->
+                            <!-- ZOOM CONTAINER: Wraps ALL section content for unified zoom effect -->
                             <div
-                                v-if="section.backgroundUrl"
-                                class="absolute inset-0 bg-cover bg-center"
+                                class="absolute inset-0 w-full h-full"
                                 :class="{ 
                                     'animate-section-zoom-in': section.zoomConfig?.direction === 'in' && shouldZoom(section, index),
-                                    'animate-section-zoom-out': section.zoomConfig?.direction === 'out' && shouldZoom(section, index),
-                                    'animate-ken-burns': section.kenBurnsEnabled && !section.zoomConfig?.enabled
+                                    'animate-section-zoom-out': section.zoomConfig?.direction === 'out' && shouldZoom(section, index)
                                 }"
                                 :style="{ 
-                                    backgroundImage: `url(${getProxiedImageUrl(section.backgroundUrl)})`,
                                     transformOrigin: section.zoomConfig?.enabled ? `${section.zoomConfig?.targetRegion?.x ?? 50}% ${section.zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
                                     '--zoom-scale': section.zoomConfig?.scale || 1.3,
-                                    '--zoom-duration': `${section.zoomConfig?.duration || 5000}ms`
+                                    '--zoom-duration': `${section.zoomConfig?.duration || 5000}ms`,
+                                    '--zoom-fill-mode': section.zoomConfig?.behavior === 'reset' ? 'none' : 'forwards'
                                 }"
-                            ></div>
+                            >
+                                <!-- Background Image -->
+                                <div
+                                    v-if="section.backgroundUrl"
+                                    class="absolute inset-0 bg-cover bg-center"
+                                    :class="{ 'animate-ken-burns': section.kenBurnsEnabled && !section.zoomConfig?.enabled }"
+                                    :style="{ backgroundImage: `url(${getProxiedImageUrl(section.backgroundUrl)})` }"
+                                ></div>
 
-                            <!-- Overlay -->
-                            <div v-if="section.overlayOpacity && section.overlayOpacity > 0" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: section.overlayOpacity }" />
-                            
-                            <!-- Particle Overlay -->
-                            <ParticleOverlay 
-                                v-if="section.particleType && section.particleType !== 'none'" 
-                                :type="section.particleType" 
-                            />
+                                <!-- Overlay -->
+                                <div v-if="section.overlayOpacity && section.overlayOpacity > 0" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: section.overlayOpacity }" />
+                                
+                                <!-- Particle Overlay -->
+                                <ParticleOverlay 
+                                    v-if="section.particleType && section.particleType !== 'none'" 
+                                    :type="section.particleType" 
+                                />
 
-                            <div class="relative w-full h-full">
-                                <template v-for="el in section.elements" :key="el.id">
+                                <!-- Elements Container -->
+                                <div class="relative w-full h-full">
+                                    <template v-for="el in section.elements" :key="el.id">
                                     <AnimatedElement 
                                         :animation="el.animation" 
                                         :loop-animation="el.loopAnimation" 
@@ -563,6 +604,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                     </AnimatedElement>
                                 </template>
                             </div>
+                            </div> <!-- Close Zoom Container -->
                         </div>
                     </div>
 
@@ -572,159 +614,177 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                         <div 
                             v-if="filteredSections[1]" 
                             class="absolute inset-0 z-[1] overflow-hidden" 
-                            :style="{ backgroundColor: filteredSections[1].backgroundColor || '#ffffff', backgroundSize: 'cover', backgroundPosition: 'center' }"
+                            :style="{ backgroundColor: filteredSections[1].backgroundColor || '#ffffff' }"
+                            @click="handleSectionClick(1, filteredSections[1])"
                         >
-                            <!-- Background Image with Zoom Effect -->
+                            <!-- ZOOM CONTAINER: Wraps ALL section content for unified zoom effect -->
                             <div
-                                v-if="filteredSections[1].backgroundUrl"
-                                class="absolute inset-0 bg-cover bg-center"
+                                class="absolute inset-0 w-full h-full"
                                 :class="{ 
                                     'animate-section-zoom-in': filteredSections[1].zoomConfig?.direction === 'in' && shouldZoom(filteredSections[1], 1),
-                                    'animate-section-zoom-out': filteredSections[1].zoomConfig?.direction === 'out' && shouldZoom(filteredSections[1], 1),
-                                    'animate-ken-burns': filteredSections[1].kenBurnsEnabled && !filteredSections[1].zoomConfig?.enabled
+                                    'animate-section-zoom-out': filteredSections[1].zoomConfig?.direction === 'out' && shouldZoom(filteredSections[1], 1)
                                 }"
                                 :style="{ 
-                                    backgroundImage: `url(${getProxiedImageUrl(filteredSections[1].backgroundUrl)})`,
                                     transformOrigin: filteredSections[1].zoomConfig?.enabled ? `${filteredSections[1].zoomConfig?.targetRegion?.x ?? 50}% ${filteredSections[1].zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
                                     '--zoom-scale': filteredSections[1].zoomConfig?.scale || 1.3,
-                                    '--zoom-duration': `${filteredSections[1].zoomConfig?.duration || 5000}ms`
+                                    '--zoom-duration': `${filteredSections[1].zoomConfig?.duration || 5000}ms`,
+                                    '--zoom-fill-mode': filteredSections[1].zoomConfig?.behavior === 'reset' ? 'none' : 'forwards'
                                 }"
-                            ></div>
+                            >
+                                <!-- Background Image -->
+                                <div
+                                    v-if="filteredSections[1].backgroundUrl"
+                                    class="absolute inset-0 bg-cover bg-center"
+                                    :class="{ 'animate-ken-burns': filteredSections[1].kenBurnsEnabled && !filteredSections[1].zoomConfig?.enabled }"
+                                    :style="{ backgroundImage: `url(${getProxiedImageUrl(filteredSections[1].backgroundUrl)})` }"
+                                ></div>
 
-                            <div v-if="filteredSections[1].overlayOpacity && filteredSections[1].overlayOpacity > 0" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[1].overlayOpacity }" />
-                            
-                            <!-- Particle Overlay -->
-                            <ParticleOverlay 
-                                v-if="filteredSections[1].particleType && filteredSections[1].particleType !== 'none'" 
-                                :type="filteredSections[1].particleType" 
-                            />
+                                <!-- Overlay -->
+                                <div v-if="filteredSections[1].overlayOpacity && filteredSections[1].overlayOpacity > 0" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[1].overlayOpacity }" />
+                                
+                                <!-- Particle Overlay -->
+                                <ParticleOverlay 
+                                    v-if="filteredSections[1].particleType && filteredSections[1].particleType !== 'none'" 
+                                    :type="filteredSections[1].particleType" 
+                                />
 
-                            <div class="relative w-full h-full">
-                                <template v-for="el in filteredSections[1].elements" :key="el.id">
-                                    <!-- Elements in Atomic Mode use manual trigger, animate when isOpened -->
-                                    <AnimatedElement 
-                                        :animation="el.animation" 
-                                        :loop-animation="el.loopAnimation" 
-                                        :delay="el.animationDelay" 
-                                         :duration="el.animationDuration" 
-                                         :style="getElementStyle(el, 1)"
-                                         :trigger-mode="el.animationTrigger || 'scroll'" 
-                                         :force-trigger="isOpened"
-                                        :element-id="el.id"
-                                        :image-url="el.imageUrl"
-                                        :motion-path-config="el.motionPathConfig"
-                                        :parallax-factor="el.parallaxFactor"
-                                    >
-                                        <img v-if="el.type === 'image' || el.type === 'gif'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain', background: 'transparent' }" />
-                                        <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
-                                        <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center">
-                                            <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
-                                        </div>
-                                        <div v-else-if="el.type === 'shape' && el.shapeConfig" class="w-full h-full">
-                                            <svg v-if="['rectangle', 'square', 'rounded-rectangle'].includes(el.shapeConfig.shapeType)" width="100%" height="100%" :viewBox="`0 0 ${el.size.width} ${el.size.height}`" preserveAspectRatio="none">
-                                               <rect x="0" y="0" :width="el.size.width" :height="el.size.height" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" :rx="el.shapeConfig.shapeType === 'rounded-rectangle' ? (el.shapeConfig.cornerRadius || 20) : 0" />
-                                            </svg>
-                                            <svg v-else-if="el.shapeConfig.shapeType === 'circle'" width="100%" height="100%" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
-                                            <svg v-else-if="el.shapeConfig.shapeType === 'ellipse'" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="48" ry="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
-                                            <svg v-else width="100%" height="100%" viewBox="0 0 100 100" :preserveAspectRatio="['line', 'zigzag', 'wave'].includes(el.shapeConfig.shapeType) ? 'none' : 'xMidYMid meet'">
-                                               <path :d="shapePaths[el.shapeConfig.shapeType] || el.shapeConfig.pathData || ''" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" stroke-linecap="round" stroke-linejoin="round" />
-                                            </svg>
-                                        </div>
-                                        <div v-else-if="el.type === 'countdown'" class="w-full h-full flex justify-center items-center gap-2">
-                                            <div v-for="unit in ['Days', 'Hours', 'Min', 'Sec']" :key="unit" class="flex flex-col items-center">
-                                                <div class="text-2xl font-bold" :style="{ color: el.countdownConfig?.digitColor || '#000' }">00</div>
-                                                <div class="text-[10px] uppercase" :style="{ color: el.countdownConfig?.labelColor || '#666' }">{{ unit }}</div>
+                                <!-- Elements Container -->
+                                <div class="relative w-full h-full">
+                                    <template v-for="el in filteredSections[1].elements" :key="el.id">
+                                        <!-- Elements in Atomic Mode use manual trigger, animate when isOpened -->
+                                        <AnimatedElement 
+                                            :animation="el.animation" 
+                                            :loop-animation="el.loopAnimation" 
+                                            :delay="el.animationDelay" 
+                                             :duration="el.animationDuration" 
+                                             :style="getElementStyle(el, 1)"
+                                             :trigger-mode="el.animationTrigger || 'scroll'" 
+                                             :force-trigger="isOpened"
+                                            :element-id="el.id"
+                                            :image-url="el.imageUrl"
+                                            :motion-path-config="el.motionPathConfig"
+                                            :parallax-factor="el.parallaxFactor"
+                                        >
+                                            <img v-if="el.type === 'image' || el.type === 'gif'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain', background: 'transparent' }" />
+                                            <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
+                                            <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center">
+                                                <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
                                             </div>
-                                        </div>
-                                        <button v-else-if="(el.type === 'button' || el.type === 'open_invitation_button') && !isOpened" :style="getButtonStyle(el)" class="w-full h-full font-bold shadow-xl hover:scale-105 active:scale-95 transition-all" @click="handleOpenInvitation()">
-                                            {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
-                                        </button>
-                                        <div v-else-if="el.type === 'rsvp_form' || el.type === 'rsvp-form'" class="w-full h-full p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/20 shadow-xl flex flex-col gap-2 pointer-events-none">
-                                            <div class="h-8 bg-black/5 rounded w-full"></div>
-                                            <div class="h-10 bg-black rounded w-full mt-2"></div>
-                                        </div>
-                                        <div v-else-if="el.type === 'guest_wishes'" class="w-full h-full p-4 bg-white/30 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg h-full overflow-hidden flex flex-col gap-3">
-                                            <div v-for="i in 2" :key="i" class="flex flex-col gap-1"><div class="h-3 bg-black/10 rounded w-1/3"></div><div class="h-4 bg-black/5 rounded w-full"></div></div>
-                                        </div>
-                                    </AnimatedElement>
-                                </template>
-                            </div>
+                                            <div v-else-if="el.type === 'shape' && el.shapeConfig" class="w-full h-full">
+                                                <svg v-if="['rectangle', 'square', 'rounded-rectangle'].includes(el.shapeConfig.shapeType)" width="100%" height="100%" :viewBox="`0 0 ${el.size.width} ${el.size.height}`" preserveAspectRatio="none">
+                                                   <rect x="0" y="0" :width="el.size.width" :height="el.size.height" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" :rx="el.shapeConfig.shapeType === 'rounded-rectangle' ? (el.shapeConfig.cornerRadius || 20) : 0" />
+                                                </svg>
+                                                <svg v-else-if="el.shapeConfig.shapeType === 'circle'" width="100%" height="100%" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
+                                                <svg v-else-if="el.shapeConfig.shapeType === 'ellipse'" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="48" ry="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
+                                                <svg v-else width="100%" height="100%" viewBox="0 0 100 100" :preserveAspectRatio="['line', 'zigzag', 'wave'].includes(el.shapeConfig.shapeType) ? 'none' : 'xMidYMid meet'">
+                                                   <path :d="shapePaths[el.shapeConfig.shapeType] || el.shapeConfig.pathData || ''" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" stroke-linecap="round" stroke-linejoin="round" />
+                                                </svg>
+                                            </div>
+                                            <div v-else-if="el.type === 'countdown'" class="w-full h-full flex justify-center items-center gap-2">
+                                                <div v-for="unit in ['Days', 'Hours', 'Min', 'Sec']" :key="unit" class="flex flex-col items-center">
+                                                    <div class="text-2xl font-bold" :style="{ color: el.countdownConfig?.digitColor || '#000' }">00</div>
+                                                    <div class="text-[10px] uppercase" :style="{ color: el.countdownConfig?.labelColor || '#666' }">{{ unit }}</div>
+                                                </div>
+                                            </div>
+                                            <button v-else-if="(el.type === 'button' || el.type === 'open_invitation_button') && !isOpened" :style="getButtonStyle(el)" class="w-full h-full font-bold shadow-xl hover:scale-105 active:scale-95 transition-all" @click="handleOpenInvitation()">
+                                                {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
+                                            </button>
+                                            <div v-else-if="el.type === 'rsvp_form' || el.type === 'rsvp-form'" class="w-full h-full p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-white/20 shadow-xl flex flex-col gap-2 pointer-events-none">
+                                                <div class="h-8 bg-black/5 rounded w-full"></div>
+                                                <div class="h-10 bg-black rounded w-full mt-2"></div>
+                                            </div>
+                                            <div v-else-if="el.type === 'guest_wishes'" class="w-full h-full p-4 bg-white/30 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg h-full overflow-hidden flex flex-col gap-3">
+                                                <div v-for="i in 2" :key="i" class="flex flex-col gap-1"><div class="h-3 bg-black/10 rounded w-1/3"></div><div class="h-4 bg-black/5 rounded w-full"></div></div>
+                                            </div>
+                                        </AnimatedElement>
+                                    </template>
+                                </div>
+                            </div> <!-- Close Zoom Container -->
                         </div>
 
-                        <!-- TOP LAYER: Section 1 -->
+                        <!-- TOP LAYER: Section 1 (Cover) -->
                         <div 
                             v-if="filteredSections[0]" 
                             class="absolute inset-0 z-[2] atomic-cover-layer overflow-hidden" 
-                            :style="{ backgroundColor: filteredSections[0].backgroundColor || '#cccccc', backgroundSize: 'cover', backgroundPosition: 'center' }"
+                            :style="{ backgroundColor: filteredSections[0].backgroundColor || '#cccccc' }"
+                            @click="handleSectionClick(0, filteredSections[0])"
                         >
-                            <!-- Background Image with Zoom Effect -->
+                            <!-- ZOOM CONTAINER: Wraps ALL section content for unified zoom effect -->
                             <div
-                                v-if="filteredSections[0].backgroundUrl"
-                                class="absolute inset-0 bg-cover bg-center"
+                                class="absolute inset-0 w-full h-full"
                                 :class="{ 
                                     'animate-section-zoom-in': filteredSections[0].zoomConfig?.direction === 'in' && shouldZoom(filteredSections[0], 0),
-                                    'animate-section-zoom-out': filteredSections[0].zoomConfig?.direction === 'out' && shouldZoom(filteredSections[0], 0),
-                                    'animate-ken-burns': filteredSections[0].kenBurnsEnabled && !filteredSections[0].zoomConfig?.enabled
+                                    'animate-section-zoom-out': filteredSections[0].zoomConfig?.direction === 'out' && shouldZoom(filteredSections[0], 0)
                                 }"
                                 :style="{ 
-                                    backgroundImage: `url(${getProxiedImageUrl(filteredSections[0].backgroundUrl)})`,
                                     transformOrigin: filteredSections[0].zoomConfig?.enabled ? `${filteredSections[0].zoomConfig?.targetRegion?.x ?? 50}% ${filteredSections[0].zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
                                     '--zoom-scale': filteredSections[0].zoomConfig?.scale || 1.3,
-                                    '--zoom-duration': `${filteredSections[0].zoomConfig?.duration || 5000}ms`
+                                    '--zoom-duration': `${filteredSections[0].zoomConfig?.duration || 5000}ms`,
+                                    '--zoom-fill-mode': filteredSections[0].zoomConfig?.behavior === 'reset' ? 'none' : 'forwards'
                                 }"
-                            ></div>
+                            >
+                                <!-- Background Image -->
+                                <div
+                                    v-if="filteredSections[0].backgroundUrl"
+                                    class="absolute inset-0 bg-cover bg-center"
+                                    :class="{ 'animate-ken-burns': filteredSections[0].kenBurnsEnabled && !filteredSections[0].zoomConfig?.enabled }"
+                                    :style="{ backgroundImage: `url(${getProxiedImageUrl(filteredSections[0].backgroundUrl)})` }"
+                                ></div>
 
-                            <div v-if="filteredSections[0].overlayOpacity && filteredSections[0].overlayOpacity > 0" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[0].overlayOpacity }" />
-                            
-                            <!-- Particle Overlay -->
-                            <ParticleOverlay 
-                                v-if="filteredSections[0].particleType && filteredSections[0].particleType !== 'none'" 
-                                :type="filteredSections[0].particleType" 
-                            />
+                                <!-- Overlay -->
+                                <div v-if="filteredSections[0].overlayOpacity && filteredSections[0].overlayOpacity > 0" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[0].overlayOpacity }" />
+                                
+                                <!-- Particle Overlay -->
+                                <ParticleOverlay 
+                                    v-if="filteredSections[0].particleType && filteredSections[0].particleType !== 'none'" 
+                                    :type="filteredSections[0].particleType" 
+                                />
 
-                            <div class="relative w-full h-full">
-                                <template v-for="el in filteredSections[0].elements" :key="el.id">
-                                    <AnimatedElement 
-                                        :animation="el.animation" 
-                                        :loop-animation="el.loopAnimation" 
-                                        :delay="el.animationDelay" 
-                                        :duration="el.animationDuration" 
-                                         :style="getElementStyle(el, 0)"
-                                         :immediate="el.animationTrigger !== 'open_btn' && el.animationTrigger !== 'click'" 
-                                         :trigger-mode="el.animationTrigger || 'scroll'"
-                                         :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : true"
-                                        :element-id="el.id"
-                                        :image-url="el.imageUrl"
-                                        :motion-path-config="el.motionPathConfig"
-                                        :parallax-factor="el.parallaxFactor"
-                                    >
-                                        <img v-if="el.type === 'image' || el.type === 'gif'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain', background: 'transparent' }" />
-                                        <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
-                                        <button 
-                                            v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" 
-                                            :style="getButtonStyle(el)" 
-                                            class="w-full h-full hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" 
-                                            :class="{ 'opacity-0 pointer-events-none': isOpened }"
-                                            @click="handleOpenInvitation()"
+                                <!-- Elements Container -->
+                                <div class="relative w-full h-full">
+                                    <template v-for="el in filteredSections[0].elements" :key="el.id">
+                                        <AnimatedElement 
+                                            :animation="el.animation" 
+                                            :loop-animation="el.loopAnimation" 
+                                            :delay="el.animationDelay" 
+                                            :duration="el.animationDuration" 
+                                             :style="getElementStyle(el, 0)"
+                                             :immediate="el.animationTrigger !== 'open_btn' && el.animationTrigger !== 'click'" 
+                                             :trigger-mode="el.animationTrigger || 'scroll'"
+                                             :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : true"
+                                            :element-id="el.id"
+                                            :image-url="el.imageUrl"
+                                            :motion-path-config="el.motionPathConfig"
+                                            :parallax-factor="el.parallaxFactor"
                                         >
-                                            {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
-                                        </button>
-                                        <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center">
-                                            <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
-                                        </div>
-                                        <div v-else-if="el.type === 'shape' && el.shapeConfig" class="w-full h-full">
-                                            <svg v-if="['rectangle', 'square', 'rounded-rectangle'].includes(el.shapeConfig.shapeType)" width="100%" height="100%" :viewBox="`0 0 ${el.size.width} ${el.size.height}`" preserveAspectRatio="none">
-                                               <rect x="0" y="0" :width="el.size.width" :height="el.size.height" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" :rx="el.shapeConfig.shapeType === 'rounded-rectangle' ? (el.shapeConfig.cornerRadius || 20) : 0" />
-                                            </svg>
-                                            <svg v-else-if="el.shapeConfig.shapeType === 'circle'" width="100%" height="100%" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
-                                            <svg v-else-if="el.shapeConfig.shapeType === 'ellipse'" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="48" ry="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
-                                            <svg v-else width="100%" height="100%" viewBox="0 0 100 100" :preserveAspectRatio="['line', 'zigzag', 'wave'].includes(el.shapeConfig.shapeType) ? 'none' : 'xMidYMid meet'">
-                                               <path :d="shapePaths[el.shapeConfig.shapeType] || el.shapeConfig.pathData || ''" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" stroke-linecap="round" stroke-linejoin="round" />
-                                            </svg>
-                                        </div>
-                                    </AnimatedElement>
-                                </template>
-                            </div>
+                                            <img v-if="el.type === 'image' || el.type === 'gif'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain', background: 'transparent' }" />
+                                            <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
+                                            <button 
+                                                v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" 
+                                                :style="getButtonStyle(el)" 
+                                                class="w-full h-full hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" 
+                                                :class="{ 'opacity-0 pointer-events-none': isOpened }"
+                                                @click="handleOpenInvitation()"
+                                            >
+                                                {{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}
+                                            </button>
+                                            <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center">
+                                                <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
+                                            </div>
+                                            <div v-else-if="el.type === 'shape' && el.shapeConfig" class="w-full h-full">
+                                                <svg v-if="['rectangle', 'square', 'rounded-rectangle'].includes(el.shapeConfig.shapeType)" width="100%" height="100%" :viewBox="`0 0 ${el.size.width} ${el.size.height}`" preserveAspectRatio="none">
+                                                   <rect x="0" y="0" :width="el.size.width" :height="el.size.height" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" :rx="el.shapeConfig.shapeType === 'rounded-rectangle' ? (el.shapeConfig.cornerRadius || 20) : 0" />
+                                                </svg>
+                                                <svg v-else-if="el.shapeConfig.shapeType === 'circle'" width="100%" height="100%" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
+                                                <svg v-else-if="el.shapeConfig.shapeType === 'ellipse'" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="48" ry="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
+                                                <svg v-else width="100%" height="100%" viewBox="0 0 100 100" :preserveAspectRatio="['line', 'zigzag', 'wave'].includes(el.shapeConfig.shapeType) ? 'none' : 'xMidYMid meet'">
+                                                   <path :d="shapePaths[el.shapeConfig.shapeType] || el.shapeConfig.pathData || ''" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" stroke-linecap="round" stroke-linejoin="round" />
+                                                </svg>
+                                            </div>
+                                        </AnimatedElement>
+                                    </template>
+                                </div>
+                            </div> <!-- Close Zoom Container -->
                         </div>
                     </div>
 
@@ -763,11 +823,13 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 
 /* Section-Level Zoom Animations (uses CSS custom properties) */
 .animate-section-zoom-in {
-    animation: section-zoom-in var(--zoom-duration, 5000ms) ease-out forwards;
+    animation: section-zoom-in var(--zoom-duration, 5000ms) cubic-bezier(0.4, 0, 0.2, 1) var(--zoom-fill-mode, forwards);
+    will-change: transform;
 }
 
 .animate-section-zoom-out {
-    animation: section-zoom-out var(--zoom-duration, 5000ms) ease-out forwards;
+    animation: section-zoom-out var(--zoom-duration, 5000ms) cubic-bezier(0.4, 0, 0.2, 1) var(--zoom-fill-mode, forwards);
+    will-change: transform;
 }
 
 @keyframes section-zoom-in {
