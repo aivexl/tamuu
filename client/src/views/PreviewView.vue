@@ -56,6 +56,7 @@ const filteredSections = computed((): (any)[] => {
 
 // State
 const isOpened = ref(false); 
+const isRevealing = ref(false); // Mid-transition state
 const shutterVisible = ref(false);
 const openBtnTriggered = ref(false);
 const flowMode = ref(false); 
@@ -103,10 +104,8 @@ onMounted(async () => {
         });
     }, { threshold: 0.1 });
 
-    // Only use Lenis on desktop for better mobile performance
-    const isMobile = windowWidth.value < 768;
-    
-    if (!isMobile && scrollContainer.value) {
+    // Initialize Lenis
+    if (scrollContainer.value) {
         lenis = new Lenis({
             wrapper: scrollContainer.value,
             content: scrollContainer.value.firstElementChild as HTMLElement,
@@ -136,62 +135,58 @@ onUnmounted(() => {
 });
 
 /**
- * ELEGANT REVEAL - Smooth scroll to Section 2
+ * SIMPLE REVEAL - No animations, just switch to Flow Mode
  */
 const handleOpenInvitation = async () => {
     if (openBtnTriggered.value) return;
     openBtnTriggered.value = true;
     
-    // Step 1: Trigger opening state (button fades out)
+    // Step 1: Trigger any elements in Section 1 set to 'Open' animation
     isOpened.value = true; 
     
-    // Step 2: Brief pause for elegance, then transition
+    // Step 2: Brief elegant delay (let the button click/S1 anims breathe)
     setTimeout(() => {
         flowMode.value = true;
+        isRevealing.value = false;
         
         nextTick(() => {
-            const scrollOffset = coverHeightComputed.value * scaleFactor.value;
-            
-            // Use native smooth scroll for elegant transition
             if (scrollContainer.value) {
-                scrollContainer.value.scrollTo({
-                    top: scrollOffset,
-                    behavior: 'smooth'
-                });
-            }
-            
-            // Start Lenis if available (desktop)
-            if (lenis) {
-                lenis.resize();
-                lenis.start();
+                if (lenis) lenis.stop();
+                
+                // Land exactly at the top of Section 2
+                // Scroll offset must account for the CSS scale transform
+                const scrollOffset = coverHeightComputed.value * scaleFactor.value;
+                scrollContainer.value.scrollTop = scrollOffset;
+                
+                setTimeout(() => {
+                    if (lenis) {
+                        lenis.resize();
+                        lenis.start();
+                    }
+                }, 50);
             }
         });
-    }, 300);
+    }, 400); // Quick transition for a "Direct" feel
 };
 
 // Dimensions & Scaling
 
 
 const scaleFactor = computed(() => {
-    if (!windowWidth.value || !windowHeight.value) return 1;
-    const isPortrait = windowHeight.value >= windowWidth.value;
-    
-    if (isPortrait) {
-        return windowWidth.value / CANVAS_WIDTH;
-    }
-    return windowHeight.value / CANVAS_HEIGHT;
+    if (!windowWidth.value) return 1;
+    const widthRatio = windowWidth.value / CANVAS_WIDTH;
+    const heightRatio = windowHeight.value / CANVAS_HEIGHT;
+    const isPortrait = windowHeight.value > windowWidth.value;
+    if (isPortrait) return widthRatio;
+    return Math.min(isFullscreen.value ? Math.min(heightRatio, widthRatio) : 1, heightRatio);
 });
 
 const coverHeightComputed = computed(() => {
     if (typeof scaleFactor.value !== 'number') return CANVAS_HEIGHT; 
-    return Math.max(CANVAS_HEIGHT, windowHeight.value / scaleFactor.value);
-});
-
-const scaledTotalHeight = computed(() => {
-    if (!orderedSections.value.length) return 0;
-    // Section 1 height + (Number of sections - 1) * CANVAS_HEIGHT
-    const totalContentHeight = coverHeightComputed.value + (orderedSections.value.length - 1) * CANVAS_HEIGHT;
-    return totalContentHeight * scaleFactor.value;
+    const isPortrait = windowHeight.value > windowWidth.value;
+    if (!isPortrait && !isFullscreen.value) return CANVAS_HEIGHT;
+    const targetHeight = windowHeight.value / scaleFactor.value;
+    return Math.max(CANVAS_HEIGHT, targetHeight);
 });
 
 const getElementStyle = (el: any, sectionIndex: number) => {
@@ -309,6 +304,22 @@ const getButtonStyle = (el: any) => {
     return base;
 };
 
+const toggleFullscreen = () => {
+    if (!mainViewport.value) return;
+    if (!document.fullscreenElement) mainViewport.value.requestFullscreen().catch(e => console.error(e));
+    else document.exitFullscreen().catch(e => console.error(e));
+};
+
+const handleFullscreenChange = () => { 
+    isFullscreen.value = !!document.fullscreenElement; 
+    updateDimensions(); 
+    nextTick(() => {
+        if (lenis) lenis.resize();
+    });
+};
+const goBack = () => router.push(`/editor/${templateId.value}`);
+
+// Dynamic background from Section 1
 const viewportBackgroundStyle = computed(() => {
     const s1 = filteredSections.value[0];
     if (!s1) return { backgroundColor: '#ffffff' };
@@ -325,50 +336,24 @@ const viewportBackgroundStyle = computed(() => {
 
     return style;
 });
-
-const toggleFullscreen = () => {
-    if (!mainViewport.value) return;
-    if (!document.fullscreenElement) {
-        mainViewport.value.requestFullscreen().catch(e => console.error(e));
-    } else {
-        document.exitFullscreen().catch(e => console.error(e));
-    }
-};
-
-const handleFullscreenChange = () => { 
-    isFullscreen.value = !!document.fullscreenElement; 
-    nextTick(() => {
-        updateDimensions();
-        if (lenis) lenis.resize();
-    });
-};
-const goBack = () => router.push(`/editor/${templateId.value}`);
 </script>
 
 <template>
-    <div ref="mainViewport" class="h-[100dvh] w-screen overflow-hidden transition-colors duration-500 relative" :style="viewportBackgroundStyle">
+    <div ref="mainViewport" class="h-[100dvh] w-screen flex flex-col items-center overflow-hidden transition-colors duration-500" :style="viewportBackgroundStyle">
         
         <!-- MAIN SCROLL ENGINE -->
-        <div ref="scrollContainer" class="scroll-container w-full h-full" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'">
-            <!-- Scaled Content Wrapper (provides correct scroll height) -->
-            <div 
-                class="mx-auto relative"
-                :style="{ 
-                    width: `${CANVAS_WIDTH * scaleFactor}px`,
-                    minHeight: flowMode ? `${scaledTotalHeight}px` : '100%'
-                }"
-            >
+        <div ref="scrollContainer" class="scroll-container w-full h-full" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden flex items-center justify-center'" :style="!flowMode ? { maxHeight: `${coverHeightComputed * scaleFactor}px` } : {}">
                 <div 
-                    class="invitation-parent absolute top-0 left-0" 
+                    class="invitation-parent relative mx-auto" 
                     :style="{ 
                         width: `${CANVAS_WIDTH}px`, 
                         height: flowMode ? 'auto' : `${coverHeightComputed}px`,
                         transform: `scale(${scaleFactor})`, 
-                        transformOrigin: 'top left'
+                        transformOrigin: flowMode ? 'top center' : 'center center' 
                     }"
                 >
                 <!-- Controls -->
-                <div v-if="!isFullscreen" class="absolute top-6 left-0 w-full px-6 flex justify-between z-[500] pointer-events-none" :style="{ transform: `scale(${1/scaleFactor})`, transformOrigin: 'top left' }">
+                <div v-if="!isFullscreen" class="absolute top-6 left-0 w-full px-6 flex justify-between z-[500] pointer-events-none">
                     <button class="p-4 bg-black/50 text-white rounded-full backdrop-blur-3xl pointer-events-auto border border-white/20 shadow-2xl" @click="goBack"><ArrowLeft class="w-7 h-7" /></button>
                     <button class="p-4 bg-black/50 text-white rounded-full backdrop-blur-3xl pointer-events-auto border border-white/20 shadow-2xl" @click="toggleFullscreen"><Maximize2 class="w-7 h-7" /></button>
                 </div>
@@ -376,7 +361,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                 <!-- 
                     THE UNIFIED ATOMIC CONTAINER
                 -->
-                <div class="relative w-full" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? 'auto' : `${coverHeightComputed}px` }">
+                <div class="relative w-full mx-auto overflow-hidden" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? 'auto' : `${coverHeightComputed}px` }">
                     
                     <!-- NATURAL FLOW MODE (Active after Reveal) -->
                     <div v-if="flowMode" class="flex flex-col w-full relative h-auto">
@@ -384,38 +369,33 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             v-for="(section, index) in filteredSections" 
                             :key="section.key"
                             :ref="(el) => setSectionRef(el, index)" :data-index="index"
-                            class="relative w-full flex-shrink-0 page-section"
+                            class="relative w-full flex-shrink-0 page-section overflow-hidden"
                             :style="{ 
                                 height: index === 0 ? `${coverHeightComputed}px` : `${CANVAS_HEIGHT}px`,
-                                backgroundColor: section.backgroundColor || 'transparent'
+                                backgroundColor: section.backgroundColor || '#ffffff',
+                                backgroundImage: section.backgroundUrl ? `url(${getProxiedImageUrl(section.backgroundUrl)})` : 'none',
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center'
                             }"
                         >
-                            <!-- Background Image -->
-                            <div
-                                v-if="section.backgroundUrl"
-                                class="absolute inset-0 bg-cover bg-center"
-                                :style="{ backgroundImage: `url(${getProxiedImageUrl(section.backgroundUrl)})` }"
-                            ></div>
-
-                            <!-- Overlay -->
-                            <div v-if="section.overlayOpacity && section.overlayOpacity > 0" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: section.overlayOpacity }" />
                             <div class="relative w-full h-full">
+                                <div v-if="section.overlayOpacity" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: section.overlayOpacity }" />
                                 <template v-for="el in section.elements" :key="el.id">
                                     <AnimatedElement 
                                         :animation="el.animation" 
                                         :loop-animation="el.loopAnimation" 
                                         :delay="el.animationDelay" 
                                         :duration="el.animationDuration" 
-                                         :style="getElementStyle(el, index)"
-                                         :immediate="index === 0"
-                                         :trigger-mode="el.animationTrigger || 'scroll'"
-                                         :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : (index === 0)"
+                                        :style="getElementStyle(el, index)"
+                                        :immediate="index === 0"
+                                        :trigger-mode="el.animationTrigger === 'scroll' ? 'auto' : 'manual'"
+                                        :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : (index === 0)"
                                         :element-id="el.id"
                                         :image-url="el.imageUrl"
-                                        :motion-path-config="el.motionPathConfig"
                                     >
-                                        <img v-if="el.type === 'image' || el.type === 'gif'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain', background: 'transparent' }" />
+                                        <img v-if="el.type === 'image' || el.type === 'gif'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain' }" />
                                         <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
+
                                         <button 
                                             v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" 
                                             :style="getButtonStyle(el)" 
@@ -460,8 +440,8 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                     <!-- ATOMIC STACK MODE (Initial Reveal Physics) -->
                     <div v-else class="relative w-full h-full overflow-hidden">
                         <!-- BOTTOM LAYER: Section 2 (visible behind Section 1) -->
-                        <div v-if="filteredSections[1]" class="absolute inset-0 z-[1]" :style="{ backgroundColor: filteredSections[1].backgroundColor || '#ffffff', backgroundImage: filteredSections[1].backgroundUrl ? `url(${getProxiedImageUrl(filteredSections[1].backgroundUrl)})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
-                            <div v-if="filteredSections[1].overlayOpacity && filteredSections[1].overlayOpacity > 0" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[1].overlayOpacity }" />
+                        <div v-if="filteredSections[1]" class="absolute inset-0 z-[1]" :style="{ backgroundColor: filteredSections[1].backgroundColor || '#ffffff', backgroundImage: filteredSections[1].backgroundUrl ? `url(${filteredSections[1].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
+                            <div v-if="filteredSections[1].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[1].overlayOpacity }" />
                             <div class="relative w-full h-full">
                                 <template v-for="el in filteredSections[1].elements" :key="el.id">
                                     <!-- Elements in Atomic Mode use manual trigger, animate when isOpened -->
@@ -469,15 +449,14 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :animation="el.animation" 
                                         :loop-animation="el.loopAnimation" 
                                         :delay="el.animationDelay" 
-                                         :duration="el.animationDuration" 
-                                         :style="getElementStyle(el, 1)"
-                                         :trigger-mode="el.animationTrigger || 'scroll'" 
-                                         :force-trigger="isOpened"
+                                        :duration="el.animationDuration" 
+                                        :style="getElementStyle(el, 1)"
+                                        :trigger-mode="'manual'" 
+                                        :force-trigger="isOpened"
                                         :element-id="el.id"
                                         :image-url="el.imageUrl"
-                                        :motion-path-config="el.motionPathConfig"
                                     >
-                                        <img v-if="el.type === 'image' || el.type === 'gif'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain', background: 'transparent' }" />
+                                        <img v-if="el.type === 'image'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" />
                                         <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
                                         <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center">
                                             <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
@@ -517,9 +496,9 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                         <div 
                             v-if="filteredSections[0]" 
                             class="absolute inset-0 z-[2] atomic-cover-layer" 
-                            :style="{ backgroundColor: filteredSections[0].backgroundColor || '#cccccc', backgroundImage: filteredSections[0].backgroundUrl ? `url(${getProxiedImageUrl(filteredSections[0].backgroundUrl)})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }"
+                            :style="{ backgroundColor: filteredSections[0].backgroundColor || '#cccccc', backgroundImage: filteredSections[0].backgroundUrl ? `url(${filteredSections[0].backgroundUrl})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }"
                         >
-                            <div v-if="filteredSections[0].overlayOpacity && filteredSections[0].overlayOpacity > 0" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[0].overlayOpacity }" />
+                            <div v-if="filteredSections[0].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[0].overlayOpacity }" />
                             <div class="relative w-full h-full">
                                 <template v-for="el in filteredSections[0].elements" :key="el.id">
                                     <AnimatedElement 
@@ -527,15 +506,14 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :loop-animation="el.loopAnimation" 
                                         :delay="el.animationDelay" 
                                         :duration="el.animationDuration" 
-                                         :style="getElementStyle(el, 0)"
-                                         :immediate="el.animationTrigger !== 'open_btn' && el.animationTrigger !== 'click'" 
-                                         :trigger-mode="el.animationTrigger || 'scroll'"
-                                         :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : true"
+                                        :style="getElementStyle(el, 0)"
+                                        :immediate="el.animationTrigger !== 'open_btn'" 
+                                        :trigger-mode="el.animationTrigger === 'open_btn' ? 'manual' : 'auto'"
+                                        :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : true"
                                         :element-id="el.id"
                                         :image-url="el.imageUrl"
-                                        :motion-path-config="el.motionPathConfig"
                                     >
-                                        <img v-if="el.type === 'image' || el.type === 'gif'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain', background: 'transparent' }" />
+                                        <img v-if="el.type === 'image'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" />
                                         <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
                                         <button 
                                             v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" 
