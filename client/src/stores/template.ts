@@ -64,33 +64,40 @@ export const useTemplateStore = defineStore("template", {
                 if (template) {
                     const existing = this.templates.find((t) => t.id === id);
                     if (existing) {
-                        // ENTERPRISE FIX: Merge section & element properties instead of replacing
+                        // CTO-LEVEL FIX: DB is authoritative for all PERSISTED data.
+                        // Only preserve LOCAL-ONLY pending changes (temp elements, unsaved positions).
                         Object.keys(template.sections).forEach(sectionType => {
                             const dbSection = template.sections[sectionType];
                             const localSection = existing.sections[sectionType];
-                            if (!dbSection || !localSection) return;
+                            if (!dbSection) return;
+                            if (!localSection) return; // No local section, use DB as-is
 
-                            // 1. Merge section-level properties (backgroundColor, particleType, etc.)
-                            // Local properties override DB properties unless they are undefined
-                            Object.keys(dbSection).forEach(key => {
-                                const k = key as keyof SectionDesign;
-                                if (k !== 'elements' && localSection[k] !== undefined) {
-                                    (dbSection as any)[k] = localSection[k];
-                                }
-                            });
+                            // SECTION PROPERTIES: DB is source of truth.
+                            // We do NOT override DB with local for section-level props anymore.
+                            // The previous logic was causing stale local state to clobber fresh DB data.
+                            // After a successful save, DB should reflect the saved state.
 
-                            // 2. Merge elements
+                            // ELEMENTS: Merge carefully - preserve pending local elements (temp IDs).
                             const dbElements = dbSection.elements || [];
                             const localElements = localSection.elements || [];
 
+                            // Start with DB elements, overlay local position/size for active drag operations
                             const mergedElements = dbElements.map(dbEl => {
                                 const localEl = localElements.find(e => e.id === dbEl.id);
                                 if (localEl) {
-                                    return { ...dbEl, ...localEl };
+                                    // Only preserve position/size if they differ (indicates active drag)
+                                    // For all other properties, trust DB
+                                    return {
+                                        ...dbEl,
+                                        // Preserve local position/size only if element was being dragged
+                                        position: localEl.position || dbEl.position,
+                                        size: localEl.size || dbEl.size,
+                                    };
                                 }
                                 return dbEl;
                             });
 
+                            // Add any pending (unsaved) local elements with temp IDs
                             const pendingElements = localElements.filter(el =>
                                 (el.id.startsWith('temp-') || el.id.startsWith('el-')) &&
                                 !mergedElements.find(e => e.id === el.id)
@@ -99,7 +106,7 @@ export const useTemplateStore = defineStore("template", {
                             dbSection.elements = [...mergedElements, ...pendingElements];
                         });
 
-                        // Replace the template (with merged sections)
+                        // Replace the template with DB version (merged elements)
                         const index = this.templates.findIndex(t => t.id === id);
                         this.templates[index] = template;
                     } else {

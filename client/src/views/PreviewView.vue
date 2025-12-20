@@ -440,6 +440,13 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 
                             <!-- Overlay -->
                             <div v-if="section.overlayOpacity && section.overlayOpacity > 0" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: section.overlayOpacity }" />
+                            
+                            <!-- Particle Overlay -->
+                            <ParticleOverlay 
+                                v-if="section.particleType && section.particleType !== 'none'" 
+                                :type="section.particleType" 
+                            />
+
                             <div class="relative w-full h-full">
                                 <template v-for="el in section.elements" :key="el.id">
                                     <AnimatedElement 
@@ -503,6 +510,13 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                         <!-- BOTTOM LAYER: Section 2 (visible behind Section 1) -->
                         <div v-if="filteredSections[1]" class="absolute inset-0 z-[1]" :style="{ backgroundColor: filteredSections[1].backgroundColor || '#ffffff', backgroundImage: filteredSections[1].backgroundUrl ? `url(${getProxiedImageUrl(filteredSections[1].backgroundUrl)})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
                             <div v-if="filteredSections[1].overlayOpacity && filteredSections[1].overlayOpacity > 0" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[1].overlayOpacity }" />
+                            
+                            <!-- Particle Overlay -->
+                            <ParticleOverlay 
+                                v-if="filteredSections[1].particleType && filteredSections[1].particleType !== 'none'" 
+                                :type="filteredSections[1].particleType" 
+                            />
+
                             <div class="relative w-full h-full">
                                 <template v-for="el in filteredSections[1].elements" :key="el.id">
                                     <!-- Elements in Atomic Mode use manual trigger, animate when isOpened -->
@@ -562,6 +576,13 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             :style="{ backgroundColor: filteredSections[0].backgroundColor || '#cccccc', backgroundImage: filteredSections[0].backgroundUrl ? `url(${getProxiedImageUrl(filteredSections[0].backgroundUrl)})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }"
                         >
                             <div v-if="filteredSections[0].overlayOpacity && filteredSections[0].overlayOpacity > 0" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[0].overlayOpacity }" />
+                            
+                            <!-- Particle Overlay -->
+                            <ParticleOverlay 
+                                v-if="filteredSections[0].particleType && filteredSections[0].particleType !== 'none'" 
+                                :type="filteredSections[0].particleType" 
+                            />
+
                             <div class="relative w-full h-full">
                                 <template v-for="el in filteredSections[0].elements" :key="el.id">
                                     <AnimatedElement 

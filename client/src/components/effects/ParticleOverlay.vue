@@ -85,10 +85,10 @@ onUnmounted(() => {
 
 <style scoped>
 .particle-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 50;
   overflow: hidden;
 }
 
