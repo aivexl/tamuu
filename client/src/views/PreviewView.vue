@@ -174,15 +174,18 @@ const handleOpenInvitation = async () => {
 
 const scaleFactor = computed(() => {
     if (!windowWidth.value || !windowHeight.value) return 1;
-    const isPortrait = windowHeight.value >= windowWidth.value;
     
-    if (isPortrait) {
+    if (isPortrait.value) {
         // In portrait, we always scale to fit the width perfectly (edge-to-edge)
         return windowWidth.value / CANVAS_WIDTH;
     }
     
     // In landscape, we scale to fit the height
     return windowHeight.value / CANVAS_HEIGHT;
+});
+
+const isPortrait = computed(() => {
+    return windowHeight.value >= windowWidth.value;
 });
 
 const coverHeightComputed = computed(() => {
@@ -355,14 +358,16 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
         <!-- MAIN SCROLL ENGINE -->
         <div ref="scrollContainer" class="scroll-container w-full h-full" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'" :style="!flowMode ? { height: '100%' } : {}">
             <!-- Wrapper to limit scroll height exactly to content -->
-            <div :style="{ height: flowMode ? `${scaledTotalHeight}px` : '100%', width: '100%' }">
+            <div :style="{ height: flowMode ? `${scaledTotalHeight}px` : '100%', width: '100%' }" :class="!isPortrait ? 'flex justify-center' : ''">
                 <div 
                     class="invitation-parent relative" 
                     :style="{ 
                         width: `${CANVAS_WIDTH}px`, 
                         height: flowMode ? 'auto' : `${coverHeightComputed}px`,
                         transform: `scale(${scaleFactor})`, 
-                        transformOrigin: 'top left'
+                        transformOrigin: isPortrait ? 'top left' : 'top center',
+                        marginLeft: isPortrait ? '0' : 'auto',
+                        marginRight: isPortrait ? '0' : 'auto'
                     }"
                 >
 
