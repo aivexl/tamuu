@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from "vue";
+import { computed, ref, watch, onMounted, onUnmounted } from "vue";
 import { useIntersectionObserver } from "@vueuse/core";
 import { type AnimationType, type MotionPathConfig } from "@/lib/types";
 import { gsap } from "gsap";
