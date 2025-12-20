@@ -16,6 +16,8 @@ import { sectionsRouter } from './routes/sections';
 import { elementsRouter } from './routes/elements';
 import { rsvpRouter } from './routes/rsvp';
 import { uploadRouter } from './routes/upload';
+import { authRouter } from './routes/auth';
+
 
 // Create Hono app with environment type
 const app = new Hono<{ Bindings: Env }>();
@@ -157,6 +159,8 @@ app.route('/api/sections', sectionsRouter);
 app.route('/api/elements', elementsRouter);
 app.route('/api/rsvp', rsvpRouter);
 app.route('/api/upload', uploadRouter);
+app.route('/api/auth', authRouter);
+
 
 // ============================================
 // ERROR HANDLING

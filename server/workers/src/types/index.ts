@@ -22,8 +22,26 @@ export interface Env {
 // DATABASE TYPES (matching schema.sql)
 // ============================================
 
+export interface DBUser {
+    id: string;
+    email: string;
+    password_hash: string;
+    name: string | null;
+    phone: string | null;
+    avatar_url: string | null;
+    plan: 'free' | 'basic' | 'premium' | 'priority';
+    plan_expires_at: string | null;
+    is_verified: number; // SQLite boolean
+    verification_token: string | null;
+    reset_token: string | null;
+    reset_token_expires: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface DBTemplate {
     id: string;
+    user_id: string | null;
     name: string;
     thumbnail: string | null;
     status: 'draft' | 'published';
@@ -34,6 +52,7 @@ export interface DBTemplate {
     created_at: string;
     updated_at: string;
 }
+
 
 export interface DBTemplateSection {
     id: string;
@@ -102,8 +121,28 @@ export interface DBRSVPResponse {
 // API RESPONSE TYPES (matching frontend types)
 // ============================================
 
+export interface UserResponse {
+    id: string;
+    email: string;
+    name: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
+    plan: 'free' | 'basic' | 'premium' | 'priority';
+    planExpiresAt: string | null;
+    isVerified: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface AuthTokenPayload {
+    userId: string;
+    email: string;
+    exp: number;
+}
+
 export interface TemplateResponse {
     id: string;
+    userId?: string | null;
     name: string;
     thumbnail: string | null;
     status: 'draft' | 'published';
@@ -115,6 +154,7 @@ export interface TemplateResponse {
     createdAt: string;
     updatedAt: string;
 }
+
 
 export interface SectionDesign {
     id?: string;

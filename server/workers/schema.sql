@@ -5,10 +5,31 @@
 PRAGMA foreign_keys = ON;
 
 -- ============================================
+-- USERS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    name TEXT,
+    phone TEXT,
+    avatar_url TEXT,
+    plan TEXT DEFAULT 'free' CHECK (plan IN ('free', 'basic', 'premium', 'priority')),
+    plan_expires_at TEXT,
+    is_verified INTEGER DEFAULT 0,
+    verification_token TEXT,
+    reset_token TEXT,
+    reset_token_expires TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- ============================================
 -- TEMPLATES TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS templates (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
+    user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
     name TEXT NOT NULL,
     thumbnail TEXT,
     status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
@@ -19,6 +40,7 @@ CREATE TABLE IF NOT EXISTS templates (
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
+
 
 -- ============================================
 -- TEMPLATE SECTIONS TABLE
@@ -108,3 +130,8 @@ CREATE INDEX IF NOT EXISTS idx_elements_type ON template_elements(type);
 
 CREATE INDEX IF NOT EXISTS idx_rsvp_template_id ON rsvp_responses(template_id);
 CREATE INDEX IF NOT EXISTS idx_rsvp_created_at ON rsvp_responses(created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_verification_token ON users(verification_token);
+CREATE INDEX IF NOT EXISTS idx_users_reset_token ON users(reset_token);
+CREATE INDEX IF NOT EXISTS idx_templates_user_id ON templates(user_id);

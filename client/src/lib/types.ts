@@ -446,3 +446,21 @@ export interface RSVPResponse {
     isPublic: boolean;
     createdAt: string;
 }
+
+// ============================================
+// USER / AUTH TYPES
+// ============================================
+
+export interface UserResponse {
+    id: string;
+    email: string;
+    name: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
+    plan: 'free' | 'basic' | 'premium' | 'priority';
+    planExpiresAt: string | null;
+    isVerified: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
