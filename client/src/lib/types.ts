@@ -217,7 +217,7 @@ export type AnimationType =
     | 'fly-down'      // Fly down + flap
     | 'fly-random';   // Random zigzag + flap
 
-export type ElementType = 'image' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'rsvp-form' | 'guest_wishes' | 'open_invitation_button' | 'button' | 'shape';
+export type ElementType = 'image' | 'gif' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'rsvp-form' | 'guest_wishes' | 'open_invitation_button' | 'button' | 'shape';
 
 export type ShapeType =
     // Basic Shapes

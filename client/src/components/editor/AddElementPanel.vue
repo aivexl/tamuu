@@ -62,7 +62,7 @@ const handleAddElement = async (type: ElementType) => {
         case 'gif':
              newElement = {
                 ...newElement,
-                type: 'image', // GIF uses image type but with isGif flag
+                type: 'gif', // Keep as 'gif' type for proper handling
                 isGif: true,
                 // No default image URL - user uploads their own
                 size: { width: 200, height: 200 },
@@ -227,7 +227,7 @@ const handleAddElement = async (type: ElementType) => {
             <Button 
                 variant="outline" 
                 class="flex flex-col items-center justify-center h-20 gap-2 hover:bg-purple-50 hover:border-purple-200 transition-all"
-                @click="handleAddElement('gif' as ElementType)"
+                @click="handleAddElement('gif')"
             >
                 <Film class="w-6 h-6 text-purple-600" />
                 <span class="text-xs">GIF</span>

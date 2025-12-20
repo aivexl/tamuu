@@ -130,12 +130,12 @@ const sortedElements = computed(() => {
 
 // Separate GIF elements for HTML overlay rendering (Konva can't animate GIFs)
 const gifElements = computed(() => {
-    return sortedElements.value.filter(el => el.type === 'image' && el.isGif && el.imageUrl);
+    return sortedElements.value.filter(el => el.type === 'gif' && el.imageUrl);
 });
 
 // Non-GIF elements for Konva canvas rendering  
 const canvasElements = computed(() => {
-    return sortedElements.value.filter(el => !(el.type === 'image' && el.isGif));
+    return sortedElements.value.filter(el => el.type !== 'gif');
 });
 
 const handleElementDblClick = (element: TemplateElement) => {
