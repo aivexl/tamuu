@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS template_elements (
     rotation REAL DEFAULT 0,
     flip_horizontal INTEGER DEFAULT 0, -- Boolean as INTEGER
     flip_vertical INTEGER DEFAULT 0, -- Boolean as INTEGER
+    motion_path_config TEXT, -- JSON object for custom paths
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );

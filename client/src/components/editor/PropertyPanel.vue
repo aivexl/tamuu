@@ -1497,6 +1497,74 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 </div>
             </div>
 
+            <!-- MOTION PATH ANIMATION -->
+            <div class="pt-4 border-t space-y-3">
+                <div class="flex items-center justify-between">
+                    <Label class="text-xs font-semibold text-slate-500 uppercase">Motion Path</Label>
+                    <div class="flex items-center gap-1">
+                        <span class="text-[10px] text-slate-400">{{ element.motionPathConfig?.enabled ? 'ON' : 'OFF' }}</span>
+                        <input 
+                            type="checkbox" 
+                            :checked="element.motionPathConfig?.enabled" 
+                            @change="(e: any) => handleUpdate({ motionPathConfig: { ...(element?.motionPathConfig || {}), enabled: e.target.checked } })"
+                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3 h-3"
+                        />
+                    </div>
+                </div>
+
+                <div v-if="element.motionPathConfig?.enabled" class="space-y-4">
+                    <div class="flex flex-col gap-2">
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            class="w-full text-xs"
+                            :class="store.pathEditingId === element.id ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : ''"
+                            @click="store.pathEditingId = store.pathEditingId === element.id ? null : element.id"
+                        >
+                            {{ store.pathEditingId === element.id ? 'Stop Editing Path' : 'Edit Flight Path' }}
+                        </Button>
+                        <p class="text-[10px] text-slate-400 italic" v-if="store.pathEditingId === element.id">
+                            Click on canvas to add points. Drag points to move them. Right-click point to remove.
+                        </p>
+                    </div>
+
+                    <div v-if="element.motionPathConfig?.points?.length" class="space-y-3">
+                        <div class="flex justify-between items-center text-[11px]">
+                            <span class="text-slate-500">Duration</span>
+                            <span class="font-medium px-2 py-0.5 bg-slate-100 rounded text-slate-600">{{ element.motionPathConfig.duration || 3000 }}ms</span>
+                        </div>
+                        <input 
+                            type="range" 
+                            min="500" 
+                            max="10000" 
+                            step="100" 
+                            :value="element.motionPathConfig.duration || 3000"
+                            @input="(e: any) => handleUpdate({ motionPathConfig: { ...element?.motionPathConfig, duration: Number(e.target.value) } })"
+                            class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                        />
+
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] text-slate-500">Loop Animation</span>
+                            <input 
+                                type="checkbox" 
+                                :checked="element.motionPathConfig.loop !== false" 
+                                @change="(e: any) => handleUpdate({ motionPathConfig: { ...element?.motionPathConfig, loop: e.target.checked } })"
+                                class="rounded border-slate-300 text-indigo-600 w-3.5 h-3.5"
+                            />
+                        </div>
+                        
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            class="w-full text-[10px] text-slate-400 hover:text-red-500 h-7"
+                            @click="handleUpdate({ motionPathConfig: { ...element?.motionPathConfig, points: [] } })"
+                        >
+                            Clear All Points
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
             <!-- COPY TO PAGE -->
             <div class="pt-4 border-t space-y-2">
                 <Label class="text-xs font-semibold text-slate-500 uppercase">Actions</Label>

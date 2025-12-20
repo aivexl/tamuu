@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from "vue";
 import { useIntersectionObserver } from "@vueuse/core";
-import { type AnimationType } from "@/lib/types";
+import { type AnimationType, type MotionPathConfig } from "@/lib/types";
+import { gsap } from "gsap";
+import { MotionPathPlugin } from "gsap/MotionPathPlugin";
+
+gsap.registerPlugin(MotionPathPlugin);
 
 /**
  * SHARED PERSISTENT STATE
@@ -19,10 +23,11 @@ interface Props {
   class?: string;
   style?: any;
   forceTrigger?: boolean;
-  triggerMode?: 'auto' | 'manual';
+  triggerMode?: 'scroll' | 'click' | 'open_btn';
   elementId?: string;
   immediate?: boolean;
   imageUrl?: string;
+  motionPathConfig?: MotionPathConfig;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -32,10 +37,11 @@ const props = withDefaults(defineProps<Props>(), {
   class: "",
   style: {},
   forceTrigger: false,
-  triggerMode: 'auto',
+  triggerMode: 'scroll',
   elementId: '',
   immediate: false,
   imageUrl: '',
+  motionPathConfig: undefined,
 });
 
 const elementRef = ref<HTMLElement | null>(null);
@@ -48,21 +54,90 @@ const tryTriggerAnimation = () => {
         requestAnimationFrame(() => {
             shouldAnimate.value = true;
             if (props.elementId) globalAnimatedState.set(props.elementId, true);
+            
+            // Trigger GSAP motion path if enabled
+            if (props.motionPathConfig?.enabled && props.motionPathConfig.points?.length > 0) {
+                initMotionPath();
+            }
         });
     }
 };
 
-const resetAnimation = () => {
-    if (shouldAnimate.value && !props.immediate) {
-        shouldAnimate.value = false;
-        if (props.elementId) globalAnimatedState.set(props.elementId, false);
+const handleClick = () => {
+    if (props.triggerMode === 'click') {
+        tryTriggerAnimation();
     }
 };
+
+const motionPathTween = ref<gsap.core.Tween | null>(null);
+
+const initMotionPath = () => {
+    if (!elementRef.value || !props.motionPathConfig || !props.motionPathConfig.points.length) return;
+    
+    const config = props.motionPathConfig;
+    const points = config.points;
+    
+    // We need to calculate points relative to the element's START position
+    // because GSAP works on transform, and the element is already at props.style.left/top.
+    // However, our path points are absolute canvas coordinates.
+    // So we subtract the start position to get relative movement.
+    const startX = parseFloat(props.style.left || '0');
+    const startY = parseFloat(props.style.top || '0');
+    
+    const relativePoints = points.map(p => ({
+        x: p.x - startX,
+        y: p.y - startY
+    }));
+
+    if (motionPathTween.value) motionPathTween.value.kill();
+
+    motionPathTween.value = gsap.to(elementRef.value, {
+        duration: (config.duration || 3000) / 1000,
+        repeat: config.loop !== false ? -1 : 0,
+        ease: "none",
+        motionPath: {
+            path: relativePoints,
+            curviness: 1.2,
+            autoRotate: false
+        },
+        paused: false
+    });
+};
+
+const resetAnimation = () => {
+    // Only reset if it's currently animated AND NOT immediate 
+    // AND NOT a GIF (GIFs should stay visible once they start)
+    const isGif = props.imageUrl?.toLowerCase().endsWith('.gif');
+    
+    if (shouldAnimate.value && !props.immediate && !isGif) {
+        shouldAnimate.value = false;
+        if (props.elementId) globalAnimatedState.set(props.elementId, false);
+        if (motionPathTween.value) {
+            motionPathTween.value.pause(0);
+        }
+    }
+};
+
+// Re-init path if config changes (important for editor live updates)
+watch(() => props.motionPathConfig, (newVal) => {
+    if (shouldAnimate.value && newVal?.enabled && newVal.points?.length > 0) {
+        initMotionPath();
+    } else if (motionPathTween.value) {
+        motionPathTween.value.kill();
+        motionPathTween.value = null;
+    }
+}, { deep: true });
 
 // INITIAL TRIGGER (Immediate)
 onMounted(() => {
     if (props.immediate) {
         tryTriggerAnimation();
+    }
+});
+
+onUnmounted(() => {
+    if (motionPathTween.value) {
+        motionPathTween.value.kill();
     }
 });
 
@@ -75,10 +150,10 @@ useIntersectionObserver(
         
         const { isIntersecting, boundingClientRect, rootBounds } = entry;
         
-        if (isIntersecting) {
+        if (isIntersecting && props.triggerMode === 'scroll') {
             // Element entered viewport (from any direction)
             tryTriggerAnimation();
-        } else if (rootBounds && props.triggerMode === 'auto' && !props.immediate) {
+        } else if (rootBounds && props.triggerMode === 'scroll' && !props.immediate) {
             // Only reset if NOT immediate - immediate elements should always stay visible
             /**
              * DIRECTIONAL RESET: 
@@ -103,7 +178,7 @@ useIntersectionObserver(
 
 // MANUAL TRIGGER WATCHER
 watch(() => props.forceTrigger, (force) => {
-    if (props.triggerMode === 'manual' && force) {
+    if ((props.triggerMode === 'click' || props.triggerMode === 'open_btn') && force) {
         tryTriggerAnimation();
     }
 }, { immediate: true });
@@ -420,7 +495,7 @@ const staticContentStyle = computed(() => {
 
 <template>
   <!-- ROOT: The 'Box' that browser sees for visibility -->
-  <div ref="elementRef" :class="class" :style="rootStyle">
+  <div ref="elementRef" :class="class" :style="rootStyle" @click="handleClick">
     <!-- 1. Entrance Layer -->
     <div :style="entranceStyle" class="relative">
       <!-- 2. Path Layer (Float, Fly, Sway) -->

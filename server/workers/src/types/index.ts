@@ -81,6 +81,7 @@ export interface DBTemplateElement {
     rotation: number;
     flip_horizontal: number; // SQLite boolean
     flip_vertical: number; // SQLite boolean
+    motion_path_config: string | null; // JSON string
     created_at: string;
     updated_at: string;
 }
@@ -157,6 +158,7 @@ export interface TemplateElement {
     rotation?: number;
     flipHorizontal?: boolean;
     flipVertical?: boolean;
+    motionPathConfig?: MotionPathConfig;
 }
 
 export interface CustomSection {
@@ -293,4 +295,12 @@ export interface RSVPResponse {
     attendance?: 'hadir' | 'tidak_hadir' | 'ragu';
     isPublic: boolean;
     createdAt: string;
+}
+
+export interface MotionPathConfig {
+    points: Array<{ x: number, y: number }>;
+    duration?: number;
+    loop?: boolean;
+    enabled?: boolean;
+    closed?: boolean; // Whether the path is a closed loop
 }

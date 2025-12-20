@@ -424,9 +424,9 @@ export class DatabaseService {
           animation, loop_animation, animation_delay, animation_speed, animation_duration, animation_trigger,
           content, image_url, text_style, icon_style, countdown_config,
           rsvp_form_config, guest_wishes_config, open_invitation_config,
-          rotation, flip_horizontal, flip_vertical, created_at, updated_at
+          rotation, flip_horizontal, flip_vertical, motion_path_config, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
             .bind(
                 id,
@@ -455,6 +455,7 @@ export class DatabaseService {
                 element.rotation ?? 0,
                 element.flipHorizontal ? 1 : 0,
                 element.flipVertical ? 1 : 0,
+                element.motionPathConfig ? JSON.stringify(element.motionPathConfig) : null,
                 now,
                 now
             )
@@ -560,6 +561,10 @@ export class DatabaseService {
         if (updates.flipVertical !== undefined) {
             sets.push('"flip_vertical" = ?');
             values.push(updates.flipVertical ? 1 : 0);
+        }
+        if (updates.motionPathConfig !== undefined) {
+            sets.push('"motion_path_config" = ?');
+            values.push(updates.motionPathConfig ? JSON.stringify(updates.motionPathConfig) : null);
         }
 
         // Move "No Updates" check to after all possible property processing
@@ -701,6 +706,7 @@ export class DatabaseService {
             rotation: el.rotation,
             flipHorizontal: el.flip_horizontal === 1,
             flipVertical: el.flip_vertical === 1,
+            motionPathConfig: safeParseJSON(el.motion_path_config, undefined),
         };
     }
 }

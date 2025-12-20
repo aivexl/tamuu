@@ -285,13 +285,55 @@ const handleElementDblClick = (element: TemplateElement) => {
     }
 };
 
-// Event Handlers
+// --- MOTION PATH EDITING ---
+const editingPathElement = computed(() => {
+    if (!store.pathEditingId) return null;
+    return props.elements.find(el => el.id === store.pathEditingId);
+});
+
+const handlePathPointDragMove = (e: any, index: number) => {
+    if (!editingPathElement.value) return;
+    const node = e.target;
+    const points = [...(editingPathElement.value.motionPathConfig?.points || [])];
+    points[index] = { x: Math.round(node.x()), y: Math.round(node.y()) };
+    
+    store.updateMotionPath(store.activeTemplateId!, props.sectionType, editingPathElement.value.id, points);
+};
+
+const handlePathPointClick = (e: any, index: number) => {
+    e.cancelBubble = true;
+    // Right click to remove point
+    if (e.evt.button === 2) {
+        if (!editingPathElement.value) return;
+        const points = [...(editingPathElement.value.motionPathConfig?.points || [])];
+        points.splice(index, 1);
+        store.updateMotionPath(store.activeTemplateId!, props.sectionType, editingPathElement.value.id, points);
+    }
+};
+
 const handleStageClick = (e: any) => {
+    // If in path editing mode, add a point
+    if (store.pathEditingId && editingPathElement.value) {
+        const stageNode = e.target.getStage();
+        const pointerPos = stageNode.getPointerPosition();
+        if (pointerPos) {
+            const x = Math.round(pointerPos.x / props.scale);
+            const y = Math.round(pointerPos.y / props.scale);
+            
+            const points = [...(editingPathElement.value.motionPathConfig?.points || [])];
+            points.push({ x, y });
+            store.updateMotionPath(store.activeTemplateId!, props.sectionType, editingPathElement.value.id, points);
+            return;
+        }
+    }
+
     // Deselect if clicked on empty stage
     if (e.target === e.target.getStage()) {
         emit('elementSelect', null);
     }
 };
+
+// Event Handlers
 
 const handleDragEnd = (e: any, element: TemplateElement) => {
     const x = Math.round(e.target.x());
@@ -1303,6 +1345,60 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
                     />
                 </v-group>
             </v-group>
+        </v-group>
+
+        <!-- MOTION PATH OVERLAY -->
+        <v-group v-if="editingPathElement && editingPathElement.motionPathConfig?.enabled">
+            <!-- Path Line -->
+            <v-line
+                v-if="editingPathElement.motionPathConfig.points.length > 1"
+                :config="{
+                    points: editingPathElement.motionPathConfig.points.flatMap(p => [p.x, p.y]),
+                    stroke: '#6366f1',
+                    strokeWidth: 2,
+                    dash: [5, 5],
+                    lineJoin: 'round',
+                    lineCap: 'round',
+                    listening: false
+                }"
+            />
+            
+            <!-- Path Points -->
+            <v-circle
+                v-for="(point, index) in editingPathElement.motionPathConfig.points"
+                :key="'point-' + index"
+                :config="{
+                    x: point.x,
+                    y: point.y,
+                    radius: 6,
+                    fill: '#6366f1',
+                    stroke: 'white',
+                    strokeWidth: 2,
+                    draggable: true,
+                    shadowBlur: 5,
+                    shadowOpacity: 0.3
+                }"
+                @dragmove="(e: any) => handlePathPointDragMove(e, index)"
+                @mousedown="(e: any) => handlePathPointClick(e, index)"
+            />
+            
+            <!-- Connection from element to first point (if exists) -->
+            <v-line
+                v-if="editingPathElement.motionPathConfig.points.length > 0"
+                :config="{
+                    points: [
+                        editingPathElement.position.x + editingPathElement.size.width / 2,
+                        editingPathElement.position.y + editingPathElement.size.height / 2,
+                        editingPathElement.motionPathConfig.points[0].x,
+                        editingPathElement.motionPathConfig.points[0].y
+                    ],
+                    stroke: '#6366f1',
+                    strokeWidth: 1,
+                    dash: [2, 2],
+                    opacity: 0.5,
+                    listening: false
+                }"
+            />
         </v-group>
 
         <!-- Transformer -->

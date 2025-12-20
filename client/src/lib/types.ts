@@ -359,6 +359,15 @@ export interface TemplateElement {
 
     openInvitationConfig?: OpenInvitationConfig;
     animationTrigger?: 'scroll' | 'click' | 'open_btn';
+    motionPathConfig?: MotionPathConfig;
+}
+
+export interface MotionPathConfig {
+    points: Array<{ x: number, y: number }>;
+    duration?: number;
+    loop?: boolean;
+    enabled?: boolean;
+    closed?: boolean;
 }
 
 export interface SectionDesign {

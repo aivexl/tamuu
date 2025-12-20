@@ -17,6 +17,7 @@ interface State {
     isLoading: boolean;
     error: string | null;
     isOnline: boolean;
+    tempIdMap: Map<string, string>; // Maps temp-id -> db-id for race conditions
 }
 
 export const useTemplateStore = defineStore("template", {
@@ -24,10 +25,12 @@ export const useTemplateStore = defineStore("template", {
         templates: [],
         activeTemplateId: null,
         selectedElementId: null,
+        pathEditingId: null, // ID of element currently being path-edited
         clipboard: null,
         isLoading: false,
         error: null,
         isOnline: navigator.onLine,
+        tempIdMap: new Map(),
     }),
 
     actions: {
@@ -58,9 +61,38 @@ export const useTemplateStore = defineStore("template", {
             try {
                 const template = await CloudflareAPI.getTemplate(id);
                 if (template) {
-                    // Remove existing if present to avoid duplication
-                    this.templates = this.templates.filter((t) => t.id !== id);
-                    this.templates.push(template);
+                    const existing = this.templates.find((t) => t.id === id);
+                    if (existing) {
+                        // Merge logic: preserve local temp elements that might not be in the DB yet
+                        Object.keys(template.sections).forEach(sectionType => {
+                            const section = template.sections[sectionType];
+                            if (!section) return;
+
+                            const dbElements = section.elements || [];
+                            const localElements = existing.sections[sectionType]?.elements || [];
+
+                            // Keep local elements that are either 'temp-' or have a pending mapping
+                            const pendingElements = localElements.filter(el =>
+                                el.id.startsWith('temp-') || this.tempIdMap.has(el.id)
+                            );
+
+                            // Combine db elements with pending locals, avoiding duplicates by ID
+                            const combined = [...dbElements];
+                            pendingElements.forEach(pEl => {
+                                if (!combined.find(e => e.id === pEl.id)) {
+                                    combined.push(pEl);
+                                }
+                            });
+
+                            section.elements = combined;
+                        });
+
+                        // Replace the template
+                        const index = this.templates.findIndex(t => t.id === id);
+                        this.templates[index] = template;
+                    } else {
+                        this.templates.push(template);
+                    }
                 } else {
                     this.error = "Template not found";
                 }
@@ -120,12 +152,17 @@ export const useTemplateStore = defineStore("template", {
             options: { skipDb?: boolean } = {}
         ) {
             console.log('[Store] updateElement called:', { templateId, sectionType, elementId, updates, options });
+
+            // Check if elementId is a temporary ID that has already been mapped
+            const realId = this.tempIdMap.get(elementId) || elementId;
+            const targetId = realId;
+
             // Optimistic update
             const template = this.templates.find((t) => t.id === templateId);
             if (template) {
                 const section = template.sections[sectionType];
                 if (section) {
-                    const index = section.elements.findIndex((el) => el.id === elementId);
+                    const index = section.elements.findIndex((el) => el.id === targetId || el.id === elementId);
                     if (index !== -1) {
                         section.elements[index] = { ...section.elements[index], ...updates } as TemplateElement;
                     }
@@ -138,9 +175,8 @@ export const useTemplateStore = defineStore("template", {
             }
 
             try {
-                console.log('[Store] Calling CloudflareAPI.updateElement...');
-                await CloudflareAPI.updateElement(elementId, updates, templateId);
-                console.log('[Store] CloudflareAPI.updateElement completed successfully');
+                console.log(`[Store] Calling CloudflareAPI.updateElement for ${targetId}...`);
+                await CloudflareAPI.updateElement(targetId, updates, templateId);
             } catch (error: any) {
                 console.error("[Store] Failed to update element:", error);
             }
@@ -150,6 +186,7 @@ export const useTemplateStore = defineStore("template", {
         // For brevity in this turn, I will implement the most critical ones.
 
         async addElement(templateId: string, sectionType: string, element: TemplateElement) {
+            const tempId = element.id;
             // Optimistic add
             const template = this.templates.find((t) => t.id === templateId);
             if (template) {
@@ -162,18 +199,21 @@ export const useTemplateStore = defineStore("template", {
             try {
                 const createdElement = await CloudflareAPI.createElement(templateId, sectionType, element);
 
+                // Update mapping for race conditions
+                this.tempIdMap.set(tempId, createdElement.id);
+
                 // Sync ID
                 const t = this.templates.find((t) => t.id === templateId);
                 if (t) {
                     const s = t.sections[sectionType];
                     if (s) {
-                        const el = s.elements.find((e) => e.id === element.id); // Find using old ID
+                        const el = s.elements.find((e) => e.id === tempId);
                         if (el) {
                             el.id = createdElement.id;
                         }
                     }
                 }
-                if (this.selectedElementId === element.id) {
+                if (this.selectedElementId === tempId) {
                     this.selectedElementId = createdElement.id;
                 }
             } catch (error) {
@@ -275,11 +315,9 @@ export const useTemplateStore = defineStore("template", {
 
             try {
                 const created = await CloudflareAPI.createElement(templateId, sectionType, newElement);
+                this.tempIdMap.set(newElement.id, created.id);
                 newElement.id = created.id;
                 this.selectedElementId = created.id;
-
-                // If the section we pasted into is NOT the active one in UI (rare but possible via API), 
-                // we might want to switch focus, but store doesn't control UI focus directly unless through state.
             } catch (error) {
                 console.error("Failed to paste element:", error);
             }
@@ -572,10 +610,13 @@ export const useTemplateStore = defineStore("template", {
                     openInvitationConfig: newSection.openInvitationConfig
                 });
 
-                // 2. Create Elements
+                // 2. Create Elements and sync IDs
                 for (const el of duplicatedElements) {
                     if (el.type) {
-                        await CloudflareAPI.createElement(templateId, newSectionKey, el);
+                        const tempId = el.id;
+                        const created = await CloudflareAPI.createElement(templateId, newSectionKey, el);
+                        this.tempIdMap.set(tempId, created.id);
+                        el.id = created.id;
                     }
                 }
 
@@ -720,6 +761,23 @@ export const useTemplateStore = defineStore("template", {
         async syncSections(_templateId: string, _sections: Record<string, SectionDesign>) {
             // NO-OP or handle legacy. 
             // We should NOT rely on this for section updates anymore.
-        }
+        },
+        async updateMotionPath(templateId: string, sectionType: string, elementId: string, points: Array<{ x: number, y: number }>) {
+            const template = this.templates.find(t => t.id === templateId);
+            if (!template) return;
+            const section = template.sections[sectionType];
+            if (!section) return;
+            const element = section.elements.find(e => e.id === elementId);
+            if (!element) return;
+
+            const newConfig = {
+                ...(element.motionPathConfig || { duration: 3000, loop: true, enabled: true }),
+                points
+            };
+
+            await this.updateElement(templateId, sectionType, elementId, {
+                motionPathConfig: newConfig
+            });
+        },
     },
 });

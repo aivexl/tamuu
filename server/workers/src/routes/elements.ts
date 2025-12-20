@@ -44,7 +44,8 @@ elementsRouter.put('/:id', async (c) => {
     const body = await c.req.json();
     console.log(`[ELEMENTS ROUTE] Updating element ${id}`);
 
-    const { templateId, ...updates } = body;
+    const { _templateId, ...updates } = body;
+    const templateId = _templateId;
 
     // If image is being changed, cleanup old image from R2
     if (updates.imageUrl !== undefined) {
