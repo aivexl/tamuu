@@ -84,10 +84,11 @@ const computedStyle = computed(() => ({
 /* Butterfly specific animation */
 .butterfly-gold .flying-image,
 .butterfly-blue .flying-image {
-  animation: butterfly-flap 0.3s ease-in-out infinite;
+  animation: butterfly-flap 4s ease-in-out infinite;
   perspective: 1000px;
   transform-origin: center;
 }
+
 
 /* Horizontal flying path */
 @keyframes fly-horizontal {
