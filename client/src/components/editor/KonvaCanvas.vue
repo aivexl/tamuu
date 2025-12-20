@@ -138,6 +138,125 @@ const canvasElements = computed(() => {
     return sortedElements.value.filter(el => el.type !== 'gif');
 });
 
+// GIF drag/resize state
+const gifDragState = reactive<{
+    isDragging: boolean;
+    isResizing: boolean;
+    elementId: string | null;
+    startX: number;
+    startY: number;
+    startPos: { x: number; y: number };
+    startSize: { width: number; height: number };
+    resizeCorner: string;
+}>({
+    isDragging: false,
+    isResizing: false,
+    elementId: null,
+    startX: 0,
+    startY: 0,
+    startPos: { x: 0, y: 0 },
+    startSize: { width: 0, height: 0 },
+    resizeCorner: ''
+});
+
+// GIF drag handlers
+const handleGifMouseDown = (e: MouseEvent, gif: TemplateElement) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    emit('elementSelect', gif.id);
+    
+    gifDragState.isDragging = true;
+    gifDragState.elementId = gif.id;
+    gifDragState.startX = e.clientX;
+    gifDragState.startY = e.clientY;
+    gifDragState.startPos = { ...gif.position };
+    
+    window.addEventListener('mousemove', handleGifMouseMove);
+    window.addEventListener('mouseup', handleGifMouseUp);
+};
+
+const handleGifResizeMouseDown = (e: MouseEvent, gif: TemplateElement, corner: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    gifDragState.isResizing = true;
+    gifDragState.elementId = gif.id;
+    gifDragState.startX = e.clientX;
+    gifDragState.startY = e.clientY;
+    gifDragState.startSize = { ...gif.size };
+    gifDragState.startPos = { ...gif.position };
+    gifDragState.resizeCorner = corner;
+    
+    window.addEventListener('mousemove', handleGifMouseMove);
+    window.addEventListener('mouseup', handleGifMouseUp);
+};
+
+const handleGifMouseMove = (e: MouseEvent) => {
+    if (!gifDragState.elementId) return;
+    
+    const deltaX = (e.clientX - gifDragState.startX) / props.scale;
+    const deltaY = (e.clientY - gifDragState.startY) / props.scale;
+    
+    if (gifDragState.isDragging) {
+        const newX = Math.round(gifDragState.startPos.x + deltaX);
+        const newY = Math.round(gifDragState.startPos.y + deltaY);
+        emit('elementDrag', gifDragState.elementId, { x: newX, y: newY });
+    } else if (gifDragState.isResizing) {
+        let newWidth = gifDragState.startSize.width;
+        let newHeight = gifDragState.startSize.height;
+        let newX = gifDragState.startPos.x;
+        let newY = gifDragState.startPos.y;
+        
+        // Keep aspect ratio
+        const aspectRatio = gifDragState.startSize.width / gifDragState.startSize.height;
+        
+        if (gifDragState.resizeCorner.includes('right')) {
+            newWidth = Math.max(50, gifDragState.startSize.width + deltaX);
+            newHeight = newWidth / aspectRatio;
+        }
+        if (gifDragState.resizeCorner.includes('left')) {
+            newWidth = Math.max(50, gifDragState.startSize.width - deltaX);
+            newHeight = newWidth / aspectRatio;
+            newX = gifDragState.startPos.x + (gifDragState.startSize.width - newWidth);
+        }
+        if (gifDragState.resizeCorner.includes('bottom') && !gifDragState.resizeCorner.includes('left') && !gifDragState.resizeCorner.includes('right')) {
+            newHeight = Math.max(50, gifDragState.startSize.height + deltaY);
+            newWidth = newHeight * aspectRatio;
+        }
+        if (gifDragState.resizeCorner.includes('top') && !gifDragState.resizeCorner.includes('left') && !gifDragState.resizeCorner.includes('right')) {
+            newHeight = Math.max(50, gifDragState.startSize.height - deltaY);
+            newWidth = newHeight * aspectRatio;
+            newY = gifDragState.startPos.y + (gifDragState.startSize.height - newHeight);
+        }
+        
+        emit('elementTransformEnd', gifDragState.elementId, {
+            x: Math.round(newX),
+            y: Math.round(newY),
+            width: Math.round(newWidth),
+            height: Math.round(newHeight),
+            rotation: 0
+        });
+    }
+};
+
+const handleGifMouseUp = () => {
+    if (gifDragState.isDragging && gifDragState.elementId) {
+        // Final position update
+        const gif = props.elements.find(el => el.id === gifDragState.elementId);
+        if (gif) {
+            emit('elementDragEnd', gifDragState.elementId, { x: gif.position.x, y: gif.position.y });
+        }
+    }
+    
+    gifDragState.isDragging = false;
+    gifDragState.isResizing = false;
+    gifDragState.elementId = null;
+    
+    window.removeEventListener('mousemove', handleGifMouseMove);
+    window.removeEventListener('mouseup', handleGifMouseUp);
+};
+
 const handleElementDblClick = (element: TemplateElement) => {
     if (element.type === 'text' || element.type === 'button') {
         const currentText = element.openInvitationConfig?.buttonText || element.content || '';
@@ -1209,27 +1328,55 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
     <div 
       v-for="gif in gifElements"
       :key="'gif-' + gif.id"
-      class="absolute pointer-events-auto cursor-move"
+      class="absolute pointer-events-auto"
       :style="{
         left: (gif.position.x * scale) + 'px',
         top: (gif.position.y * scale) + 'px',
         width: (gif.size.width * scale) + 'px',
         height: (gif.size.height * scale) + 'px',
         transform: `rotate(${gif.rotation || 0}deg) scaleX(${gif.flipHorizontal ? -1 : 1}) scaleY(${gif.flipVertical ? -1 : 1})`,
-        zIndex: gif.zIndex || 1,
+        zIndex: (gif.zIndex || 1) + 1000,
         opacity: gif.opacity ?? 1,
-        outline: selectedElementId === gif.id ? '2px solid #3b82f6' : 'none',
-        outlineOffset: '2px'
       }"
-      @mousedown.stop="handleElementClick(gif.id)"
-      @click.stop="handleElementClick(gif.id)"
     >
+      <!-- GIF Image (draggable area) -->
       <img
         :src="getProxiedImageUrl(gif.imageUrl)"
         :alt="gif.name"
-        class="w-full h-full object-cover"
+        class="w-full h-full object-cover cursor-move"
         draggable="false"
+        @mousedown="handleGifMouseDown($event, gif)"
       />
+      
+      <!-- Selection border -->
+      <div 
+        v-if="selectedElementId === gif.id"
+        class="absolute inset-0 border-2 border-blue-500 border-dashed pointer-events-none"
+      />
+      
+      <!-- Resize handles (only when selected) -->
+      <template v-if="selectedElementId === gif.id">
+        <!-- Top-left -->
+        <div 
+          class="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-nw-resize -top-1.5 -left-1.5"
+          @mousedown.stop="handleGifResizeMouseDown($event, gif, 'top-left')"
+        />
+        <!-- Top-right -->
+        <div 
+          class="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-ne-resize -top-1.5 -right-1.5"
+          @mousedown.stop="handleGifResizeMouseDown($event, gif, 'top-right')"
+        />
+        <!-- Bottom-left -->
+        <div 
+          class="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-sw-resize -bottom-1.5 -left-1.5"
+          @mousedown.stop="handleGifResizeMouseDown($event, gif, 'bottom-left')"
+        />
+        <!-- Bottom-right -->
+        <div 
+          class="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-se-resize -bottom-1.5 -right-1.5"
+          @mousedown.stop="handleGifResizeMouseDown($event, gif, 'bottom-right')"
+        />
+      </template>
     </div>
   </div>
 </template>
