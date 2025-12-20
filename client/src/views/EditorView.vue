@@ -341,7 +341,7 @@ const handleElementTransformEnd = async (sectionKey: string, id: string, props: 
                 <Button 
                     variant="outline"
                     class="flex items-center gap-2"
-                    @click="$router.push(`/preview/`${templateId}`)"
+                    @click="$router.push(`/preview/${templateId}`)"
                 >
                     <Eye class="w-4 h-4" />
                     Preview
