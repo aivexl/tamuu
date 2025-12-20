@@ -20,8 +20,27 @@ const DEFAULT_OPTIONS: CompressionOptions = {
     maxWidth: 1920,
     maxHeight: 1920,
     quality: 0.85,
-    outputType: 'jpeg',
+    outputType: 'webp', // WebP supports transparency and has good compression
 };
+
+/**
+ * Check if file type supports transparency (PNG, WebP)
+ */
+export function hasTransparencySupport(file: File): boolean {
+    return file.type === 'image/png' || file.type === 'image/webp';
+}
+
+/**
+ * Get the best output format for a file
+ * - For transparent images: use 'webp' or 'png'
+ * - For opaque images: use 'jpeg' for best compression
+ */
+export function getBestOutputType(file: File): 'jpeg' | 'webp' | 'png' {
+    if (hasTransparencySupport(file)) {
+        return 'webp'; // WebP supports transparency with good compression
+    }
+    return 'jpeg'; // JPEG for photos/opaque images
+}
 
 /**
  * Format bytes to human readable

@@ -200,7 +200,7 @@ export async function getRSVPResponses(
 // UPLOAD API (WITH AUTO-COMPRESSION)
 // ============================================
 
-import { compressImageToFile, shouldCompress } from "@/lib/image-compress";
+import { compressImageToFile, shouldCompress, getBestOutputType } from "@/lib/image-compress";
 
 interface UploadResult {
     success: boolean;
@@ -228,7 +228,7 @@ export async function uploadFile(file: File): Promise<UploadResult> {
                 maxWidth: 1920,
                 maxHeight: 1920,
                 quality: 0.85,
-                outputType: 'jpeg', // Use JPEG for best compression
+                outputType: getBestOutputType(file), // Preserve transparency for PNG/WebP
             });
             wasCompressed = true;
         } catch (err) {
