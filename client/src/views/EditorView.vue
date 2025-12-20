@@ -8,7 +8,7 @@ import PropertyPanel from '@/components/editor/PropertyPanel.vue';
 import AddElementPanel from '@/components/editor/AddElementPanel.vue';
 import Button from '@/components/ui/Button.vue';
 import * as CloudflareAPI from '@/services/cloudflare-api';
-import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, Maximize, Check } from 'lucide-vue-next';
+import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, Maximize, Check, Upload } from 'lucide-vue-next';
 
 const route = useRoute();
 const router = useRouter();
@@ -61,6 +61,36 @@ const handleSave = async () => {
     } finally {
         isSaving.value = false;
     }
+};
+
+// Publish handling
+const isPublishing = ref(false);
+const isPublished = computed(() => currentTemplate.value?.status === 'published');
+const isPreviewUser = ref(false);
+
+const handlePublish = async () => {
+    if (!currentTemplate.value?.id || isPublishing.value) return;
+    
+    isPublishing.value = true;
+    try {
+        const newStatus = isPublished.value ? 'draft' : 'published';
+        // Call API via store or directly if store doesn't have it (store usually has updateTemplate)
+        await store.updateTemplate(currentTemplate.value.id, { status: newStatus });
+        currentTemplate.value.status = newStatus; // Update local state
+        showSaveToast(
+            newStatus === 'published' ? 'Template berhasil dipublish!' : 'Template dikembalikan ke draft',
+            'success'
+        );
+    } catch (error) {
+        console.error('Publish failed:', error);
+        showSaveToast('Gagal mengubah status template', 'destructive');
+    } finally {
+        isPublishing.value = false;
+    }
+};
+
+const togglePreviewUser = () => {
+    isPreviewUser.value = !isPreviewUser.value;
 };
 
 const startEditName = () => {
@@ -297,11 +327,33 @@ const handleElementTransformEnd = async (sectionKey: string, id: string, props: 
                 <Button variant="ghost" size="icon"><Undo class="w-4 h-4" /></Button>
                 <Button variant="ghost" size="icon"><Redo class="w-4 h-4" /></Button>
                 <div class="w-px h-6 bg-slate-200 mx-2"></div>
-                <Button variant="outline" class="flex items-center gap-2" @click="router.push(`/preview/${templateId}`)">
-                    <Maximize class="w-4 h-4" />
-                    Preview
+                <!-- Preview as User Toggle -->
+                <button
+                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+                    :class="isPreviewUser ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    @click="togglePreviewUser"
+                    title="Toggle User Preview Mode"
+                >
+                    <User class="w-4 h-4" />
+                    <span class="hidden sm:inline">{{ isPreviewUser ? 'User Mode' : 'Admin Mode' }}</span>
+                </button>
+
+                <!-- Publish Button -->
+                <Button 
+                    :class="isPublished 
+                        ? 'bg-amber-500 hover:bg-amber-600 border-amber-600 text-white' 
+                        : 'bg-green-600 hover:bg-green-700 border-green-700 text-white'"
+                    class="flex items-center gap-2"
+                    @click="handlePublish" 
+                    :disabled="isPublishing"
+                >
+                    <Upload v-if="!isPublishing && !isPublished" class="w-4 h-4" />
+                    <Check v-if="!isPublishing && isPublished" class="w-4 h-4" />
+                    <span v-if="isPublishing" class="animate-spin">⏳</span>
+                    {{ isPublishing ? 'Processing...' : (isPublished ? 'Unpublish' : 'Publish') }}
                 </Button>
-                <Button class="flex items-center gap-2 bg-teal-600 hover:bg-teal-700" @click="handleSave" :disabled="isSaving">
+                <!-- Save Button (Standard) -->
+                <Button variant="ghost" class="flex items-center gap-2 hover:bg-slate-100" @click="handleSave" :disabled="isSaving">
                     <Save v-if="!isSaving" class="w-4 h-4" />
                     <span v-if="isSaving" class="animate-spin">⏳</span>
                     {{ isSaving ? 'Saving...' : 'Save' }}

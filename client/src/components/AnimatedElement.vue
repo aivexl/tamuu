@@ -28,6 +28,9 @@ interface Props {
   immediate?: boolean;
   imageUrl?: string;
   motionPathConfig?: MotionPathConfig;
+  isContentProtected?: boolean;
+  showCopyButton?: boolean;
+  elementContent?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -42,7 +45,22 @@ const props = withDefaults(defineProps<Props>(), {
   immediate: false,
   imageUrl: '',
   motionPathConfig: undefined,
+  isContentProtected: false,
+  showCopyButton: false,
+  elementContent: ''
 });
+
+import { Copy, Check } from 'lucide-vue-next';
+const isCopied = ref(false);
+
+const handleCopy = (e: MouseEvent) => {
+    e.stopPropagation();
+    if (props.elementContent) {
+        navigator.clipboard.writeText(props.elementContent);
+        isCopied.value = true;
+        setTimeout(() => isCopied.value = false, 2000);
+    }
+};
 
 const elementRef = ref<HTMLElement | null>(null);
 
@@ -505,8 +523,23 @@ const staticContentStyle = computed(() => {
         <!-- 3. Wing Layer (Flap) -->
         <div :style="loopStyles.wingStyle" class="relative w-full h-full">
           <!-- 4. Content Layer (Static transforms) -->
-          <div :style="staticContentStyle" class="relative w-full h-full">
+          <div 
+            :style="staticContentStyle" 
+            class="relative w-full h-full"
+            :class="{ 'select-none pointer-events-none': isContentProtected && !showCopyButton }"
+          >
             <slot />
+            
+            <!-- Copy Button -->
+            <button 
+                v-if="showCopyButton"
+                @click="handleCopy"
+                class="absolute -right-2 -top-2 p-1.5 rounded-full bg-white text-slate-600 shadow-md border border-slate-100 hover:bg-slate-50 transition-all z-50 pointer-events-auto"
+                :title="isCopied ? 'Copied!' : 'Copy text'"
+            >
+                <Check v-if="isCopied" class="w-3 h-3 text-green-500" />
+                <Copy v-else class="w-3 h-3" />
+            </button>
             
             <!-- Border Drawing Lines -->
             <template v-if="animation === 'draw-border'">

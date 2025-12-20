@@ -2,7 +2,7 @@
 import { useTemplateStore } from '@/stores/template';
 import { type TemplateElement, type ElementType } from '@/lib/types';
 import Button from '@/components/ui/Button.vue';
-import { Type, Image as ImageIcon, Clock, MessageSquare, MailOpen, Users, Heart, Square, Film } from 'lucide-vue-next';
+import { Type, Image as ImageIcon, Clock, MessageSquare, MailOpen, Users, Heart, Square, Film, MapPin } from 'lucide-vue-next';
 
 interface Props {
   activeSection: string;
@@ -196,6 +196,25 @@ const handleAddElement = async (type: ElementType) => {
                 id: newId
             };
             break;
+        case 'maps_point':
+            newElement = {
+                ...newElement,
+                name: 'Maps Point',
+                mapsConfig: {
+                    googleMapsUrl: '',
+                    displayName: 'Lokasi Resepsi',
+                    pinColor: '#EF4444',
+                    showLabel: true,
+                    showEmbed: true,
+                    showLinkButton: true,
+                    buttonText: 'Lihat Lokasi'
+                },
+                canEditPosition: true,
+                canEditContent: true,
+                size: { width: 300, height: 250 },
+                id: newId
+            };
+            break;
     }
 
     await store.addElement(store.activeTemplateId, props.activeSection, newElement);
@@ -285,6 +304,19 @@ const handleAddElement = async (type: ElementType) => {
             >
                 <Square class="w-6 h-6 text-gray-600" />
                 <span class="text-xs">Shape</span>
+            </Button>
+
+            <Button 
+                variant="outline" 
+                class="flex flex-col items-center justify-center h-20 gap-2 hover:bg-green-50 hover:border-green-200 transition-all"
+                @click="handleAddElement('maps_point')"
+            >
+                <div class="relative">
+                    <div class="absolute -inset-1 bg-green-100 rounded-full animate-ping opacity-75"></div>
+                    <MapPin class="w-6 h-6 text-green-600 relative z-10" />
+                </div>
+                <!-- lucide-vue-next imports MapPin check needed -->
+                <span class="text-xs">Maps Point</span>
             </Button>
         </div>
     </div>

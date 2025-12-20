@@ -4,6 +4,7 @@ import type {
     InvitationSection,
     Guest,
     Analytics,
+    TemplateElement
 } from "@/lib/types";
 import {
     demoInvitation,
@@ -108,9 +109,19 @@ export const useInvitationStore = defineStore("invitation", {
         moveSection(index: number, direction: 'up' | 'down') {
             const sections = [...this.invitation.sections];
             if (direction === 'up' && index > 0) {
-                [sections[index], sections[index - 1]] = [sections[index - 1], sections[index]];
+                const prev = sections[index - 1];
+                const curr = sections[index];
+                if (prev && curr) {
+                    sections[index] = prev;
+                    sections[index - 1] = curr;
+                }
             } else if (direction === 'down' && index < sections.length - 1) {
-                [sections[index], sections[index + 1]] = [sections[index + 1], sections[index]];
+                const next = sections[index + 1];
+                const curr = sections[index];
+                if (next && curr) {
+                    sections[index] = next;
+                    sections[index + 1] = curr;
+                }
             }
             // Reassign order
             this.invitation.sections = sections.map((s, i) => ({ ...s, order: i + 1 }));
@@ -121,12 +132,15 @@ export const useInvitationStore = defineStore("invitation", {
             if (index === -1) return;
 
             const original = this.invitation.sections[index];
+            if (!original) return;
+
             const newSection: InvitationSection = {
                 ...original,
                 id: crypto.randomUUID(), // Ensure distinct ID
                 title: `${original.title} (Copy)`,
                 isVisible: true, // Default to visible for copy? or keep original? let's keep visible
-                order: index + 2 // Insert after
+                order: index + 2, // Insert after
+                data: JSON.parse(JSON.stringify(original.data)) // Deep copy data
             };
 
             const sections = [...this.invitation.sections];
@@ -140,6 +154,16 @@ export const useInvitationStore = defineStore("invitation", {
             this.invitation.sections = this.invitation.sections.filter(s => s.id !== sectionId);
             // Reorder
             this.invitation.sections = this.invitation.sections.map((s, i) => ({ ...s, order: i + 1 }));
+        },
+
+        updateUserElement(elementId: string, updates: Partial<TemplateElement>) {
+            if (!this.invitation.elementOverrides) {
+                this.invitation.elementOverrides = {};
+            }
+            this.invitation.elementOverrides[elementId] = {
+                ...(this.invitation.elementOverrides[elementId] || {}),
+                ...updates
+            };
         },
     },
 });

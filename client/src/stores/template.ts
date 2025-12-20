@@ -18,6 +18,7 @@ interface State {
     error: string | null;
     isOnline: boolean;
     tempIdMap: Map<string, string>; // Maps temp-id -> db-id for race conditions
+    pathEditingId: string | null;
 }
 
 export const useTemplateStore = defineStore("template", {
@@ -105,6 +106,22 @@ export const useTemplateStore = defineStore("template", {
             } catch (error: any) {
                 this.error = error.message;
                 this.isLoading = false;
+            }
+        },
+
+        async updateTemplate(id: string, updates: Partial<Template>) {
+            this.isLoading = true;
+            try {
+                await CloudflareAPI.updateTemplate(id, updates);
+                const template = this.templates.find(t => t.id === id);
+                if (template) {
+                    Object.assign(template, updates);
+                }
+                this.isLoading = false;
+            } catch (error: any) {
+                this.error = error.message;
+                this.isLoading = false;
+                throw error;
             }
         },
 

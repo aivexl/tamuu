@@ -6,6 +6,7 @@ import { getProxiedImageUrl, isR2Url } from '@/lib/image-utils';
 import { iconPaths } from '@/lib/icon-paths';
 import { shapePaths } from '@/lib/shape-paths';
 import { useTemplateStore } from '@/stores/template';
+import MapsPointElement from '@/components/elements/MapsPointElement.vue';
 
 // Track Shift key for bypassing boundaries
 const isShiftPressed = ref(false);
@@ -37,21 +38,27 @@ interface Props {
   backgroundUrl?: string;
   overlayOpacity?: number;
   scale?: number;
+  viewMode?: 'admin' | 'user';
 }
 
 const props = withDefaults(defineProps<Props>(), {
   backgroundColor: '#ffffff',
   scale: 1,
+  viewMode: 'admin'
 });
 
 const store = useTemplateStore();
 
-const emit = defineEmits([
-  'elementSelect',
-  'elementDrag',
-  'elementDragEnd',
-  'elementTransformEnd'
-]);
+const emit = defineEmits<{
+    (e: 'elementSelect', id: string | null): void;
+    (e: 'elementDrag', id: string, position: { x: number; y: number }): void;
+    (e: 'elementDragEnd', id: string, position: { x: number; y: number }): void;
+    (e: 'elementTransformEnd', id: string, transform: { x: number; y: number; width: number; height: number; rotation: number }): void;
+    // Legacy events if any?
+    (e: 'select', id: string): void;
+    (e: 'update', id: string, updates: Partial<TemplateElement>): void;
+    (e: 'drag-end', id: string, x: number, y: number): void;
+}>();
 
 // Canvas config
 const configStage = computed(() => ({
@@ -133,9 +140,14 @@ const gifElements = computed(() => {
     return sortedElements.value.filter(el => el.type === 'gif' && el.imageUrl);
 });
 
-// Non-GIF elements for Konva canvas rendering  
+// Maps Point elements for HTML overlay rendering (iframe)
+const mapsElements = computed(() => {
+    return sortedElements.value.filter(el => el.type === 'maps_point');
+});
+
+// Non-GIF and non-Maps elements for Konva canvas rendering  
 const canvasElements = computed(() => {
-    return sortedElements.value.filter(el => el.type !== 'gif');
+    return sortedElements.value.filter(el => el.type !== 'gif' && el.type !== 'maps_point');
 });
 
 // GIF drag/resize state
@@ -402,7 +414,7 @@ watch(
   { flush: 'post' } 
 );
 
-const handleTransformEnd = (e: any) => {
+const handleTransformEnd = () => {
    console.log('[KonvaCanvas] handleTransformEnd TRIGGERED');
    
    // Use the transformer ref, not e.target (e.target is the transformed node, not the transformer)
@@ -439,7 +451,9 @@ const handleTransformEnd = (e: any) => {
        rotation: Math.round(node.rotation())
    };
    console.log('[KonvaCanvas] Emitting elementTransformEnd with:', props.selectedElementId, emitPayload);
-   emit('elementTransformEnd', props.selectedElementId, emitPayload);
+   if (props.selectedElementId) {
+       emit('elementTransformEnd', props.selectedElementId, emitPayload);
+   }
 };
 
 // Countdown Logic
@@ -476,7 +490,7 @@ watch(() => props.elements, () => {
 
 // Helper to get visible countdown items based on config
 const getVisibleCountdownItems = (element: TemplateElement, customLabels?: { days: string; hours: string; minutes: string; seconds: string }) => {
-    const config = element.countdownConfig || {};
+    const config = (element.countdownConfig || {}) as any;
     const tl = timeLeft[element.id] || { days: '00', hours: '00', minutes: '00', seconds: '00' };
     const labels = customLabels || { days: 'Days', hours: 'Hours', minutes: 'Minutes', seconds: 'Seconds' };
     
@@ -490,7 +504,7 @@ const getVisibleCountdownItems = (element: TemplateElement, customLabels?: { day
 };
 
 const getVisibleRSVPFields = (element: TemplateElement) => {
-    const config = element.rsvpFormConfig || {};
+    const config = (element.rsvpFormConfig || {}) as any;
     const fields = [];
     if (config.showNameField !== false) fields.push({ name: 'name', label: config.nameLabel || 'Nama' });
     if (config.showEmailField !== false) fields.push({ name: 'email', label: config.emailLabel || 'Email' });
@@ -678,7 +692,7 @@ const getElementStyleConfig = (style: string, primaryColor: string, shape?: stri
 };
 
 const getRSVPStyleConfig = (element: TemplateElement) => {
-    const config = element.rsvpFormConfig || { style: 'classic' };
+    const config = (element.rsvpFormConfig || { style: 'classic' }) as any;
     const base = getElementStyleConfig(config.style as string, config.buttonColor || '#000000');
     // Overrides
     if (config.backgroundColor) base.fill = config.backgroundColor;
@@ -695,7 +709,7 @@ const getRSVPStyleConfig = (element: TemplateElement) => {
 };
 
 const getGuestWishesStyleConfig = (element: TemplateElement) => {
-    const config = element.guestWishesConfig || { style: 'classic' };
+    const config = (element.guestWishesConfig || { style: 'classic' }) as any;
     const base = getElementStyleConfig(config.style as string, config.cardBorderColor || '#000000');
     if (config.cardBackgroundColor) base.fill = config.cardBackgroundColor;
     if (config.cardBorderColor) base.stroke = config.cardBorderColor;
@@ -748,11 +762,11 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
             id: element.id,
             name: 'element-' + element.id 
           }"
-          @dragend="(e) => handleDragEnd(e, element)"
-          @dragmove="(e) => handleDragMove(e, element)"
-          @click="(e) => { e.cancelBubble = true; handleElementClick(element.id); }"
-          @tap="(e) => { e.cancelBubble = true; handleElementClick(element.id); }"
-          @dblclick="(e) => { e.cancelBubble = true; handleElementDblClick(element); }"
+          @dragend="(e: any) => handleDragEnd(e, element)"
+          @dragmove="(e: any) => handleDragMove(e, element)"
+          @click="(e: any) => { e.cancelBubble = true; handleElementClick(element.id); }"
+          @tap="(e: any) => { e.cancelBubble = true; handleElementClick(element.id); }"
+          @dblclick="(e: any) => { e.cancelBubble = true; handleElementDblClick(element); }"
           @transformend="handleTransformEnd"
         >
             <!-- CRITICAL: Hit area for click detection. Without this, clicks don't register because all other children have listening: false -->
@@ -883,7 +897,7 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
 
                 <!-- Star -->
                 <v-star
-                    v-else-if="element.shapeConfig.shapeType === 'star' || element.shapeConfig.shapeType.startsWith('star-')"
+                    v-else-if="(element.shapeConfig.shapeType as string) === 'star' || element.shapeConfig.shapeType.startsWith('star-')"
                     :config="{
                         x: element.size.width / 2,
                         y: element.size.height / 2,
@@ -1261,7 +1275,7 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
                     :config="{
                         x: element.size.width / 2,
                         y: element.size.height / 2,
-                        numPoints: parseInt(element.shapeConfig.shapeType.split('-')[1]) || 5,
+                        numPoints: parseInt(element.shapeConfig.shapeType.split('-')[1] || '5') || 5,
                         innerRadius: (Math.min(element.size.width, element.size.height) / 2) * (element.shapeConfig.innerRadius || 0.4),
                         outerRadius: Math.min(element.size.width, element.size.height) / 2,
                         fill: element.shapeConfig.fill || 'transparent',
@@ -1384,13 +1398,13 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
             
             <!-- Connection from element to first point (if exists) -->
             <v-line
-                v-if="editingPathElement.motionPathConfig.points.length > 0"
+                v-if="editingPathElement.motionPathConfig.points.length > 0 && editingPathElement.motionPathConfig.points[0]"
                 :config="{
                     points: [
                         editingPathElement.position.x + editingPathElement.size.width / 2,
                         editingPathElement.position.y + editingPathElement.size.height / 2,
-                        editingPathElement.motionPathConfig.points[0].x,
-                        editingPathElement.motionPathConfig.points[0].y
+                        editingPathElement.motionPathConfig.points[0]!.x,
+                        editingPathElement.motionPathConfig.points[0]!.y
                     ],
                     stroke: '#6366f1',
                     strokeWidth: 1,
@@ -1420,65 +1434,73 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
       </v-layer>
     </v-stage>
 
-    <!-- GIF Overlay - Animated GIFs rendered as HTML (Konva canvas can't animate GIFs) -->
-    <div 
-      v-for="gif in gifElements"
-      :key="'gif-' + gif.id"
-      class="absolute pointer-events-auto"
-      :style="{
-        left: (gif.position.x * scale) + 'px',
-        top: (gif.position.y * scale) + 'px',
-        width: (gif.size.width * scale) + 'px',
-        height: (gif.size.height * scale) + 'px',
-        transform: `rotate(${gif.rotation || 0}deg) scaleX(${gif.flipHorizontal ? -1 : 1}) scaleY(${gif.flipVertical ? -1 : 1})`,
-        zIndex: (gif.zIndex || 1) + 1000,
-        opacity: gif.opacity ?? 1,
-        background: 'transparent',
-      }"
-    >
-      <!-- GIF Image (draggable area) -->
-      <img
-        :src="getProxiedImageUrl(gif.imageUrl)"
-        :alt="gif.name"
-        class="w-full h-full cursor-move"
+    <!-- GIF & Maps Overlay - Rendered as HTML -->
+    <template v-for="overlayEl in [...gifElements, ...mapsElements]" :key="'overlay-' + overlayEl.id">
+        <div 
+        class="absolute pointer-events-auto"
         :style="{
-          objectFit: gif.objectFit || 'contain',
-          background: 'transparent',
-          imageRendering: 'auto',
+            left: (overlayEl.position.x * scale) + 'px',
+            top: (overlayEl.position.y * scale) + 'px',
+            width: (overlayEl.size.width * scale) + 'px',
+            height: (overlayEl.size.height * scale) + 'px',
+            transform: `rotate(${overlayEl.rotation || 0}deg) scaleX(${overlayEl.flipHorizontal ? -1 : 1}) scaleY(${overlayEl.flipVertical ? -1 : 1})`,
+            zIndex: (overlayEl.zIndex || 1) + 1000,
+            opacity: overlayEl.opacity ?? 1,
         }"
-        draggable="false"
-        @mousedown="handleGifMouseDown($event, gif)"
-      />
-      
-      <!-- Selection border -->
-      <div 
-        v-if="selectedElementId === gif.id"
-        class="absolute inset-0 border-2 border-blue-500 border-dashed pointer-events-none"
-      />
-      
-      <!-- Resize handles (only when selected) -->
-      <template v-if="selectedElementId === gif.id">
-        <!-- Top-left -->
-        <div 
-          class="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-nw-resize -top-1.5 -left-1.5"
-          @mousedown.stop="handleGifResizeMouseDown($event, gif, 'top-left')"
+        @mousedown="(e) => handleGifMouseDown(e, overlayEl)"
+        >
+        <!-- GIF Image -->
+        <img
+            v-if="overlayEl.type === 'gif'"
+            :src="getProxiedImageUrl(overlayEl.imageUrl)"
+            :alt="overlayEl.name"
+            class="w-full h-full cursor-move"
+            :style="{
+            objectFit: overlayEl.objectFit || 'contain',
+            background: 'transparent',
+            imageRendering: 'auto',
+            }"
+            draggable="false"
         />
-        <!-- Top-right -->
-        <div 
-          class="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-ne-resize -top-1.5 -right-1.5"
-          @mousedown.stop="handleGifResizeMouseDown($event, gif, 'top-right')"
+
+        <!-- Maps Point -->
+        <MapsPointElement
+            v-if="overlayEl.type === 'maps_point'"
+            :element="overlayEl"
+            :is-preview="false"
+            class="w-full h-full cursor-move"
         />
-        <!-- Bottom-left -->
+        
+        <!-- Selection border -->
         <div 
-          class="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-sw-resize -bottom-1.5 -left-1.5"
-          @mousedown.stop="handleGifResizeMouseDown($event, gif, 'bottom-left')"
+            v-if="selectedElementId === overlayEl.id"
+            class="absolute inset-0 border-2 border-blue-500 border-dashed pointer-events-none z-50"
         />
-        <!-- Bottom-right -->
-        <div 
-          class="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-se-resize -bottom-1.5 -right-1.5"
-          @mousedown.stop="handleGifResizeMouseDown($event, gif, 'bottom-right')"
-        />
-      </template>
-    </div>
+        
+        <!-- Resize handles (only when selected) -->
+        <template v-if="selectedElementId === overlayEl.id">
+            <!-- Top-left -->
+            <div 
+            class="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-nw-resize -top-1.5 -left-1.5 z-50 pointer-events-auto"
+            @mousedown.stop="handleGifResizeMouseDown($event, overlayEl, 'top-left')"
+            />
+            <!-- Top-right -->
+            <div 
+            class="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-ne-resize -top-1.5 -right-1.5 z-50 pointer-events-auto"
+            @mousedown.stop="handleGifResizeMouseDown($event, overlayEl, 'top-right')"
+            />
+            <!-- Bottom-left -->
+            <div 
+            class="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-sw-resize -bottom-1.5 -left-1.5 z-50 pointer-events-auto"
+            @mousedown.stop="handleGifResizeMouseDown($event, overlayEl, 'bottom-left')"
+            />
+            <!-- Bottom-right -->
+            <div 
+            class="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-sm cursor-se-resize -bottom-1.5 -right-1.5 z-50 pointer-events-auto"
+            @mousedown.stop="handleGifResizeMouseDown($event, overlayEl, 'bottom-right')"
+            />
+        </template>
+        </div>
+    </template>
   </div>
 </template>

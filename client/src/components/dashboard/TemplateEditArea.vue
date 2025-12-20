@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useTemplateStore } from '@/stores/template';
 import { useInvitationStore } from '@/stores/invitation';
 import type { TemplateElement, SectionDesign } from '@/lib/types';
 import { ChevronRight, Eye, Layers } from 'lucide-vue-next';
-import EditableTextField from './editable/EditableTextField.vue';
-import EditableImageField from './editable/EditableImageField.vue';
-import EditableMapsField from './editable/EditableMapsField.vue';
+import UserElementEditor from '@/components/dashboard/UserElementEditor.vue';
 import SafeImage from '@/components/ui/SafeImage.vue';
+// Toast support if needed, or pass event up
 
 const templateStore = useTemplateStore();
 const invitationStore = useInvitationStore();
@@ -22,6 +21,9 @@ const currentTemplate = computed(() => {
     return templateStore.templates.find(t => t.id === templateId.value);
 });
 
+// Get user overrides
+const overrides = computed(() => invitationStore.invitation.elementOverrides || {});
+
 // Get ordered sections with editable elements
 const editableSections = computed(() => {
     if (!currentTemplate.value) return [];
@@ -29,9 +31,13 @@ const editableSections = computed(() => {
     const sectionsObj = currentTemplate.value.sections || {};
     return Object.entries(sectionsObj)
         .map(([key, data]: [string, SectionDesign]) => {
-            const editableElements = (data.elements || []).filter(
-                (el: TemplateElement) => el.isUserEditable === true
-            );
+            // Filter elements that are editable BY USER
+            const editableElements = (data.elements || []).filter((el: TemplateElement) => {
+                // Check new permission field first, fallback to legacy
+                const canEdit = el.canEditContent !== undefined ? el.canEditContent : (el.isUserEditable === true);
+                return canEdit;
+            });
+
             return {
                 key,
                 title: data.title || key.charAt(0).toUpperCase() + key.slice(1),
@@ -46,7 +52,7 @@ const editableSections = computed(() => {
         .sort((a, b) => a.order - b.order);
 });
 
-// Accordion state - track which sections are expanded
+// Accordion state
 const expandedSections = ref<Set<string>>(new Set());
 
 const toggleSection = (key: string) => {
@@ -54,7 +60,6 @@ const toggleSection = (key: string) => {
     if (newSet.has(key)) {
         newSet.delete(key);
     } else {
-        // Only allow one section open at a time
         newSet.clear();
         newSet.add(key);
     }
@@ -64,23 +69,16 @@ const toggleSection = (key: string) => {
 const isSectionExpanded = (key: string) => expandedSections.value.has(key);
 
 // Handle element updates
-const handleElementUpdate = async (sectionKey: string, elementId: string, field: string, value: string) => {
-    if (!templateId.value) return;
-    
-    const updates: Partial<TemplateElement> = {};
-    
-    // Determine which field to update based on element type
-    if (field === 'content') {
-        updates.content = value;
-    } else if (field === 'imageUrl') {
-        updates.imageUrl = value;
-    }
-    
-    await templateStore.updateElement(templateId.value, sectionKey, elementId, updates);
+const handleElementUpdate = (elementId: string, updates: Partial<TemplateElement>) => {
+    invitationStore.updateUserElement(elementId, updates);
 };
 
-// Load template on mount if needed
-import { onMounted } from 'vue';
+const handleCopy = (text: string) => {
+    // Ideally show toast here
+    console.log('Copied:', text);
+};
+
+
 
 onMounted(async () => {
     if (templateId.value && !currentTemplate.value) {
@@ -160,7 +158,6 @@ onMounted(async () => {
                             {{ section.elements.length }} field
                         </span>
                     </div>
-                    <Eye class="w-4 h-4 text-gray-400" />
                 </button>
 
                 <!-- Section Content (Collapsible) -->
@@ -190,32 +187,14 @@ onMounted(async () => {
 
                     <!-- Editable Fields -->
                     <div class="space-y-4">
-                        <template v-for="element in section.elements" :key="element.id">
-                            <!-- Text Field -->
-                            <EditableTextField
-                                v-if="element.editableType === 'text' || (!element.editableType && element.type === 'text')"
-                                :model-value="element.content || ''"
-                                :label="element.editableLabel || element.name || 'Text'"
-                                :multiline="(element.content?.length || 0) > 50"
-                                @save="(val) => handleElementUpdate(section.key, element.id, 'content', val)"
-                            />
-
-                            <!-- Image Field -->
-                            <EditableImageField
-                                v-else-if="element.editableType === 'image' || (!element.editableType && element.type === 'image')"
-                                :model-value="element.imageUrl || ''"
-                                :label="element.editableLabel || element.name || 'Foto'"
-                                @save="(val) => handleElementUpdate(section.key, element.id, 'imageUrl', val)"
-                            />
-
-                            <!-- Maps Field -->
-                            <EditableMapsField
-                                v-else-if="element.editableType === 'maps'"
-                                :model-value="element.content || ''"
-                                :label="element.editableLabel || 'Link Google Maps'"
-                                @save="(val) => handleElementUpdate(section.key, element.id, 'content', val)"
-                            />
-                        </template>
+                        <UserElementEditor
+                            v-for="element in section.elements"
+                            :key="element.id"
+                            :element="element"
+                            :model-value="overrides[element.id] || {}"
+                            @update="(updates) => handleElementUpdate(element.id, updates)"
+                            @copy="handleCopy"
+                        />
                     </div>
                 </div>
             </div>
@@ -223,8 +202,7 @@ onMounted(async () => {
 
         <!-- No Editable Elements Message -->
         <div v-else class="px-6 py-8 text-center text-gray-500">
-            <p>Template ini belum memiliki field yang dapat diedit.</p>
-            <p class="text-xs mt-2">Admin perlu menandai elements dengan "isUserEditable" di template editor.</p>
+            <p>Template ini belum memiliki field yang dapat diedit oleh user.</p>
         </div>
     </div>
 

@@ -142,6 +142,7 @@ export interface Invitation {
     greeting: GreetingConfig;
     createdAt: string;
     updatedAt: string;
+    elementOverrides?: Record<string, Partial<TemplateElement>>;
 }
 
 export interface GuestRSVP {
@@ -217,7 +218,8 @@ export type AnimationType =
     | 'fly-down'      // Fly down + flap
     | 'fly-random';   // Random zigzag + flap
 
-export type ElementType = 'image' | 'gif' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'rsvp-form' | 'guest_wishes' | 'open_invitation_button' | 'button' | 'shape';
+// ElementType moved to bottom to avoid circular dependency issues if any
+
 
 export type ShapeType =
     // Basic Shapes
@@ -361,11 +363,32 @@ export interface TemplateElement {
     animationTrigger?: 'scroll' | 'click' | 'open_btn';
     motionPathConfig?: MotionPathConfig;
 
-    // User-editable properties (for dashboard editing)
+    // User Permission Controls (set by Admin)
+    canEditPosition?: boolean;       // User can drag/move element
+    canEditContent?: boolean;        // User can edit text/image/video/links
+    isContentProtected?: boolean;    // Disable text selection (anti-copy)
+    showCopyButton?: boolean;        // Show copy button (for contact info etc)
+
+    // For Maps Point element
+    mapsConfig?: MapsPointConfig;
+
+    // Legacy fields - keeping for backward compat if needed, but prioritizing above
     isUserEditable?: boolean;
     editableLabel?: string;
     editableType?: 'text' | 'image' | 'maps';
 }
+
+export interface MapsPointConfig {
+    googleMapsUrl: string;
+    displayName?: string;
+    pinColor?: string;
+    showLabel?: boolean;
+    showEmbed?: boolean;
+    showLinkButton?: boolean;
+    buttonText?: string;
+}
+
+export type ElementType = 'image' | 'gif' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'rsvp-form' | 'guest_wishes' | 'open_invitation_button' | 'button' | 'shape' | 'maps_point';
 
 export interface MotionPathConfig {
     points: Array<{ x: number, y: number }>;

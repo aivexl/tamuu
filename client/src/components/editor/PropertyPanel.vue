@@ -11,12 +11,14 @@ import Button from '@/components/ui/Button.vue';
 import { 
     Upload, Image as ImageIcon, Copy, GripVertical, Square,
     Circle, Play, Star, Minus, Heart, Cloud, Leaf, Flower, Sun, Moon,
+    Circle, Play, Star, Minus, Heart, Cloud, Leaf, Flower, Sun, Moon,
     MessageCircle, MessageSquare, Phone, Flag, Shield, Hexagon,
     Award, Bell, Bookmark, Camera, Gift, Music, Umbrella,
     AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignCenterVertical, AlignEndVertical,
     Trash2, ChevronsUp, ArrowUp, ArrowDown, ChevronsDown,
     FlipHorizontal2, FlipVertical2
 } from 'lucide-vue-next';
+import ElementPermissionToggles from './ElementPermissionToggles.vue';
 
 interface Props {
     activeSection?: SectionDesign;
@@ -733,6 +735,14 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 </h3>
                 <span class="text-indigo-600 font-mono text-[9px] bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">#{{ element.id.slice(0, 8) }}</span>
             </div>
+            <!-- User Permissions -->
+            <ElementPermissionToggles
+                v-if="store.activeTemplateId && activeSectionType"
+                :element="element"
+                :template-id="store.activeTemplateId"
+                :section-type="activeSectionType"
+                class="!mb-6"
+            />
 
             <!-- Common Info -->
             <div class="grid grid-cols-2 gap-4 px-1">
