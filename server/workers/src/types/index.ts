@@ -71,6 +71,7 @@ export interface DBTemplateSection {
     transition_trigger: string | null;
     particle_type: string | null;
     ken_burns_enabled: number; // SQLite boolean
+    zoom_config: string | null; // JSON string (ZoomAnimationConfig)
     created_at: string;
     updated_at: string;
 }
@@ -181,6 +182,7 @@ export interface SectionDesign {
     transitionTrigger?: 'scroll' | 'click' | 'open_btn';
     particleType?: 'none' | 'butterflies' | 'petals' | 'leaves' | 'sparkles';
     kenBurnsEnabled?: boolean;
+    zoomConfig?: ZoomAnimationConfig;
     elements: TemplateElement[];
 }
 
@@ -209,7 +211,6 @@ export interface TemplateElement {
     flipHorizontal?: boolean;
     flipVertical?: boolean;
     motionPathConfig?: MotionPathConfig;
-    zoomConfig?: ZoomAnimationConfig;
     parallaxFactor?: number;
     canEditPosition?: boolean;
     canEditContent?: boolean;

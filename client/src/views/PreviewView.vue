@@ -431,11 +431,20 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 backgroundColor: section.backgroundColor || 'transparent'
                             }"
                         >
-                            <!-- Background Image -->
+                            <!-- Background Image with Zoom Effect -->
                             <div
                                 v-if="section.backgroundUrl"
                                 class="absolute inset-0 bg-cover bg-center"
-                                :style="{ backgroundImage: `url(${getProxiedImageUrl(section.backgroundUrl)})` }"
+                                :class="{ 
+                                    'animate-section-zoom-in': section.zoomConfig?.enabled && section.zoomConfig?.direction === 'in' && visibleSections.has(index),
+                                    'animate-section-zoom-out': section.zoomConfig?.enabled && section.zoomConfig?.direction === 'out' && visibleSections.has(index)
+                                }"
+                                :style="{ 
+                                    backgroundImage: `url(${getProxiedImageUrl(section.backgroundUrl)})`,
+                                    transformOrigin: section.zoomConfig?.enabled ? `${section.zoomConfig?.targetRegion?.x ?? 50}% ${section.zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
+                                    '--zoom-scale': section.zoomConfig?.scale || 1.3,
+                                    '--zoom-duration': `${section.zoomConfig?.duration || 5000}ms`
+                                }"
                             ></div>
 
                             <!-- Overlay -->
@@ -651,8 +660,33 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 .will-change-transform { will-change: transform; }
 </style>
 
+<style>
 /* Ken Burns Effect */
 .animate-ken-burns {
     animation: ken-burns 20s ease-in-out infinite alternate;
 }
 
+@keyframes ken-burns {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.15); }
+}
+
+/* Section-Level Zoom Animations (uses CSS custom properties) */
+.animate-section-zoom-in {
+    animation: section-zoom-in var(--zoom-duration, 5000ms) ease-out forwards;
+}
+
+.animate-section-zoom-out {
+    animation: section-zoom-out var(--zoom-duration, 5000ms) ease-out forwards;
+}
+
+@keyframes section-zoom-in {
+    0% { transform: scale(1); }
+    100% { transform: scale(var(--zoom-scale, 1.3)); }
+}
+
+@keyframes section-zoom-out {
+    0% { transform: scale(var(--zoom-scale, 1.3)); }
+    100% { transform: scale(1); }
+}
+</style>

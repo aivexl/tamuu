@@ -438,6 +438,17 @@ const styleOptions: ElementStyle[] = [
     'pastel', 'monochrome', 'neon', 'brutalist', 'cloud'
 ];
 
+// Default zoom configuration for sections
+const defaultZoomConfig = {
+    enabled: false,
+    direction: 'in' as const,
+    scale: 1.3,
+    duration: 5000,
+    targetRegion: { x: 50, y: 50, width: 50, height: 50 },
+    behavior: 'stay' as const,
+    trigger: 'scroll' as const,
+};
+
 // Font options
 const fontFamilies = [
     'Inter', 'Roboto', 'Montserrat', 'Poppins', 'Open Sans',
@@ -1816,6 +1827,110 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                         <option value="sparkles">✨ Sparkles</option>
                     </select>
                     <p class="text-[9px] text-slate-400">Animated particles floating in background</p>
+                </div>
+
+                <!-- Zoom Effect (Section Level) -->
+                <div v-if="currentSection.backgroundUrl" class="space-y-3 pt-3 border-t border-slate-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <Label class="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                                <span class="text-sm">🔍</span> Zoom Effect
+                            </Label>
+                            <p class="text-[9px] text-slate-400 mt-0.5">Animate background zoom</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                :checked="currentSection.zoomConfig?.enabled || false" 
+                                @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection.zoomConfig || defaultZoomConfig), enabled: e.target.checked } })"
+                                class="sr-only peer"
+                            >
+                            <div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+
+                    <div v-if="currentSection.zoomConfig?.enabled" class="space-y-3 pl-2 border-l-2 border-indigo-100">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <span class="text-[10px] text-slate-400">Direction</span>
+                                <select 
+                                    class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
+                                    :value="currentSection.zoomConfig?.direction || 'in'"
+                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, direction: e.target.value } })"
+                                >
+                                    <option value="in">Zoom In</option>
+                                    <option value="out">Zoom Out</option>
+                                </select>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400">After Animation</span>
+                                <select 
+                                    class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
+                                    :value="currentSection.zoomConfig?.behavior || 'reset'"
+                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, behavior: e.target.value } })"
+                                >
+                                    <option value="reset">Return to Normal</option>
+                                    <option value="stay">Stay Zoomed</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center text-[10px] mb-1">
+                                <span class="text-slate-400">Zoom Scale</span>
+                                <span class="font-medium text-slate-600">{{ currentSection.zoomConfig?.scale || 1.3 }}x</span>
+                            </div>
+                            <input 
+                                type="range" 
+                                min="1.1" 
+                                max="2.5" 
+                                step="0.1" 
+                                :value="currentSection.zoomConfig?.scale || 1.3"
+                                @input="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, scale: Number(e.target.value) } })"
+                                class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                            />
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center text-[10px] mb-1">
+                                <span class="text-slate-400">Duration</span>
+                                <span class="font-medium text-slate-600">{{ currentSection.zoomConfig?.duration || 5000 }}ms</span>
+                            </div>
+                            <input 
+                                type="range" 
+                                min="2000" 
+                                max="15000" 
+                                step="500" 
+                                :value="currentSection.zoomConfig?.duration || 5000"
+                                @input="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, duration: Number(e.target.value) } })"
+                                class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                            />
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <span class="text-[10px] text-slate-400">Target X (%)</span>
+                                <input 
+                                    type="number" 
+                                    min="0" max="100"
+                                    :value="currentSection.zoomConfig?.targetRegion?.x ?? 50"
+                                    @input="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, targetRegion: { ...(currentSection.zoomConfig?.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), x: Number(e.target.value) } } })"
+                                    class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
+                                />
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-slate-400">Target Y (%)</span>
+                                <input 
+                                    type="number" 
+                                    min="0" max="100"
+                                    :value="currentSection.zoomConfig?.targetRegion?.y ?? 50"
+                                    @input="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, targetRegion: { ...(currentSection.zoomConfig?.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), y: Number(e.target.value) } } })"
+                                    class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
+                                />
+                            </div>
+                        </div>
+                        <p class="text-[9px] text-slate-400 italic">(50, 50) is the center of the background image.</p>
+                    </div>
                 </div>
                 
             </div>

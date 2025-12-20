@@ -395,7 +395,6 @@ export interface TemplateElement {
 
     // 3D Motion & Effects
     parallaxFactor?: number;         // -1 to 1, where 0 is static, positive = moves with mouse, negative = opposite
-    zoomConfig?: ZoomAnimationConfig; // Custom zoom in/out with target region
 
     // Legacy fields - keeping for backward compat if needed, but prioritizing above
     isUserEditable?: boolean;
@@ -446,6 +445,7 @@ export interface SectionDesign {
     // Visual Effects
     kenBurnsEnabled?: boolean;        // Slow zoom on background
     particleType?: ParticleType;      // Flying particles overlay
+    zoomConfig?: ZoomAnimationConfig; // Background zoom in/out effect
 }
 
 export interface OpenInvitationConfig {

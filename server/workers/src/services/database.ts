@@ -350,6 +350,10 @@ export class DatabaseService {
                 sets.push('ken_burns_enabled = ?');
                 values.push(updates.kenBurnsEnabled ? 1 : 0);
             }
+            if (updates.zoomConfig !== undefined) {
+                sets.push('zoom_config = ?');
+                values.push(updates.zoomConfig ? JSON.stringify(updates.zoomConfig) : null);
+            }
 
             if (sets.length > 1) {
                 const query = `UPDATE template_sections SET ${sets.join(', ')} WHERE id = ?`;
@@ -366,10 +370,10 @@ export class DatabaseService {
             id, template_id, type, is_visible, background_color, background_url, 
             overlay_opacity, animation, page_title, animation_trigger, 
             open_invitation_config, transition_effect, transition_duration, transition_trigger,
-            particle_type, ken_burns_enabled,
+            particle_type, ken_burns_enabled, zoom_config,
             created_at, updated_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
                 .bind(
                     id,
@@ -388,6 +392,7 @@ export class DatabaseService {
                     updates.transitionTrigger || 'scroll',
                     updates.particleType || 'none',
                     updates.kenBurnsEnabled ? 1 : 0,
+                    updates.zoomConfig ? JSON.stringify(updates.zoomConfig) : null,
                     now,
                     now
                 )
@@ -438,11 +443,10 @@ export class DatabaseService {
           content, image_url, text_style, icon_style, countdown_config,
           rsvp_form_config, guest_wishes_config, open_invitation_config,
           rotation, flip_horizontal, flip_vertical, motion_path_config,
-          zoom_config,
           can_edit_position, can_edit_content, is_content_protected, show_copy_button,
           created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
             .bind(
                 id,
@@ -472,7 +476,6 @@ export class DatabaseService {
                 element.flipHorizontal ? 1 : 0,
                 element.flipVertical ? 1 : 0,
                 element.motionPathConfig ? JSON.stringify(element.motionPathConfig) : null,
-                element.zoomConfig ? JSON.stringify(element.zoomConfig) : null,
                 element.canEditPosition ? 1 : 0,
                 element.canEditContent ? 1 : 0,
                 element.isContentProtected ? 1 : 0,
@@ -586,10 +589,6 @@ export class DatabaseService {
         if (updates.motionPathConfig !== undefined) {
             sets.push('"motion_path_config" = ?');
             values.push(updates.motionPathConfig ? JSON.stringify(updates.motionPathConfig) : null);
-        }
-        if (updates.zoomConfig !== undefined) {
-            sets.push('"zoom_config" = ?');
-            values.push(updates.zoomConfig ? JSON.stringify(updates.zoomConfig) : null);
         }
         if (updates.parallaxFactor !== undefined) {
             sets.push('"parallax_factor" = ?');
@@ -754,7 +753,6 @@ export class DatabaseService {
             flipHorizontal: el.flip_horizontal === 1,
             flipVertical: el.flip_vertical === 1,
             motionPathConfig: safeParseJSON(el.motion_path_config, undefined),
-            zoomConfig: safeParseJSON(el.zoom_config, undefined),
             parallaxFactor: el.parallax_factor || 0,
 
             // Permissions
