@@ -75,9 +75,10 @@ export async function getTemplates(): Promise<Template[]> {
     return request<Template[]>("/api/templates");
 }
 
-export async function getTemplate(id: string): Promise<Template | null> {
+export async function getTemplate(id: string, fresh: boolean = false): Promise<Template | null> {
     try {
-        return await request<Template>(`/api/templates/${id}`);
+        const url = fresh ? `/api/templates/${id}?fresh=true` : `/api/templates/${id}`;
+        return await request<Template>(url);
     } catch (error) {
         console.error("Failed to fetch template:", error);
         return null;

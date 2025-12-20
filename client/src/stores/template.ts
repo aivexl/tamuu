@@ -247,6 +247,16 @@ export const useTemplateStore = defineStore("template", {
                 console.log(`[Store] Sending section update to API: ${sectionType}`, updates);
                 await CloudflareAPI.updateSection(templateId, sectionType, updates);
                 console.log(`[Store] API updateSection SUCCESS for ${sectionType}`);
+
+                // After successful save, refetch with cache bypass to get authoritative DB state
+                const freshTemplate = await CloudflareAPI.getTemplate(templateId, true);
+                if (freshTemplate) {
+                    const existing = this.templates.find((t) => t.id === templateId);
+                    if (existing) {
+                        Object.assign(existing, freshTemplate);
+                        console.log(`[Store] Refetched template with fresh data after section update`);
+                    }
+                }
             } catch (error: any) {
                 console.error("[Store] Failed to update section:", error);
                 throw error;

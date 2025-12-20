@@ -96,23 +96,31 @@ templatesRouter.get('/', async (c) => {
 // GET /api/templates/:id - Get single template with full data
 templatesRouter.get('/:id', async (c) => {
     const id = c.req.param('id');
+    const freshParam = c.req.query('fresh');
+    const skipCache = freshParam === 'true';
+
     const cache = new CacheService(c.env.KV);
     const db = new DatabaseService(c.env.DB);
 
-    // Try cache with stale-while-revalidate
-    const { value: cached, isStale, needsRevalidation } = await cache.getTemplate(id);
+    // If fresh=true is passed, skip cache entirely (used by editor after save)
+    if (!skipCache) {
+        // Try cache with stale-while-revalidate
+        const { value: cached, isStale, needsRevalidation } = await cache.getTemplate(id);
 
-    if (cached) {
-        // If stale but usable, revalidate in background (non-blocking)
-        if (needsRevalidation) {
-            console.log(`[TEMPLATES] Serving stale, revalidating ${id}...`);
-            c.executionCtx.waitUntil(revalidateInBackground(id, db, cache));
+        if (cached) {
+            // If stale but usable, revalidate in background (non-blocking)
+            if (needsRevalidation) {
+                console.log(`[TEMPLATES] Serving stale, revalidating ${id}...`);
+                c.executionCtx.waitUntil(revalidateInBackground(id, db, cache));
+            }
+
+            return c.json(cached, 200, {
+                'Cache-Control': 'private, max-age=60',
+                'X-Cache-Status': isStale ? 'STALE' : 'HIT',
+            });
         }
-
-        return c.json(cached, 200, {
-            'Cache-Control': 'private, max-age=60',
-            'X-Cache-Status': isStale ? 'STALE' : 'HIT',
-        });
+    } else {
+        console.log(`[TEMPLATES] Cache bypass requested for ${id}`);
     }
 
     console.log(`[TEMPLATES API] Fetching template ${id} from DB`);
