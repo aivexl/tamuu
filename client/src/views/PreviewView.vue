@@ -353,11 +353,10 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                         width: `${CANVAS_WIDTH}px`, 
                         height: flowMode ? 'auto' : `${coverHeightComputed}px`,
                         transform: `scale(${scaleFactor})`, 
-                        transformOrigin: 'top center',
-                        left: '50%',
-                        marginLeft: `-${(CANVAS_WIDTH * scaleFactor) / 2 / scaleFactor}px`
+                        transformOrigin: 'top left'
                     }"
                 >
+
                 <!-- Controls -->
                 <div v-if="!isFullscreen" class="absolute top-6 left-0 w-full px-6 flex justify-between z-[500] pointer-events-none" :style="{ transform: `scale(${1/scaleFactor})`, transformOrigin: 'top center' }">
                     <button class="p-4 bg-black/50 text-white rounded-full backdrop-blur-3xl pointer-events-auto border border-white/20 shadow-2xl" @click="goBack"><ArrowLeft class="w-7 h-7" /></button>
