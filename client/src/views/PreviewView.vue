@@ -197,9 +197,12 @@ const coverHeightComputed = computed(() => {
 // Total scaled height of all sections
 const scaledTotalHeight = computed(() => {
     if (!orderedSections.value.length) return 0;
-    const totalContentHeight = coverHeightComputed.value + (orderedSections.value.length - 1) * CANVAS_HEIGHT;
+    // First section uses coverHeightComputed in portrait, CANVAS_HEIGHT in landscape
+    const firstSectionHeight = isPortrait.value ? coverHeightComputed.value : CANVAS_HEIGHT;
+    const totalContentHeight = firstSectionHeight + (orderedSections.value.length - 1) * CANVAS_HEIGHT;
     return totalContentHeight * scaleFactor.value;
 });
+
 
 const getElementStyle = (el: any, sectionIndex: number) => {
     const baseStyle: any = {
