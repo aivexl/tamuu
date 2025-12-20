@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref, nextTick } from 'vue';
+import { onMounted, onUnmounted, computed, ref, nextTick, provide, reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useTemplateStore } from '@/stores/template';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/lib/constants';
@@ -8,6 +8,7 @@ import { ArrowLeft, Maximize2 } from 'lucide-vue-next';
 import { iconPaths } from '@/lib/icon-paths';
 import { shapePaths } from '@/lib/shape-paths';
 import { getProxiedImageUrl } from "@/lib/image-utils";
+import ParticleOverlay from '@/components/effects/ParticleOverlay.vue';
 
 // Library Imports
 import Lenis from 'lenis';
@@ -86,6 +87,16 @@ const updateDimensions = () => {
     }
 };
 
+// Mouse position for parallax (normalized -0.5 to 0.5)
+const mousePosition = reactive({ x: 0, y: 0 });
+provide('mousePosition', mousePosition);
+
+const handleMouseMove = (event: MouseEvent) => {
+    // Normalize to -0.5 to 0.5 range
+    mousePosition.x = (event.clientX / windowWidth.value) - 0.5;
+    mousePosition.y = (event.clientY / windowHeight.value) - 0.5;
+};
+
 onMounted(async () => {
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
@@ -124,6 +135,9 @@ onMounted(async () => {
         requestAnimationFrame(scrollLoop);
     }
 
+    // Add mouse move listener for parallax
+    window.addEventListener('mousemove', handleMouseMove);
+
     document.addEventListener('fullscreenchange', handleFullscreenChange);
 });
 
@@ -131,6 +145,7 @@ onUnmounted(() => {
     if (observer) observer.disconnect();
     if (lenis) lenis.destroy();
     window.removeEventListener('resize', updateDimensions);
+    window.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
 });
 
@@ -502,6 +517,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :element-id="el.id"
                                         :image-url="el.imageUrl"
                                         :motion-path-config="el.motionPathConfig"
+                                        :parallax-factor="el.parallaxFactor"
                                     >
                                         <img v-if="el.type === 'image' || el.type === 'gif'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain', background: 'transparent' }" />
                                         <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
@@ -560,6 +576,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :element-id="el.id"
                                         :image-url="el.imageUrl"
                                         :motion-path-config="el.motionPathConfig"
+                                        :parallax-factor="el.parallaxFactor"
                                     >
                                         <img v-if="el.type === 'image' || el.type === 'gif'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain', background: 'transparent' }" />
                                         <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
@@ -612,3 +629,9 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 .page-section { backface-visibility: hidden; transform: translateZ(0); }
 .will-change-transform { will-change: transform; }
 </style>
+
+/* Ken Burns Effect */
+.animate-ken-burns {
+    animation: ken-burns 20s ease-in-out infinite alternate;
+}
+

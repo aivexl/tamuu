@@ -871,6 +871,13 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                     <option value="flip-x">Flip X</option>
                     <option value="flip-y">Flip Y</option>
                     <option value="bounce">Bounce</option>
+                    <!-- Advanced 3D Entrance Animations -->
+                    <optgroup label="🎬 3D Motion">
+                        <option value="rotate-in-down-left">Rotate In ↙️</option>
+                        <option value="rotate-in-down-right">Rotate In ↘️</option>
+                        <option value="zoom-in-down">Zoom In ⬇</option>
+                        <option value="zoom-in-up">Zoom In ⬆</option>
+                    </optgroup>
                 </select>
             </div>
 
@@ -920,6 +927,31 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                     />
                     <Input type="number" :model-value="element.rotation || 0" @update:model-value="val => handleUpdate({ rotation: Number(val) })" class="w-16 text-center" />
                 </div>
+            </div>
+
+            <!-- 3D Motion: Parallax (Mouse Tracking) -->
+            <div v-if="element.animation !== 'none' || element.loopAnimation !== 'none'" class="space-y-2 p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-50 border border-indigo-100">
+                <div class="flex items-center justify-between">
+                    <Label class="text-xs font-bold text-indigo-700 flex items-center gap-1.5">
+                        <span class="text-sm">🌊</span> Parallax (Mouse 3D)
+                    </Label>
+                    <span class="text-[10px] font-mono text-indigo-500 bg-white/70 px-2 py-0.5 rounded-full">{{ element.parallaxFactor ?? 0 }}</span>
+                </div>
+                <input 
+                    type="range" 
+                    min="-1" 
+                    max="1" 
+                    step="0.1" 
+                    :value="element.parallaxFactor ?? 0"
+                    @input="(e: any) => handleUpdate({ parallaxFactor: Number(e.target.value) })"
+                    class="w-full h-2 bg-gradient-to-r from-indigo-200 via-purple-200 to-pink-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                />
+                <div class="flex justify-between text-[8px] text-indigo-400 font-medium">
+                    <span>← Reverse</span>
+                    <span>Static</span>
+                    <span>Follow →</span>
+                </div>
+                <p class="text-[9px] text-indigo-600 leading-relaxed">Elements move slightly with mouse for 3D depth effect. Negative = opposite direction.</p>
             </div>
 
             <!-- Animation Speed/Duration/Delay -->
@@ -1643,6 +1675,47 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                         <option value="open_btn">Click Open Button</option>
                     </select>
                 </div>
+                
+                <!-- Ken Burns Background Effect -->
+                <div v-if="currentSection.backgroundUrl" class="space-y-2 pt-3 border-t border-slate-100">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <Label class="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                                <span class="text-sm">🎥</span> Ken Burns Effect
+                            </Label>
+                            <p class="text-[9px] text-slate-400 mt-0.5">Slow cinematic zoom</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                :checked="currentSection.kenBurnsEnabled || false" 
+                                @change="(e: any) => handleSectionUpdate({ kenBurnsEnabled: e.target.checked })"
+                                class="sr-only peer"
+                            >
+                            <div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Particle Overlay -->
+                <div class="space-y-2 pt-3 border-t border-slate-100">
+                    <Label class="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                        <span class="text-sm">✨</span> Particle Overlay
+                    </Label>
+                    <select 
+                        class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white"
+                        :value="currentSection.particleType || 'none'"
+                        @change="(e: any) => handleSectionUpdate({ particleType: e.target.value })"
+                    >
+                        <option value="none">None</option>
+                        <option value="butterflies">🦋 Butterflies</option>
+                        <option value="petals">🌸 Flower Petals</option>
+                        <option value="leaves">🍃 Falling Leaves</option>
+                        <option value="sparkles">✨ Sparkles</option>
+                    </select>
+                    <p class="text-[9px] text-slate-400">Animated particles floating in background</p>
+                </div>
+                
             </div>
             <div class="space-y-3 pt-3 border-t">
                 <Label class="text-xs font-semibold text-slate-500 uppercase">Page Transition</Label>

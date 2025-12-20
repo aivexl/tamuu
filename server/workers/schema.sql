@@ -97,6 +97,10 @@ CREATE TABLE IF NOT EXISTS template_elements (
     flip_horizontal INTEGER DEFAULT 0, -- Boolean as INTEGER
     flip_vertical INTEGER DEFAULT 0, -- Boolean as INTEGER
     motion_path_config TEXT, -- JSON object for custom paths
+    can_edit_position INTEGER DEFAULT 0, -- User Permission
+    can_edit_content INTEGER DEFAULT 0, -- User Permission
+    is_content_protected INTEGER DEFAULT 0, -- User Permission
+    show_copy_button INTEGER DEFAULT 0, -- User Permission
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );

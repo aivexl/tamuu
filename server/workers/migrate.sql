@@ -14,3 +14,9 @@ ALTER TABLE template_elements ADD COLUMN animation_trigger TEXT DEFAULT 'scroll'
 
 -- Element level loop animation support (just in case)
 -- ALTER TABLE template_elements ADD COLUMN loop_animation TEXT; 
+
+-- User Permission Columns for Dashboard
+ALTER TABLE template_elements ADD COLUMN can_edit_position INTEGER DEFAULT 0;
+ALTER TABLE template_elements ADD COLUMN can_edit_content INTEGER DEFAULT 0;
+ALTER TABLE template_elements ADD COLUMN is_content_protected INTEGER DEFAULT 0;
+ALTER TABLE template_elements ADD COLUMN show_copy_button INTEGER DEFAULT 0;

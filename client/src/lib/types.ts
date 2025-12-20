@@ -192,6 +192,11 @@ export type AnimationType =
     | 'flip-x'
     | 'flip-y'
     | 'bounce'
+    // Advanced entrance animations
+    | 'rotate-in-down-left'
+    | 'rotate-in-down-right'
+    | 'zoom-in-down'
+    | 'zoom-in-up'
     // Continuous/looping animations (run forever)
     | 'sway'          // Flower-like left-right movement
     | 'float'         // Gentle up-down floating
@@ -372,6 +377,9 @@ export interface TemplateElement {
     // For Maps Point element
     mapsConfig?: MapsPointConfig;
 
+    // 3D Motion & Effects
+    parallaxFactor?: number;         // -1 to 1, where 0 is static, positive = moves with mouse, negative = opposite
+
     // Legacy fields - keeping for backward compat if needed, but prioritizing above
     isUserEditable?: boolean;
     editableLabel?: string;
@@ -398,6 +406,8 @@ export interface MotionPathConfig {
     closed?: boolean;
 }
 
+export type ParticleType = 'none' | 'butterflies' | 'petals' | 'leaves' | 'sparkles';
+
 export interface SectionDesign {
     id?: string;
     backgroundUrl?: string;
@@ -415,6 +425,10 @@ export interface SectionDesign {
     transitionEffect?: string;
     transitionDuration?: number;
     transitionTrigger?: 'scroll' | 'click' | 'open_btn';
+
+    // Visual Effects
+    kenBurnsEnabled?: boolean;        // Slow zoom on background
+    particleType?: ParticleType;      // Flying particles overlay
 }
 
 export interface OpenInvitationConfig {

@@ -424,9 +424,11 @@ export class DatabaseService {
           animation, loop_animation, animation_delay, animation_speed, animation_duration, animation_trigger,
           content, image_url, text_style, icon_style, countdown_config,
           rsvp_form_config, guest_wishes_config, open_invitation_config,
-          rotation, flip_horizontal, flip_vertical, motion_path_config, created_at, updated_at
+          rotation, flip_horizontal, flip_vertical, motion_path_config,
+          can_edit_position, can_edit_content, is_content_protected, show_copy_button,
+          created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
             .bind(
                 id,
@@ -456,6 +458,10 @@ export class DatabaseService {
                 element.flipHorizontal ? 1 : 0,
                 element.flipVertical ? 1 : 0,
                 element.motionPathConfig ? JSON.stringify(element.motionPathConfig) : null,
+                element.canEditPosition ? 1 : 0,
+                element.canEditContent ? 1 : 0,
+                element.isContentProtected ? 1 : 0,
+                element.showCopyButton ? 1 : 0,
                 now,
                 now
             )
@@ -565,6 +571,24 @@ export class DatabaseService {
         if (updates.motionPathConfig !== undefined) {
             sets.push('"motion_path_config" = ?');
             values.push(updates.motionPathConfig ? JSON.stringify(updates.motionPathConfig) : null);
+        }
+
+        // Permissions
+        if (updates.canEditPosition !== undefined) {
+            sets.push('"can_edit_position" = ?');
+            values.push(updates.canEditPosition ? 1 : 0);
+        }
+        if (updates.canEditContent !== undefined) {
+            sets.push('"can_edit_content" = ?');
+            values.push(updates.canEditContent ? 1 : 0);
+        }
+        if (updates.isContentProtected !== undefined) {
+            sets.push('"is_content_protected" = ?');
+            values.push(updates.isContentProtected ? 1 : 0);
+        }
+        if (updates.showCopyButton !== undefined) {
+            sets.push('"show_copy_button" = ?');
+            values.push(updates.showCopyButton ? 1 : 0);
         }
 
         // Move "No Updates" check to after all possible property processing
@@ -707,6 +731,12 @@ export class DatabaseService {
             flipHorizontal: el.flip_horizontal === 1,
             flipVertical: el.flip_vertical === 1,
             motionPathConfig: safeParseJSON(el.motion_path_config, undefined),
+
+            // Permissions
+            canEditPosition: (el as any).can_edit_position === 1,
+            canEditContent: (el as any).can_edit_content === 1,
+            isContentProtected: (el as any).is_content_protected === 1,
+            showCopyButton: (el as any).show_copy_button === 1,
         };
     }
 }

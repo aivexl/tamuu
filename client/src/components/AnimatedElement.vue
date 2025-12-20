@@ -31,6 +31,7 @@ interface Props {
   isContentProtected?: boolean;
   showCopyButton?: boolean;
   elementContent?: string;
+  parallaxFactor?: number; // -1 to 1, for mouse-tracking 3D depth
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -47,10 +48,13 @@ const props = withDefaults(defineProps<Props>(), {
   motionPathConfig: undefined,
   isContentProtected: false,
   showCopyButton: false,
-  elementContent: ''
+  elementContent: '',
+  parallaxFactor: 0,
 });
 
 import { Copy, Check } from 'lucide-vue-next';
+import { inject } from 'vue';
+
 const isCopied = ref(false);
 
 const handleCopy = (e: MouseEvent) => {
@@ -241,6 +245,11 @@ const ENTRANCE_ANIMATIONS: AnimationType[] = [
   "blur-in",
   "draw-border",
   "pop-in",
+  // Advanced 3D entrance animations
+  "rotate-in-down-left",
+  "rotate-in-down-right",
+  "zoom-in-down",
+  "zoom-in-up",
 ];
 
 // Determine the actual entrance animation
@@ -318,6 +327,13 @@ const getLoopingAnimationStyle = (anim: AnimationType) => {
       if (url.includes(key)) {
         return animName;
       }
+    }
+    // Check for improved versions
+    if (url.includes('1766118302329')) {
+      return 'butterfly-blue-flight-improved'; // Butterfly Blue
+    }
+    if (url.includes('1766118287972')) {
+      return 'bird-cool-flight-improved'; // Bird Cool
     }
     // Fallback to generic animations
     return isButterfly.value ? 'butterfly-flap' : 'bird-flap';
@@ -511,6 +527,22 @@ const staticContentStyle = computed(() => {
   };
 });
 
+// 5. Parallax Transform (Mouse-tracking 3D depth)
+const mousePosition = inject<{ x: number; y: number }>('mousePosition', { x: 0, y: 0 });
+
+const parallaxStyle = computed(() => {
+  if (!props.parallaxFactor || props.parallaxFactor === 0) return {};
+  
+  // Normalize mouse position from provide (already -0.5 to 0.5)
+  const offsetX = mousePosition.x * props.parallaxFactor * 30; // Max 30px offset
+  const offsetY = mousePosition.y * props.parallaxFactor * 30;
+  
+  return {
+    transform: `translate(${offsetX}px, ${offsetY}px)`,
+    transition: 'transform 0.3s ease-out',
+  };
+});
+
 </script>
 
 <template>
@@ -522,12 +554,14 @@ const staticContentStyle = computed(() => {
       <div :style="loopStyles.pathStyle" class="relative w-full h-full">
         <!-- 3. Wing Layer (Flap) -->
         <div :style="loopStyles.wingStyle" class="relative w-full h-full">
-          <!-- 4. Content Layer (Static transforms) -->
-          <div 
-            :style="staticContentStyle" 
-            class="relative w-full h-full"
-            :class="{ 'select-none pointer-events-none': isContentProtected && !showCopyButton }"
-          >
+          <!-- 4. Parallax Layer (Mouse 3D) -->
+          <div :style="parallaxStyle" class="relative w-full h-full">
+            <!-- 5. Content Layer (Static transforms) -->
+            <div 
+              :style="staticContentStyle" 
+              class="relative w-full h-full"
+              :class="{ 'select-none pointer-events-none': isContentProtected && !showCopyButton }"
+            >
             <slot />
             
             <!-- Copy Button -->
@@ -581,6 +615,7 @@ const staticContentStyle = computed(() => {
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <style scoped>

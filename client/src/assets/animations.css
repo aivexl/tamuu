@@ -414,3 +414,116 @@
         transform: translate(0, 0);
     }
 }
+/* ============================================
+   ADVANCED 3D ENTRANCE ANIMATIONS
+   ============================================ */
+
+/* Rotate In Down Left - Element rotates and slides in from top-left */
+@keyframes rotate-in-down-left {
+    0% {
+        opacity: 0;
+        transform: rotate3d(0, 0, 1, -45deg) translateY(-50px) translateX(-50px);
+    }
+    100% {
+        opacity: 1;
+        transform: rotate3d(0, 0, 1, 0deg) translateY(0) translateX(0);
+    }
+}
+
+/* Rotate In Down Right - Element rotates and slides in from top-right */
+@keyframes rotate-in-down-right {
+    0% {
+        opacity: 0;
+        transform: rotate3d(0, 0, 1, 45deg) translateY(-50px) translateX(50px);
+    }
+    100% {
+        opacity: 1;
+        transform: rotate3d(0, 0, 1, 0deg) translateY(0) translateX(0);
+    }
+}
+
+/* Zoom In Down - Element zooms and slides down */
+@keyframes zoom-in-down {
+    0% {
+        opacity: 0;
+        transform: scale3d(0.1, 0.1, 0.1) translateY(-100px);
+    }
+    60% {
+        opacity: 1;
+        transform: scale3d(1.05, 1.05, 1.05) translateY(10px);
+    }
+    100% {
+        transform: scale3d(1, 1, 1) translateY(0);
+    }
+}
+
+/* Zoom In Up - Element zooms and slides up */
+@keyframes zoom-in-up {
+    0% {
+        opacity: 0;
+        transform: scale3d(0.1, 0.1, 0.1) translateY(100px);
+    }
+    60% {
+        opacity: 1;
+        transform: scale3d(1.05, 1.05, 1.05) translateY(-10px);
+    }
+    100% {
+        transform: scale3d(1, 1, 1) translateY(0);
+    }
+}
+
+/* ============================================
+   KEN BURNS EFFECT (Background Zoom)
+   ============================================ */
+
+/* Slow zoom + slight pan for cinematic background effect */
+@keyframes ken-burns {
+    0% {
+        transform: scale(1) translate(0, 0);
+    }
+    100% {
+        transform: scale(1.1) translate(-2%, -2%);
+    }
+}
+
+/* ============================================
+   IMPROVED BUTTERFLY & BIRD ANIMATIONS
+   ============================================ */
+
+/* Butterfly Blue - Smoother 3D flapping with natural bob */
+@keyframes butterfly-blue-flight-improved {
+    0%, 100% {
+        transform: perspective(400px) rotateY(0deg) translateY(0) scale(1);
+    }
+    25% {
+        transform: perspective(400px) rotateY(-25deg) translateY(-8px) scale(0.95);
+    }
+    50% {
+        transform: perspective(400px) rotateY(0deg) translateY(-12px) scale(1);
+    }
+    75% {
+        transform: perspective(400px) rotateY(25deg) translateY(-8px) scale(0.95);
+    }
+}
+
+/* Bird Cool - More dynamic wing motion with glide phases */
+@keyframes bird-cool-flight-improved {
+    0%, 100% {
+        transform: translateY(0) scaleY(1) rotate(0deg);
+    }
+    15% {
+        transform: translateY(-6px) scaleY(0.92) rotate(-1.5deg);
+    }
+    30% {
+        transform: translateY(-10px) scaleY(0.85) rotate(-2deg);
+    }
+    45% {
+        transform: translateY(-8px) scaleY(0.9) rotate(-1deg);
+    }
+    60% {
+        transform: translateY(-4px) scaleY(0.95) rotate(0deg);
+    }
+    80% {
+        transform: translateY(-2px) scaleY(0.98) rotate(0.5deg);
+    }
+}
