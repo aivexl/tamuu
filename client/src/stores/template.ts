@@ -63,7 +63,8 @@ export const useTemplateStore = defineStore("template", {
                 if (template) {
                     const existing = this.templates.find((t) => t.id === id);
                     if (existing) {
-                        // Merge logic: preserve local temp elements that might not be in the DB yet
+                        // ENTERPRISE FIX: Merge element properties instead of replacing
+                        // This preserves local changes that haven't synced yet
                         Object.keys(template.sections).forEach(sectionType => {
                             const section = template.sections[sectionType];
                             if (!section) return;
@@ -71,23 +72,27 @@ export const useTemplateStore = defineStore("template", {
                             const dbElements = section.elements || [];
                             const localElements = existing.sections[sectionType]?.elements || [];
 
-                            // Keep local elements that are either 'temp-' or have a pending mapping
-                            const pendingElements = localElements.filter(el =>
-                                el.id.startsWith('temp-') || this.tempIdMap.has(el.id)
-                            );
-
-                            // Combine db elements with pending locals, avoiding duplicates by ID
-                            const combined = [...dbElements];
-                            pendingElements.forEach(pEl => {
-                                if (!combined.find(e => e.id === pEl.id)) {
-                                    combined.push(pEl);
+                            // Merge strategy: for each DB element, check if we have local changes
+                            // Local properties take precedence (they're more recent user changes)
+                            const mergedElements = dbElements.map(dbEl => {
+                                const localEl = localElements.find(e => e.id === dbEl.id);
+                                if (localEl) {
+                                    // Merge: local changes override stale server data
+                                    return { ...dbEl, ...localEl };
                                 }
+                                return dbEl;
                             });
 
-                            section.elements = combined;
+                            // Also keep any temp elements that are pending creation
+                            const pendingElements = localElements.filter(el =>
+                                (el.id.startsWith('temp-') || el.id.startsWith('el-')) &&
+                                !mergedElements.find(e => e.id === el.id)
+                            );
+
+                            section.elements = [...mergedElements, ...pendingElements];
                         });
 
-                        // Replace the template
+                        // Replace the template (with merged sections)
                         const index = this.templates.findIndex(t => t.id === id);
                         this.templates[index] = template;
                     } else {
