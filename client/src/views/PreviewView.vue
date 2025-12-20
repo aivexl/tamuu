@@ -191,6 +191,13 @@ const coverHeightComputed = computed(() => {
     return windowHeight.value / scaleFactor.value;
 });
 
+// Total scaled height of all sections
+const scaledTotalHeight = computed(() => {
+    if (!orderedSections.value.length) return 0;
+    const totalContentHeight = coverHeightComputed.value + (orderedSections.value.length - 1) * CANVAS_HEIGHT;
+    return totalContentHeight * scaleFactor.value;
+});
+
 const getElementStyle = (el: any, sectionIndex: number) => {
     const baseStyle: any = {
         left: `${el.position.x}px`,
@@ -347,6 +354,8 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
         
         <!-- MAIN SCROLL ENGINE -->
         <div ref="scrollContainer" class="scroll-container w-full h-full" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'" :style="!flowMode ? { height: '100%' } : {}">
+            <!-- Wrapper to limit scroll height exactly to content -->
+            <div :style="{ height: flowMode ? `${scaledTotalHeight}px` : '100%', width: '100%' }">
                 <div 
                     class="invitation-parent relative" 
                     :style="{ 
@@ -562,7 +571,9 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                     </div>
                 </div>
             </div>
+            </div>
         </div>
+
 
         <button v-if="isFullscreen" class="fixed top-8 right-8 z-[600] p-4 bg-black/50 text-white rounded-full border border-white/20 shadow-2xl hover:bg-black/80 transition-all font-bold" @click="toggleFullscreen"><Minimize2 class="w-7 h-7" /></button>
     </div>
