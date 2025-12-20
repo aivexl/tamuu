@@ -340,6 +340,14 @@ export class DatabaseService {
                 sets.push('transition_trigger = ?');
                 values.push(updates.transitionTrigger);
             }
+            if (updates.particleType !== undefined) {
+                sets.push('particle_type = ?');
+                values.push(updates.particleType);
+            }
+            if (updates.kenBurnsEnabled !== undefined) {
+                sets.push('ken_burns_enabled = ?');
+                values.push(updates.kenBurnsEnabled ? 1 : 0);
+            }
 
             if (sets.length > 1) {
                 const query = `UPDATE template_sections SET ${sets.join(', ')} WHERE id = ?`;
@@ -356,9 +364,10 @@ export class DatabaseService {
             id, template_id, type, is_visible, background_color, background_url, 
             overlay_opacity, animation, page_title, animation_trigger, 
             open_invitation_config, transition_effect, transition_duration, transition_trigger,
+            particle_type, ken_burns_enabled,
             created_at, updated_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
                 .bind(
                     id,
@@ -375,6 +384,8 @@ export class DatabaseService {
                     updates.transitionEffect || 'none',
                     updates.transitionDuration || 1000,
                     updates.transitionTrigger || 'scroll',
+                    updates.particleType || 'none',
+                    updates.kenBurnsEnabled ? 1 : 0,
                     now,
                     now
                 )
