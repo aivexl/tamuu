@@ -20,3 +20,10 @@ ALTER TABLE template_elements ADD COLUMN can_edit_position INTEGER DEFAULT 0;
 ALTER TABLE template_elements ADD COLUMN can_edit_content INTEGER DEFAULT 0;
 ALTER TABLE template_elements ADD COLUMN is_content_protected INTEGER DEFAULT 0;
 ALTER TABLE template_elements ADD COLUMN show_copy_button INTEGER DEFAULT 0;
+
+-- Advanced Animation Fields (Particle Overlay & Ken Burns)
+ALTER TABLE template_sections ADD COLUMN particle_type TEXT DEFAULT 'none';
+ALTER TABLE template_sections ADD COLUMN ken_burns_enabled INTEGER DEFAULT 0;
+
+-- Parallax Factor for 3D Mouse Tracking  
+ALTER TABLE template_elements ADD COLUMN parallax_factor REAL DEFAULT 0;
