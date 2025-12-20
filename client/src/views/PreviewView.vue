@@ -368,7 +368,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :element-id="el.id"
                                         :image-url="el.imageUrl"
                                     >
-                                        <img v-if="el.type === 'image' || el.type === 'gif'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.type === 'gif' ? (el.objectFit || 'contain') : 'cover', background: 'transparent' }" />
+                                        <img v-if="el.type === 'image' || el.type === 'gif'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain', background: 'transparent' }" />
                                         <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
                                         <button 
                                             v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" 
@@ -430,7 +430,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :element-id="el.id"
                                         :image-url="el.imageUrl"
                                     >
-                                        <img v-if="el.type === 'image' || el.type === 'gif'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.type === 'gif' ? (el.objectFit || 'contain') : 'cover', background: 'transparent' }" />
+                                        <img v-if="el.type === 'image' || el.type === 'gif'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain', background: 'transparent' }" />
                                         <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
                                         <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center">
                                             <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg>
@@ -487,7 +487,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :element-id="el.id"
                                         :image-url="el.imageUrl"
                                     >
-                                        <img v-if="el.type === 'image' || el.type === 'gif'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.type === 'gif' ? (el.objectFit || 'contain') : 'cover', background: 'transparent' }" />
+                                        <img v-if="el.type === 'image' || el.type === 'gif'" :src="el.imageUrl" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain', background: 'transparent' }" />
                                         <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
                                         <button 
                                             v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" 
