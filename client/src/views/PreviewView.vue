@@ -142,6 +142,30 @@ const getZoomClass = (section: any, index: number): Record<string, boolean> => {
     }
 };
 
+// Helper: Calculate zoom scale from box dimensions
+// The scale should make the virtual box fill the viewport when zoomed
+const getZoomScale = (section: any): number => {
+    const targetRegion = section.zoomConfig?.targetRegion;
+    if (!targetRegion) {
+        return section.zoomConfig?.scale || 1.3; // Fallback to manual scale
+    }
+    
+    // Box dimensions are in percentages (e.g., width: 50 means 50% of canvas)
+    const boxWidthPercent = targetRegion.width || 50;
+    const boxHeightPercent = targetRegion.height || 50;
+    
+    // Calculate scale: to make a 50% box fill 100%, we need 2x scale
+    // Use the smaller dimension to ensure the box fits entirely
+    const scaleByWidth = 100 / boxWidthPercent;
+    const scaleByHeight = 100 / boxHeightPercent;
+    
+    // Use the smaller scale to ensure the entire box is visible
+    const calculatedScale = Math.min(scaleByWidth, scaleByHeight);
+    
+    // Clamp the scale to reasonable values (1.1x to 5x)
+    return Math.max(1.1, Math.min(5, calculatedScale));
+};
+
 
 let observer: IntersectionObserver | null = null;
 let lenis: Lenis | null = null;
@@ -548,7 +572,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 :class="getZoomClass(section, index)"
                                 :style="{ 
                                     transformOrigin: section.zoomConfig?.enabled ? `${section.zoomConfig?.targetRegion?.x ?? 50}% ${section.zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
-                                    '--zoom-scale': section.zoomConfig?.scale || 1.3,
+                                    '--zoom-scale': getZoomScale(section),
                                     '--zoom-duration': `${section.zoomConfig?.duration || 5000}ms`
                                 }"
                             >
@@ -644,7 +668,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 :class="getZoomClass(filteredSections[1], 1)"
                                 :style="{ 
                                     transformOrigin: filteredSections[1].zoomConfig?.enabled ? `${filteredSections[1].zoomConfig?.targetRegion?.x ?? 50}% ${filteredSections[1].zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
-                                    '--zoom-scale': filteredSections[1].zoomConfig?.scale || 1.3,
+                                    '--zoom-scale': getZoomScale(filteredSections[1]),
                                     '--zoom-duration': `${filteredSections[1].zoomConfig?.duration || 5000}ms`
                                 }"
                             >
@@ -732,7 +756,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 :class="getZoomClass(filteredSections[0], 0)"
                                 :style="{ 
                                     transformOrigin: filteredSections[0].zoomConfig?.enabled ? `${filteredSections[0].zoomConfig?.targetRegion?.x ?? 50}% ${filteredSections[0].zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
-                                    '--zoom-scale': filteredSections[0].zoomConfig?.scale || 1.3,
+                                    '--zoom-scale': getZoomScale(filteredSections[0]),
                                     '--zoom-duration': `${filteredSections[0].zoomConfig?.duration || 5000}ms`
                                 }"
                             >
