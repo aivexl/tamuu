@@ -118,6 +118,31 @@ const handleSectionClick = (index: number, section: any) => {
     }
 };
 
+// Helper: Get the appropriate zoom animation class based on config
+const getZoomClass = (section: any, index: number): Record<string, boolean> => {
+    if (!shouldZoom(section, index)) {
+        return {};
+    }
+    
+    const direction = section.zoomConfig?.direction || 'in';
+    const behavior = section.zoomConfig?.behavior || 'stay';
+    
+    if (behavior === 'reset') {
+        // Use smooth reset animations (zoom in/out then return)
+        return {
+            'animate-section-zoom-in-reset': direction === 'in',
+            'animate-section-zoom-out-reset': direction === 'out'
+        };
+    } else {
+        // Stay zoomed - use regular animations
+        return {
+            'animate-section-zoom-in': direction === 'in',
+            'animate-section-zoom-out': direction === 'out'
+        };
+    }
+};
+
+
 let observer: IntersectionObserver | null = null;
 let lenis: Lenis | null = null;
 
@@ -520,15 +545,11 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             <!-- ZOOM CONTAINER: Wraps ALL section content for unified zoom effect -->
                             <div
                                 class="absolute inset-0 w-full h-full"
-                                :class="{ 
-                                    'animate-section-zoom-in': section.zoomConfig?.direction === 'in' && shouldZoom(section, index),
-                                    'animate-section-zoom-out': section.zoomConfig?.direction === 'out' && shouldZoom(section, index)
-                                }"
+                                :class="getZoomClass(section, index)"
                                 :style="{ 
                                     transformOrigin: section.zoomConfig?.enabled ? `${section.zoomConfig?.targetRegion?.x ?? 50}% ${section.zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
                                     '--zoom-scale': section.zoomConfig?.scale || 1.3,
-                                    '--zoom-duration': `${section.zoomConfig?.duration || 5000}ms`,
-                                    '--zoom-fill-mode': section.zoomConfig?.behavior === 'reset' ? 'none' : 'forwards'
+                                    '--zoom-duration': `${section.zoomConfig?.duration || 5000}ms`
                                 }"
                             >
                                 <!-- Background Image -->
@@ -620,15 +641,11 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             <!-- ZOOM CONTAINER: Wraps ALL section content for unified zoom effect -->
                             <div
                                 class="absolute inset-0 w-full h-full"
-                                :class="{ 
-                                    'animate-section-zoom-in': filteredSections[1].zoomConfig?.direction === 'in' && shouldZoom(filteredSections[1], 1),
-                                    'animate-section-zoom-out': filteredSections[1].zoomConfig?.direction === 'out' && shouldZoom(filteredSections[1], 1)
-                                }"
+                                :class="getZoomClass(filteredSections[1], 1)"
                                 :style="{ 
                                     transformOrigin: filteredSections[1].zoomConfig?.enabled ? `${filteredSections[1].zoomConfig?.targetRegion?.x ?? 50}% ${filteredSections[1].zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
                                     '--zoom-scale': filteredSections[1].zoomConfig?.scale || 1.3,
-                                    '--zoom-duration': `${filteredSections[1].zoomConfig?.duration || 5000}ms`,
-                                    '--zoom-fill-mode': filteredSections[1].zoomConfig?.behavior === 'reset' ? 'none' : 'forwards'
+                                    '--zoom-duration': `${filteredSections[1].zoomConfig?.duration || 5000}ms`
                                 }"
                             >
                                 <!-- Background Image -->
@@ -712,15 +729,11 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             <!-- ZOOM CONTAINER: Wraps ALL section content for unified zoom effect -->
                             <div
                                 class="absolute inset-0 w-full h-full"
-                                :class="{ 
-                                    'animate-section-zoom-in': filteredSections[0].zoomConfig?.direction === 'in' && shouldZoom(filteredSections[0], 0),
-                                    'animate-section-zoom-out': filteredSections[0].zoomConfig?.direction === 'out' && shouldZoom(filteredSections[0], 0)
-                                }"
+                                :class="getZoomClass(filteredSections[0], 0)"
                                 :style="{ 
                                     transformOrigin: filteredSections[0].zoomConfig?.enabled ? `${filteredSections[0].zoomConfig?.targetRegion?.x ?? 50}% ${filteredSections[0].zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
                                     '--zoom-scale': filteredSections[0].zoomConfig?.scale || 1.3,
-                                    '--zoom-duration': `${filteredSections[0].zoomConfig?.duration || 5000}ms`,
-                                    '--zoom-fill-mode': filteredSections[0].zoomConfig?.behavior === 'reset' ? 'none' : 'forwards'
+                                    '--zoom-duration': `${filteredSections[0].zoomConfig?.duration || 5000}ms`
                                 }"
                             >
                                 <!-- Background Image -->
@@ -832,6 +845,17 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
     will-change: transform;
 }
 
+/* Reset animations - zoom in then smoothly zoom back out */
+.animate-section-zoom-in-reset {
+    animation: section-zoom-in-reset calc(var(--zoom-duration, 5000ms) * 2) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    will-change: transform;
+}
+
+.animate-section-zoom-out-reset {
+    animation: section-zoom-out-reset calc(var(--zoom-duration, 5000ms) * 2) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    will-change: transform;
+}
+
 @keyframes section-zoom-in {
     0% { transform: scale(1); }
     100% { transform: scale(var(--zoom-scale, 1.3)); }
@@ -840,5 +864,21 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 @keyframes section-zoom-out {
     0% { transform: scale(var(--zoom-scale, 1.3)); }
     100% { transform: scale(1); }
+}
+
+/* Smooth reset: zoom in, hold briefly, then smoothly zoom back */
+@keyframes section-zoom-in-reset {
+    0% { transform: scale(1); }
+    45% { transform: scale(var(--zoom-scale, 1.3)); }
+    55% { transform: scale(var(--zoom-scale, 1.3)); }
+    100% { transform: scale(1); }
+}
+
+/* Smooth reset: zoom out, hold briefly, then smoothly zoom back */
+@keyframes section-zoom-out-reset {
+    0% { transform: scale(var(--zoom-scale, 1.3)); }
+    45% { transform: scale(1); }
+    55% { transform: scale(1); }
+    100% { transform: scale(var(--zoom-scale, 1.3)); }
 }
 </style>
