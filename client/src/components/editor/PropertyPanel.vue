@@ -218,20 +218,55 @@ const handleUpdate = (updates: Partial<TemplateElement>) => {
 
 // Section update handler - updates local state AND persists to DB
 const handleSectionUpdate = async (updates: Partial<SectionDesign>) => {
-    if (props.activeSectionType && store.activeTemplateId) {
-        const template = store.templates.find(t => t.id === store.activeTemplateId);
-        const section = template.sections[props.activeSectionType];
-        if (section) {
-            // 1. Optimistic local update
-            Object.assign(section, updates);
-            
-            // 2. Persist to database (sending FULL data for robust inserts)
-            try {
-                await CloudflareAPI.updateSection(store.activeTemplateId, props.activeSectionType, section);
-            } catch (error) {
-                console.error('[PropertyPanel] Failed to persist section update:', error);
-            }
-        }
+    console.log('[PropertyPanel] handleSectionUpdate called', {
+        activeSectionType: props.activeSectionType,
+        activeTemplateId: store.activeTemplateId,
+        updates
+    });
+    
+    if (!props.activeSectionType || !store.activeTemplateId) {
+        console.error('[PropertyPanel] Missing required data', {
+            activeSectionType: props.activeSectionType,
+            activeTemplateId: store.activeTemplateId
+        });
+        return;
+    }
+    
+    const template = store.templates.find(t => t.id === store.activeTemplateId);
+    if (!template) {
+        console.error('[PropertyPanel] Template not found:', store.activeTemplateId);
+        return;
+    }
+    
+    if (!template.sections) {
+        console.error('[PropertyPanel] Template has no sections object');
+        template.sections = {};
+    }
+    
+    const section = template.sections[props.activeSectionType];
+    if (!section) {
+        console.error('[PropertyPanel] Section not found:', props.activeSectionType);        // Initialize section if missing
+        template.sections[props.activeSectionType] = { elements: [], ...updates };
+    } else {
+        // 1. Optimistic local update
+        Object.assign(section, updates);
+        console.log('[PropertyPanel] Local state updated:', section);
+    }
+    
+    // 2. Persist to database (sending FULL data for robust inserts)
+    try {
+        const sectionToSend = template.sections[props.activeSectionType];
+        console.log('[PropertyPanel] Sending to API:', {
+            templateId: store.activeTemplateId,
+            sectionType: props.activeSectionType,
+            data: sectionToSend
+        });
+        
+        await CloudflareAPI.updateSection(store.activeTemplateId, props.activeSectionType, sectionToSend);
+        console.log('[PropertyPanel] API call successful');
+    } catch (error) {
+        console.error('[PropertyPanel] Failed to persist section update:', error);
+        // Optional: revert optimistic update on failure
     }
 };
 
