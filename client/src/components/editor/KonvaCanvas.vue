@@ -41,6 +41,8 @@ interface Props {
   viewMode?: 'admin' | 'user';
   particleType?: 'none' | 'butterflies' | 'petals' | 'leaves' | 'sparkles';
   kenBurnsEnabled?: boolean;
+  zoomConfig?: any; // ZoomAnimationConfig
+  isActiveSection?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -60,6 +62,7 @@ const emit = defineEmits<{
     (e: 'select', id: string): void;
     (e: 'update', id: string, updates: Partial<TemplateElement>): void;
     (e: 'drag-end', id: string, x: number, y: number): void;
+    (e: 'sectionZoomUpdate', updates: any): void;
 }>();
 
 // Canvas config
@@ -391,23 +394,32 @@ watch(
   async (newId) => {
     if (!transformer.value || !stage.value) return;
 
-    await nextTick(); // Wait for DOM update
-    
+    await nextTick();
     const tr = transformer.value.getNode();
     const stageNode = stage.value.getStage();
     
+    // If zoom box is active and no element selected, attach to it
+    if (!newId && props.isActiveSection && props.zoomConfig?.enabled) {
+        const zoomBoxNode = stageNode.findOne('#zoom-target-box');
+        if (zoomBoxNode) {
+            tr.nodes([zoomBoxNode]);
+            tr.moveToTop();
+            tr.getLayer().batchDraw();
+            return;
+        }
+    }
+
     if (!newId) {
         tr.nodes([]);
         tr.getLayer().batchDraw();
         return;
     }
 
-    // Ensure we find the node. Sometimes it needs a retry if v-for logic hasn't fully committed to Konva canvas structure
     const selectedNode = stageNode.findOne('#' + newId);
     if (selectedNode) {
         tr.nodes([selectedNode]);
         tr.getLayer().batchDraw();
-        tr.moveToTop(); // Ensure transformer is on top
+        tr.moveToTop(); 
     } else {
         tr.nodes([]);
         tr.getLayer().batchDraw();
@@ -415,6 +427,107 @@ watch(
   }, 
   { flush: 'post' } 
 );
+
+// Watch for zoomConfig toggle while section is active to show/hide zoom target box transformer
+watch(
+    () => [props.isActiveSection, props.zoomConfig?.enabled],
+    async ([active, enabled]) => {
+        if (!transformer.value || !stage.value) return;
+        if (props.selectedElementId) return; // Element selection takes priority
+
+        await nextTick();
+        const tr = transformer.value.getNode();
+        const stageNode = stage.value.getStage();
+
+        if (active && enabled) {
+            const zoomBoxNode = stageNode.findOne('#zoom-target-box');
+            if (zoomBoxNode) {
+                tr.nodes([zoomBoxNode]);
+                tr.moveToTop();
+                tr.getLayer().batchDraw();
+            }
+        } else if (!props.selectedElementId) {
+            tr.nodes([]);
+            tr.getLayer().batchDraw();
+        }
+    }
+);
+
+const ZOOM_TARGET_ID = 'zoom-target-box';
+
+const zoomTargetConfig = computed(() => {
+    if (!props.zoomConfig?.enabled || !props.isActiveSection) return null;
+    
+    const tr = props.zoomConfig.targetRegion || { x: 50, y: 50, width: 50, height: 50 };
+    
+    // x,y are center percentages
+    const w = Math.max(20, (tr.width / 100) * CANVAS_WIDTH);
+    const h = Math.max(20, (tr.height / 100) * CANVAS_HEIGHT);
+    const px = (tr.x / 100) * CANVAS_WIDTH - w / 2;
+    const py = (tr.y / 100) * CANVAS_HEIGHT - h / 2;
+    
+    return {
+        id: ZOOM_TARGET_ID,
+        x: px,
+        y: py,
+        width: w,
+        height: h,
+        draggable: true,
+        stroke: '#6366f1',
+        strokeWidth: 2,
+        dash: [5, 5],
+        fill: 'rgba(99, 102, 241, 0.05)',
+        name: 'zoom-target'
+    };
+});
+
+const handleZoomTargetDragEnd = (e: any) => {
+    const node = e.target;
+    const w = node.width();
+    const h = node.height();
+    const cx = node.x() + w / 2;
+    const cy = node.y() + h / 2;
+    
+    // Convert back to percentages
+    const x = (cx / CANVAS_WIDTH) * 100;
+    const y = (cy / CANVAS_HEIGHT) * 100;
+    
+    emit('sectionZoomUpdate', { 
+        targetRegion: { ...props.zoomConfig.targetRegion, x: Math.round(x), y: Math.round(y) } 
+    });
+};
+
+const handleZoomTargetTransformEnd = (e: any) => {
+    const node = e.target;
+    // Get transformed dimensions
+    const scaleX = node.scaleX();
+    const scaleY = node.scaleY();
+    const w = node.width() * scaleX;
+    const h = node.height() * scaleY;
+    const cx = node.x() + w / 2;
+    const cy = node.y() + h / 2;
+    
+    // Reset internal node state
+    node.scaleX(1);
+    node.scaleY(1);
+    node.width(w);
+    node.height(h);
+    
+    // Convert to percentages
+    const x = (cx / CANVAS_WIDTH) * 100;
+    const y = (cy / CANVAS_HEIGHT) * 100;
+    const pw = (w / CANVAS_WIDTH) * 100;
+    const ph = (h / CANVAS_HEIGHT) * 100;
+    
+    emit('sectionZoomUpdate', { 
+        targetRegion: { 
+            x: Math.round(x), 
+            y: Math.round(y), 
+            width: Math.round(pw), 
+            height: Math.round(ph) 
+        } 
+    });
+};
 
 const handleTransformEnd = () => {
    console.log('[KonvaCanvas] handleTransformEnd TRIGGERED');
@@ -1420,7 +1533,7 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
         <!-- Transformer -->
         <v-transformer
             ref="transformer"
-            v-if="selectedElementId"
+            v-if="selectedElementId || (isActiveSection && zoomConfig?.enabled)"
             :config="{
                 nodes: [], // Will be set via updated hook or watcher
                 anchorStroke: '#3b82f6',
@@ -1432,6 +1545,14 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
                 enabledAnchors: ['top-left', 'top-right', 'bottom-left', 'bottom-right']
             }"
             @transformend="handleTransformEnd"
+        />
+
+        <!-- Zoom Target Box -->
+        <v-rect
+            v-if="zoomTargetConfig"
+            :config="zoomTargetConfig"
+            @dragend="handleZoomTargetDragEnd"
+            @transformend="handleZoomTargetTransformEnd"
         />
       </v-layer>
     </v-stage>

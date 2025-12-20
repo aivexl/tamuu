@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useTemplateStore } from '@/stores/template';
 import { PREDEFINED_SECTION_TYPES, type SectionDesign } from '@/lib/types';
+import { DEFAULT_ZOOM_CONFIG } from '@/lib/constants';
 import KonvaCanvas from '@/components/editor/KonvaCanvas.vue';
 import PropertyPanel from '@/components/editor/PropertyPanel.vue';
 import ParticleOverlay from '@/components/effects/ParticleOverlay.vue';
@@ -292,6 +293,16 @@ const handleElementTransformEnd = async (sectionKey: string, id: string, props: 
     });
     console.log('[EditorView] store.updateElement called successfully');
 };
+
+const handleSectionZoomUpdate = async (sectionKey: string, updates: any) => {
+    const currentZoom = getSectionData(sectionKey).zoomConfig || DEFAULT_ZOOM_CONFIG;
+    await store.updateSection(templateId.value, sectionKey, {
+        zoomConfig: {
+            ...currentZoom,
+            ...updates
+        }
+    });
+};
 </script>
 
 <template>
@@ -519,10 +530,13 @@ const handleElementTransformEnd = async (sectionKey: string, id: string, props: 
                                 :overlay-opacity="getSectionData(section.key).overlayOpacity"
                                 :particle-type="getSectionData(section.key).particleType"
                                 :ken-burns-enabled="getSectionData(section.key).kenBurnsEnabled"
+                                :zoom-config="getSectionData(section.key).zoomConfig"
+                                :is-active-section="activeSection === section.key"
                                 @elementSelect="(id) => { activeSection = section.key; handleElementSelect(id); }"
                                 @elementDrag="(id, pos) => handleElementDrag(section.key, id, pos)"
                                 @elementDragEnd="(id, pos) => handleElementDragEnd(section.key, id, pos)"
                                 @elementTransformEnd="(id, props) => handleElementTransformEnd(section.key, id, props)"
+                                @sectionZoomUpdate="(updates) => handleSectionZoomUpdate(section.key, updates)"
                              />
 
                              <!-- Particle Overlay -->

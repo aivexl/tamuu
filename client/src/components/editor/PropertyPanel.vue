@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useTemplateStore } from '@/stores/template';
+import { DEFAULT_ZOOM_CONFIG } from '@/lib/constants';
 import { type TemplateElement, type SectionDesign, type CountdownConfig, type RSVPFormConfig, type IconStyle, type ElementStyle } from '@/lib/types';
 import { iconPaths } from '@/lib/icon-paths';
 import { uploadFile } from '@/services/cloudflare-api';
@@ -211,6 +212,16 @@ const handleUpdate = (updates: Partial<TemplateElement>) => {
             updates
         );
     }
+};
+
+const updateIconStyle = (updates: Partial<IconStyle>) => {
+    const currentStyle = element.value?.iconStyle || { iconName: 'square', iconColor: '#000000', iconSize: 48 };
+    handleUpdate({
+        iconStyle: {
+            ...currentStyle,
+            ...updates
+        } as IconStyle
+    });
 };
 
 // Section update handler - updates local state AND persists to DB
@@ -424,16 +435,6 @@ const styleOptions: ElementStyle[] = [
     'pastel', 'monochrome', 'neon', 'brutalist', 'cloud'
 ];
 
-// Default zoom configuration for sections
-const defaultZoomConfig = {
-    enabled: false,
-    direction: 'in' as const,
-    scale: 1.3,
-    duration: 5000,
-    targetRegion: { x: 50, y: 50, width: 50, height: 50 },
-    behavior: 'stay' as const,
-    trigger: 'scroll' as const,
-};
 
 // Font options
 const fontFamilies = [
@@ -1674,9 +1675,6 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 
                 <!-- Ken Burns Background Effect -->
                 <div class="space-y-2 pt-3 border-t border-slate-100">
-                    <div v-if="!currentSection.backgroundUrl" class="px-2 py-1.5 bg-amber-50 rounded border border-amber-100 text-[9px] text-amber-700 mb-2">
-                        💡 Ken Burns requires a background image.
-                    </div>
                     <div class="flex items-center justify-between">
                         <div>
                             <Label class="text-xs font-bold text-slate-600 flex items-center gap-1.5">
@@ -1717,9 +1715,6 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
 
                 <!-- Zoom Effect (Section Level) -->
                 <div class="space-y-3 pt-3 border-t border-slate-100">
-                    <div v-if="!currentSection.backgroundUrl" class="px-2 py-1.5 bg-amber-50 rounded border border-amber-100 text-[9px] text-amber-700 mb-2">
-                        💡 Zoom Effect requires a background image.
-                    </div>
                     <div class="flex items-center justify-between">
                         <div>
                             <Label class="text-xs font-bold text-slate-600 flex items-center gap-1.5">
@@ -1731,7 +1726,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                             <input 
                                 type="checkbox" 
                                 :checked="currentSection.zoomConfig?.enabled || false" 
-                                @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection.zoomConfig || defaultZoomConfig), enabled: e.target.checked } })"
+                                @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection.zoomConfig || DEFAULT_ZOOM_CONFIG), enabled: e.target.checked } })"
                                 class="sr-only peer"
                             >
                             <div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
@@ -1774,8 +1769,8 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 min="1.1" 
                                 max="2.5" 
                                 step="0.1" 
-                                :value="currentSection.zoomConfig?.scale || 1.3"
-                                @input="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, scale: Number(e.target.value) } })"
+                                :value="currentSection?.zoomConfig?.scale || 1.3"
+                                @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), scale: Number(e.target.value) } })"
                                 class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                             />
                         </div>
@@ -1790,8 +1785,8 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 min="2000" 
                                 max="15000" 
                                 step="500" 
-                                :value="currentSection.zoomConfig?.duration || 5000"
-                                @input="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, duration: Number(e.target.value) } })"
+                                :value="currentSection?.zoomConfig?.duration || 5000"
+                                @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), duration: Number(e.target.value) } })"
                                 class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                             />
                         </div>
@@ -1802,8 +1797,8 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <input 
                                     type="number" 
                                     min="0" max="100"
-                                    :value="currentSection.zoomConfig?.targetRegion?.x ?? 50"
-                                    @input="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, targetRegion: { ...(currentSection.zoomConfig?.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), x: Number(e.target.value) } } })"
+                                    :value="currentSection?.zoomConfig?.targetRegion?.x ?? 50"
+                                    @input="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), targetRegion: { ...(currentSection?.zoomConfig?.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), x: Number(e.target.value) } } })"
                                     class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
                                 />
                             </div>
@@ -1812,8 +1807,8 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <input 
                                     type="number" 
                                     min="0" max="100"
-                                    :value="currentSection.zoomConfig?.targetRegion?.y ?? 50"
-                                    @input="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, targetRegion: { ...(currentSection.zoomConfig?.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), y: Number(e.target.value) } } })"
+                                    :value="currentSection?.zoomConfig?.targetRegion?.y ?? 50"
+                                    @input="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), targetRegion: { ...(currentSection?.zoomConfig?.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), y: Number(e.target.value) } } })"
                                     class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
                                 />
                             </div>
