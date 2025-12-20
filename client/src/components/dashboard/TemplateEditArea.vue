@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import { useTemplateStore } from '@/stores/template';
 import { useInvitationStore } from '@/stores/invitation';
 import type { TemplateElement, SectionDesign } from '@/lib/types';
@@ -89,18 +90,56 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div v-if="editableSections.length > 0" class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-        <!-- Header -->
+    <!-- Template Selected - Show Edit Area -->
+    <div v-if="templateId" class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <!-- Header with Template Info -->
         <div class="px-6 py-4 bg-gradient-to-r from-teal-50 to-blue-50 border-b border-gray-100">
-            <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <Layers class="w-5 h-5 text-teal-600" />
-                Edit Undangan
-            </h2>
-            <p class="text-sm text-gray-500 mt-1">Sesuaikan informasi undangan Anda</p>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                        <Layers class="w-5 h-5 text-teal-600" />
+                        Edit Undangan
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Template: <span class="font-medium text-teal-600">{{ currentTemplate?.name || 'Loading...' }}</span>
+                    </p>
+                </div>
+                <RouterLink 
+                    to="/templates"
+                    class="text-sm text-teal-600 hover:text-teal-700 font-medium"
+                >
+                    Ganti Template
+                </RouterLink>
+            </div>
         </div>
 
-        <!-- Accordion Sections -->
-        <div class="divide-y divide-gray-100">
+        <!-- Template Preview -->
+        <div v-if="currentTemplate" class="p-4 border-b border-gray-100">
+            <div class="flex items-center gap-4">
+                <SafeImage 
+                    v-if="currentTemplate.thumbnail"
+                    :src="currentTemplate.thumbnail"
+                    alt="Template thumbnail"
+                    class="w-20 h-28 object-cover rounded-lg shadow"
+                />
+                <div class="flex-1">
+                    <p class="text-sm text-gray-600">
+                        {{ Object.keys(currentTemplate.sections || {}).length }} halaman
+                    </p>
+                    <RouterLink 
+                        :to="`/preview/${currentTemplate.id}`"
+                        target="_blank"
+                        class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mt-2"
+                    >
+                        <Eye class="w-4 h-4" />
+                        Lihat Preview
+                    </RouterLink>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accordion Sections (if has editable elements) -->
+        <div v-if="editableSections.length > 0" class="divide-y divide-gray-100">
             <div 
                 v-for="section in editableSections" 
                 :key="section.key"
@@ -182,16 +221,24 @@ onMounted(async () => {
             </div>
         </div>
 
-        <!-- Empty State (if no editable elements) -->
-        <div v-if="editableSections.length === 0" class="px-6 py-12 text-center">
-            <p class="text-gray-500">Template ini tidak memiliki konten yang dapat diedit.</p>
+        <!-- No Editable Elements Message -->
+        <div v-else class="px-6 py-8 text-center text-gray-500">
+            <p>Template ini belum memiliki field yang dapat diedit.</p>
+            <p class="text-xs mt-2">Admin perlu menandai elements dengan "isUserEditable" di template editor.</p>
         </div>
     </div>
 
     <!-- No Template Selected -->
-    <div v-else-if="!templateId" class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
+    <div v-else class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
         <Layers class="w-12 h-12 text-gray-300 mx-auto mb-4" />
         <h3 class="font-semibold text-gray-700 mb-2">Pilih Template Terlebih Dahulu</h3>
-        <p class="text-sm text-gray-500">Klik menu "Template" untuk memilih desain undangan</p>
+        <p class="text-sm text-gray-500 mb-4">Klik menu "Template" untuk memilih desain undangan</p>
+        <RouterLink 
+            to="/templates"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors"
+        >
+            <Layers class="w-4 h-4" />
+            Pilih Template
+        </RouterLink>
     </div>
 </template>
