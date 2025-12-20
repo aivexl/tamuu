@@ -431,13 +431,14 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 backgroundColor: section.backgroundColor || 'transparent'
                             }"
                         >
-                            <!-- Background Image with Zoom Effect -->
+                            <!-- Background Image with Zoom/Ken Burns Effect -->
                             <div
                                 v-if="section.backgroundUrl"
                                 class="absolute inset-0 bg-cover bg-center"
                                 :class="{ 
                                     'animate-section-zoom-in': section.zoomConfig?.enabled && section.zoomConfig?.direction === 'in' && visibleSections.has(index),
-                                    'animate-section-zoom-out': section.zoomConfig?.enabled && section.zoomConfig?.direction === 'out' && visibleSections.has(index)
+                                    'animate-section-zoom-out': section.zoomConfig?.enabled && section.zoomConfig?.direction === 'out' && visibleSections.has(index),
+                                    'animate-ken-burns': section.kenBurnsEnabled && !section.zoomConfig?.enabled
                                 }"
                                 :style="{ 
                                     backgroundImage: `url(${getProxiedImageUrl(section.backgroundUrl)})`,
@@ -517,7 +518,28 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                     <!-- ATOMIC STACK MODE (Initial Reveal Physics) -->
                     <div v-else class="relative w-full h-full overflow-hidden">
                         <!-- BOTTOM LAYER: Section 2 (visible behind Section 1) -->
-                        <div v-if="filteredSections[1]" class="absolute inset-0 z-[1]" :style="{ backgroundColor: filteredSections[1].backgroundColor || '#ffffff', backgroundImage: filteredSections[1].backgroundUrl ? `url(${getProxiedImageUrl(filteredSections[1].backgroundUrl)})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }">
+                        <div 
+                            v-if="filteredSections[1]" 
+                            class="absolute inset-0 z-[1] overflow-hidden" 
+                            :style="{ backgroundColor: filteredSections[1].backgroundColor || '#ffffff', backgroundSize: 'cover', backgroundPosition: 'center' }"
+                        >
+                            <!-- Background Image with Zoom Effect -->
+                            <div
+                                v-if="filteredSections[1].backgroundUrl"
+                                class="absolute inset-0 bg-cover bg-center"
+                                :class="{ 
+                                    'animate-section-zoom-in': filteredSections[1].zoomConfig?.enabled && filteredSections[1].zoomConfig?.direction === 'in' && isOpened,
+                                    'animate-section-zoom-out': filteredSections[1].zoomConfig?.enabled && filteredSections[1].zoomConfig?.direction === 'out' && isOpened,
+                                    'animate-ken-burns': filteredSections[1].kenBurnsEnabled && !filteredSections[1].zoomConfig?.enabled
+                                }"
+                                :style="{ 
+                                    backgroundImage: `url(${getProxiedImageUrl(filteredSections[1].backgroundUrl)})`,
+                                    transformOrigin: filteredSections[1].zoomConfig?.enabled ? `${filteredSections[1].zoomConfig?.targetRegion?.x ?? 50}% ${filteredSections[1].zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
+                                    '--zoom-scale': filteredSections[1].zoomConfig?.scale || 1.3,
+                                    '--zoom-duration': `${filteredSections[1].zoomConfig?.duration || 5000}ms`
+                                }"
+                            ></div>
+
                             <div v-if="filteredSections[1].overlayOpacity && filteredSections[1].overlayOpacity > 0" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[1].overlayOpacity }" />
                             
                             <!-- Particle Overlay -->
@@ -581,9 +603,26 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                         <!-- TOP LAYER: Section 1 -->
                         <div 
                             v-if="filteredSections[0]" 
-                            class="absolute inset-0 z-[2] atomic-cover-layer" 
-                            :style="{ backgroundColor: filteredSections[0].backgroundColor || '#cccccc', backgroundImage: filteredSections[0].backgroundUrl ? `url(${getProxiedImageUrl(filteredSections[0].backgroundUrl)})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }"
+                            class="absolute inset-0 z-[2] atomic-cover-layer overflow-hidden" 
+                            :style="{ backgroundColor: filteredSections[0].backgroundColor || '#cccccc', backgroundSize: 'cover', backgroundPosition: 'center' }"
                         >
+                            <!-- Background Image with Zoom Effect -->
+                            <div
+                                v-if="filteredSections[0].backgroundUrl"
+                                class="absolute inset-0 bg-cover bg-center"
+                                :class="{ 
+                                    'animate-section-zoom-in': filteredSections[0].zoomConfig?.enabled && filteredSections[0].zoomConfig?.direction === 'in',
+                                    'animate-section-zoom-out': filteredSections[0].zoomConfig?.enabled && filteredSections[0].zoomConfig?.direction === 'out',
+                                    'animate-ken-burns': filteredSections[0].kenBurnsEnabled && !filteredSections[0].zoomConfig?.enabled
+                                }"
+                                :style="{ 
+                                    backgroundImage: `url(${getProxiedImageUrl(filteredSections[0].backgroundUrl)})`,
+                                    transformOrigin: filteredSections[0].zoomConfig?.enabled ? `${filteredSections[0].zoomConfig?.targetRegion?.x ?? 50}% ${filteredSections[0].zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
+                                    '--zoom-scale': filteredSections[0].zoomConfig?.scale || 1.3,
+                                    '--zoom-duration': `${filteredSections[0].zoomConfig?.duration || 5000}ms`
+                                }"
+                            ></div>
+
                             <div v-if="filteredSections[0].overlayOpacity && filteredSections[0].overlayOpacity > 0" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[0].overlayOpacity }" />
                             
                             <!-- Particle Overlay -->

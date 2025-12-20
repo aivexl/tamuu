@@ -154,6 +154,7 @@ export class DatabaseService {
                 transitionTrigger: (section.transition_trigger as any) || 'scroll',
                 particleType: (section.particle_type as any) || 'none',
                 kenBurnsEnabled: section.ken_burns_enabled === 1,
+                zoomConfig: safeParseJSON(section.zoom_config, undefined),
                 elements: sectionElements.map((el) => this.mapElementToResponse(el)),
             };
         });
