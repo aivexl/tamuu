@@ -683,6 +683,7 @@ const parallaxStyle = computed(() => {
           </div>
         </div>
       </div>
+      </div>
     </div>
   </div>
 </div>
