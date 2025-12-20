@@ -1337,13 +1337,19 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
         transform: `rotate(${gif.rotation || 0}deg) scaleX(${gif.flipHorizontal ? -1 : 1}) scaleY(${gif.flipVertical ? -1 : 1})`,
         zIndex: (gif.zIndex || 1) + 1000,
         opacity: gif.opacity ?? 1,
+        background: 'transparent',
       }"
     >
       <!-- GIF Image (draggable area) -->
       <img
         :src="getProxiedImageUrl(gif.imageUrl)"
         :alt="gif.name"
-        class="w-full h-full object-cover cursor-move"
+        class="w-full h-full cursor-move"
+        :style="{
+          objectFit: gif.objectFit || 'contain',
+          background: 'transparent',
+          imageRendering: 'auto',
+        }"
         draggable="false"
         @mousedown="handleGifMouseDown($event, gif)"
       />
