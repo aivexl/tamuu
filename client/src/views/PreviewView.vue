@@ -321,11 +321,12 @@ const getButtonStyle = (el: any) => {
 
 const viewportBackgroundStyle = computed(() => {
     // Portrait: use section 1 background (top of invitation)
-    // Landscape: use last section background (to fill bottom area)
-    const section = isPortrait.value 
-        ? filteredSections.value[0] 
-        : filteredSections.value[filteredSections.value.length - 1];
+    // Landscape: use neutral dark background so invitation stands out
+    if (!isPortrait.value) {
+        return { backgroundColor: '#1a1a1a' }; // Dark neutral for landscape
+    }
     
+    const section = filteredSections.value[0];
     if (!section) return { backgroundColor: '#ffffff' };
     
     const style: any = {
@@ -365,9 +366,21 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
     <div ref="mainViewport" class="h-[100dvh] w-screen flex flex-col items-center overflow-hidden transition-colors duration-500" :style="viewportBackgroundStyle">
         
         <!-- MAIN SCROLL ENGINE -->
-        <div ref="scrollContainer" class="scroll-container w-full h-full" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'" :style="!flowMode ? { height: '100%' } : {}">
+        <div 
+            ref="scrollContainer" 
+            class="scroll-container" 
+            :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'" 
+            :style="{
+                height: !flowMode ? '100%' : isPortrait ? '100%' : `${scaledTotalHeight}px`,
+                maxHeight: !isPortrait && flowMode ? `${scaledTotalHeight}px` : 'none',
+                width: '100%',
+                display: 'flex',
+                justifyContent: isPortrait ? 'flex-start' : 'center',
+                alignItems: isPortrait ? 'flex-start' : 'flex-start'
+            }"
+        >
             <!-- Wrapper to limit scroll height exactly to content -->
-            <div :style="{ height: flowMode ? `${scaledTotalHeight}px` : '100%', width: '100%' }" :class="!isPortrait ? 'flex justify-center' : ''">
+            <div :style="{ height: flowMode ? `${scaledTotalHeight}px` : '100%', width: isPortrait ? '100%' : 'auto' }">
                 <div 
                     class="invitation-parent relative" 
                     :style="{ 
