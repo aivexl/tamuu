@@ -337,6 +337,15 @@ const handleElementTransformEnd = async (sectionKey: string, id: string, props: 
                     <User class="w-4 h-4" />
                     <span class="hidden sm:inline">{{ isPreviewUser ? 'User Mode' : 'Admin Mode' }}</span>
                 </button>
+                <!-- Preview Button -->
+                <Button 
+                    variant="outline"
+                    class="flex items-center gap-2"
+                    @click="$router.push(`/preview/`${templateId}`)"
+                >
+                    <Eye class="w-4 h-4" />
+                    Preview
+                </Button>
 
                 <!-- Publish Button -->
                 <Button 
@@ -594,3 +603,4 @@ const handleElementTransformEnd = async (sectionKey: string, id: string, props: 
         </Transition>
     </Teleport>
 </template>
+
