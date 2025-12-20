@@ -16,6 +16,7 @@ import {
     FlipHorizontal2, FlipVertical2
 } from 'lucide-vue-next';
 import ElementPermissionToggles from './ElementPermissionToggles.vue';
+import { useToast } from '@/composables/use-toast';
 
 interface Props {
     activeSection?: SectionDesign;
@@ -24,6 +25,7 @@ interface Props {
 
 const props = defineProps<Props>();
 const store = useTemplateStore();
+const { toast } = useToast();
 
 // Currently selected element data
 const selectedElement = computed(() => {
@@ -228,10 +230,21 @@ const updateIconStyle = (updates: Partial<IconStyle>) => {
 const handleSectionUpdate = async (updates: Partial<SectionDesign>) => {
     if (!props.activeSectionType || !store.activeTemplateId) return;
     
+    console.log('[PropertyPanel] Updating section:', updates);
     try {
         await store.updateSection(store.activeTemplateId, props.activeSectionType, updates);
+        console.log('[PropertyPanel] Update successful');
+        toast({
+            title: "Tersimpan",
+            description: "Pengaturan berhasil diperbarui."
+        });
     } catch (error) {
         console.error('[PropertyPanel] Failed to update section:', error);
+        toast({
+            title: "Gagal Menyimpan",
+            description: "Terjadi kesalahan saat menyimpan pengaturan.",
+            variant: "destructive"
+        });
     }
 };
 
@@ -1747,6 +1760,20 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 </select>
                             </div>
                             <div>
+                                <span class="text-[10px] text-slate-400">Trigger</span>
+                                <select 
+                                    class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
+                                    :value="currentSection.zoomConfig?.trigger || 'scroll'"
+                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...currentSection.zoomConfig!, trigger: e.target.value } })"
+                                >
+                                    <option value="scroll">On Scroll</option>
+                                    <option value="click">On Click</option>
+                                    <option value="open_btn">Open Button</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
                                 <span class="text-[10px] text-slate-400">After Animation</span>
                                 <select 
                                     class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
@@ -1762,7 +1789,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                         <div>
                             <div class="flex justify-between items-center text-[10px] mb-1">
                                 <span class="text-slate-400">Zoom Scale</span>
-                                <span class="font-medium text-slate-600">{{ currentSection.zoomConfig?.scale || 1.3 }}x</span>
+                                <span class="font-medium text-slate-600">{{ currentSection?.zoomConfig?.scale || 1.3 }}x</span>
                             </div>
                             <input 
                                 type="range" 
@@ -1778,7 +1805,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                         <div>
                             <div class="flex justify-between items-center text-[10px] mb-1">
                                 <span class="text-slate-400">Duration</span>
-                                <span class="font-medium text-slate-600">{{ currentSection.zoomConfig?.duration || 5000 }}ms</span>
+                                <span class="font-medium text-slate-600">{{ currentSection?.zoomConfig?.duration || 5000 }}ms</span>
                             </div>
                             <input 
                                 type="range" 
@@ -1798,7 +1825,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                     type="number" 
                                     min="0" max="100"
                                     :value="currentSection?.zoomConfig?.targetRegion?.x ?? 50"
-                                    @input="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), targetRegion: { ...(currentSection?.zoomConfig?.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), x: Number(e.target.value) } } })"
+                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), targetRegion: { ...(currentSection?.zoomConfig?.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), x: Number(e.target.value) } } })"
                                     class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
                                 />
                             </div>
@@ -1808,7 +1835,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                     type="number" 
                                     min="0" max="100"
                                     :value="currentSection?.zoomConfig?.targetRegion?.y ?? 50"
-                                    @input="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), targetRegion: { ...(currentSection?.zoomConfig?.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), y: Number(e.target.value) } } })"
+                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), targetRegion: { ...(currentSection?.zoomConfig?.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), y: Number(e.target.value) } } })"
                                     class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
                                 />
                             </div>

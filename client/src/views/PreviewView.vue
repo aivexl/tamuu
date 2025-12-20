@@ -77,6 +77,32 @@ const setSectionRef = (el: any, index: number) => {
 
 
 const visibleSections = ref<Set<number>>(new Set());
+// Track which sections have been clicked (for click trigger)
+const clickedSections = ref<Set<number>>(new Set());
+
+// Helper: Determine if zoom animation should be active based on trigger
+const shouldZoom = (section: any, index: number): boolean => {
+    if (!section.zoomConfig?.enabled) return false;
+    const trigger = section.zoomConfig?.trigger || 'scroll';
+    switch (trigger) {
+        case 'scroll':
+            return visibleSections.value.has(index);
+        case 'click':
+            return clickedSections.value.has(index);
+        case 'open_btn':
+            return isOpened.value;
+        default:
+            return visibleSections.value.has(index);
+    }
+};
+
+// Handler for click-triggered zoom on sections
+const handleSectionClick = (index: number, section: any) => {
+    if (section.zoomConfig?.enabled && section.zoomConfig?.trigger === 'click') {
+        clickedSections.value.add(index);
+    }
+};
+
 let observer: IntersectionObserver | null = null;
 let lenis: Lenis | null = null;
 
@@ -430,14 +456,15 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 height: index === 0 ? `${coverHeightComputed}px` : `${CANVAS_HEIGHT}px`,
                                 backgroundColor: section.backgroundColor || 'transparent'
                             }"
+                            @click="handleSectionClick(index, section)"
                         >
                             <!-- Background Image with Zoom/Ken Burns Effect -->
                             <div
                                 v-if="section.backgroundUrl"
                                 class="absolute inset-0 bg-cover bg-center"
                                 :class="{ 
-                                    'animate-section-zoom-in': section.zoomConfig?.enabled && section.zoomConfig?.direction === 'in' && visibleSections.has(index),
-                                    'animate-section-zoom-out': section.zoomConfig?.enabled && section.zoomConfig?.direction === 'out' && visibleSections.has(index),
+                                    'animate-section-zoom-in': section.zoomConfig?.direction === 'in' && shouldZoom(section, index),
+                                    'animate-section-zoom-out': section.zoomConfig?.direction === 'out' && shouldZoom(section, index),
                                     'animate-ken-burns': section.kenBurnsEnabled && !section.zoomConfig?.enabled
                                 }"
                                 :style="{ 
@@ -528,8 +555,8 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 v-if="filteredSections[1].backgroundUrl"
                                 class="absolute inset-0 bg-cover bg-center"
                                 :class="{ 
-                                    'animate-section-zoom-in': filteredSections[1].zoomConfig?.enabled && filteredSections[1].zoomConfig?.direction === 'in' && isOpened,
-                                    'animate-section-zoom-out': filteredSections[1].zoomConfig?.enabled && filteredSections[1].zoomConfig?.direction === 'out' && isOpened,
+                                    'animate-section-zoom-in': filteredSections[1].zoomConfig?.direction === 'in' && shouldZoom(filteredSections[1], 1),
+                                    'animate-section-zoom-out': filteredSections[1].zoomConfig?.direction === 'out' && shouldZoom(filteredSections[1], 1),
                                     'animate-ken-burns': filteredSections[1].kenBurnsEnabled && !filteredSections[1].zoomConfig?.enabled
                                 }"
                                 :style="{ 
@@ -611,8 +638,8 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 v-if="filteredSections[0].backgroundUrl"
                                 class="absolute inset-0 bg-cover bg-center"
                                 :class="{ 
-                                    'animate-section-zoom-in': filteredSections[0].zoomConfig?.enabled && filteredSections[0].zoomConfig?.direction === 'in',
-                                    'animate-section-zoom-out': filteredSections[0].zoomConfig?.enabled && filteredSections[0].zoomConfig?.direction === 'out',
+                                    'animate-section-zoom-in': filteredSections[0].zoomConfig?.direction === 'in' && shouldZoom(filteredSections[0], 0),
+                                    'animate-section-zoom-out': filteredSections[0].zoomConfig?.direction === 'out' && shouldZoom(filteredSections[0], 0),
                                     'animate-ken-burns': filteredSections[0].kenBurnsEnabled && !filteredSections[0].zoomConfig?.enabled
                                 }"
                                 :style="{ 
