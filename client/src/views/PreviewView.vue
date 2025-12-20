@@ -142,28 +142,41 @@ const getZoomClass = (section: any, index: number): Record<string, boolean> => {
     }
 };
 
-// Helper: Calculate zoom scale from box dimensions
-// The scale should make the virtual box fill the viewport when zoomed
-const getZoomScale = (section: any): number => {
+// Helper: Calculate zoom transform (scale + translate) from box dimensions
+// The transform should make the virtual box fill the viewport exactly
+const getZoomTransform = (section: any): { scale: number; translateX: number; translateY: number } => {
     const targetRegion = section.zoomConfig?.targetRegion;
     if (!targetRegion) {
-        return section.zoomConfig?.scale || 1.3; // Fallback to manual scale
+        return { 
+            scale: section.zoomConfig?.scale || 1.3, 
+            translateX: 0, 
+            translateY: 0 
+        };
     }
     
     // Box dimensions are in percentages (e.g., width: 50 means 50% of canvas)
     const boxWidthPercent = targetRegion.width || 50;
     const boxHeightPercent = targetRegion.height || 50;
+    const boxCenterX = targetRegion.x ?? 50;
+    const boxCenterY = targetRegion.y ?? 50;
     
     // Calculate scale: to make a 50% box fill 100%, we need 2x scale
-    // Use the smaller dimension to ensure the box fits entirely
     const scaleByWidth = 100 / boxWidthPercent;
     const scaleByHeight = 100 / boxHeightPercent;
-    
-    // Use the smaller scale to ensure the entire box is visible
     const calculatedScale = Math.min(scaleByWidth, scaleByHeight);
     
     // Clamp the scale to reasonable values (1.1x to 5x)
-    return Math.max(1.1, Math.min(5, calculatedScale));
+    const scale = Math.max(1.1, Math.min(5, calculatedScale));
+    
+    // Calculate translate: move the box center to the viewport center (50%, 50%)
+    // After scaling, the box center needs to be at the center of the viewport
+    // translateX = (50 - boxCenterX) * scale (in percentage units)
+    // But since transform-origin is at box center, we need a different approach
+    // Using transform-origin at center (50% 50%) and translating before scale
+    const translateX = (50 - boxCenterX);
+    const translateY = (50 - boxCenterY);
+    
+    return { scale, translateX, translateY };
 };
 
 
@@ -571,8 +584,10 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 class="absolute inset-0 w-full h-full"
                                 :class="getZoomClass(section, index)"
                                 :style="{ 
-                                    transformOrigin: section.zoomConfig?.enabled ? `${section.zoomConfig?.targetRegion?.x ?? 50}% ${section.zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
-                                    '--zoom-scale': getZoomScale(section),
+                                    transformOrigin: 'center center',
+                                    '--zoom-scale': getZoomTransform(section).scale,
+                                    '--zoom-translate-x': `${getZoomTransform(section).translateX}%`,
+                                    '--zoom-translate-y': `${getZoomTransform(section).translateY}%`,
                                     '--zoom-duration': `${section.zoomConfig?.duration || 5000}ms`
                                 }"
                             >
@@ -667,8 +682,10 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 class="absolute inset-0 w-full h-full"
                                 :class="getZoomClass(filteredSections[1], 1)"
                                 :style="{ 
-                                    transformOrigin: filteredSections[1].zoomConfig?.enabled ? `${filteredSections[1].zoomConfig?.targetRegion?.x ?? 50}% ${filteredSections[1].zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
-                                    '--zoom-scale': getZoomScale(filteredSections[1]),
+                                    transformOrigin: 'center center',
+                                    '--zoom-scale': getZoomTransform(filteredSections[1]).scale,
+                                    '--zoom-translate-x': `${getZoomTransform(filteredSections[1]).translateX}%`,
+                                    '--zoom-translate-y': `${getZoomTransform(filteredSections[1]).translateY}%`,
                                     '--zoom-duration': `${filteredSections[1].zoomConfig?.duration || 5000}ms`
                                 }"
                             >
@@ -755,8 +772,10 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 class="absolute inset-0 w-full h-full"
                                 :class="getZoomClass(filteredSections[0], 0)"
                                 :style="{ 
-                                    transformOrigin: filteredSections[0].zoomConfig?.enabled ? `${filteredSections[0].zoomConfig?.targetRegion?.x ?? 50}% ${filteredSections[0].zoomConfig?.targetRegion?.y ?? 50}%` : 'center',
-                                    '--zoom-scale': getZoomScale(filteredSections[0]),
+                                    transformOrigin: 'center center',
+                                    '--zoom-scale': getZoomTransform(filteredSections[0]).scale,
+                                    '--zoom-translate-x': `${getZoomTransform(filteredSections[0]).translateX}%`,
+                                    '--zoom-translate-y': `${getZoomTransform(filteredSections[0]).translateY}%`,
                                     '--zoom-duration': `${filteredSections[0].zoomConfig?.duration || 5000}ms`
                                 }"
                             >
@@ -881,28 +900,28 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 }
 
 @keyframes section-zoom-in {
-    0% { transform: scale(1); }
-    100% { transform: scale(var(--zoom-scale, 1.3)); }
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(var(--zoom-translate-x, 0), var(--zoom-translate-y, 0)) scale(var(--zoom-scale, 1.3)); }
 }
 
 @keyframes section-zoom-out {
-    0% { transform: scale(var(--zoom-scale, 1.3)); }
-    100% { transform: scale(1); }
+    0% { transform: translate(var(--zoom-translate-x, 0), var(--zoom-translate-y, 0)) scale(var(--zoom-scale, 1.3)); }
+    100% { transform: translate(0, 0) scale(1); }
 }
 
 /* Smooth reset: zoom in, hold briefly, then smoothly zoom back */
 @keyframes section-zoom-in-reset {
-    0% { transform: scale(1); }
-    45% { transform: scale(var(--zoom-scale, 1.3)); }
-    55% { transform: scale(var(--zoom-scale, 1.3)); }
-    100% { transform: scale(1); }
+    0% { transform: translate(0, 0) scale(1); }
+    45% { transform: translate(var(--zoom-translate-x, 0), var(--zoom-translate-y, 0)) scale(var(--zoom-scale, 1.3)); }
+    55% { transform: translate(var(--zoom-translate-x, 0), var(--zoom-translate-y, 0)) scale(var(--zoom-scale, 1.3)); }
+    100% { transform: translate(0, 0) scale(1); }
 }
 
 /* Smooth reset: zoom out, hold briefly, then smoothly zoom back */
 @keyframes section-zoom-out-reset {
-    0% { transform: scale(var(--zoom-scale, 1.3)); }
-    45% { transform: scale(1); }
-    55% { transform: scale(1); }
-    100% { transform: scale(var(--zoom-scale, 1.3)); }
+    0% { transform: translate(var(--zoom-translate-x, 0), var(--zoom-translate-y, 0)) scale(var(--zoom-scale, 1.3)); }
+    45% { transform: translate(0, 0) scale(1); }
+    55% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(var(--zoom-translate-x, 0), var(--zoom-translate-y, 0)) scale(var(--zoom-scale, 1.3)); }
 }
 </style>
