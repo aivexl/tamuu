@@ -177,18 +177,17 @@ const scaleFactor = computed(() => {
     const isPortrait = windowHeight.value >= windowWidth.value;
     
     if (isPortrait) {
-        // In portrait, we always scale to fit the width perfectly (edge-to-edge)
+        // Fit width perfectly
         return windowWidth.value / CANVAS_WIDTH;
     }
-    
-    // In landscape, we scale to fit the height
+    // Fit height perfectly
     return windowHeight.value / CANVAS_HEIGHT;
 });
 
 const coverHeightComputed = computed(() => {
     if (typeof scaleFactor.value !== 'number') return CANVAS_HEIGHT; 
-    // Height needed to fill the viewport at current scale
-    return windowHeight.value / scaleFactor.value;
+    // This is the height required for section 1 to fill the visible viewport at current scale
+    return Math.max(CANVAS_HEIGHT, windowHeight.value / scaleFactor.value);
 });
 
 const getElementStyle = (el: any, sectionIndex: number) => {
@@ -343,19 +342,17 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 </script>
 
 <template>
-    <div ref="mainViewport" class="h-[100dvh] w-screen flex flex-col items-center overflow-hidden transition-colors duration-500" :style="viewportBackgroundStyle">
+    <div ref="mainViewport" class="h-[100dvh] w-screen overflow-hidden transition-colors duration-500 relative bg-white" :style="viewportBackgroundStyle">
         
         <!-- MAIN SCROLL ENGINE -->
         <div ref="scrollContainer" class="scroll-container w-full h-full" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'" :style="!flowMode ? { height: '100%' } : {}">
                 <div 
-                    class="invitation-parent relative" 
+                    class="invitation-parent absolute top-0 left-1/2" 
                     :style="{ 
                         width: `${CANVAS_WIDTH}px`, 
                         height: flowMode ? 'auto' : `${coverHeightComputed}px`,
-                        transform: `scale(${scaleFactor})`, 
-                        transformOrigin: 'top center',
-                        left: '50%',
-                        marginLeft: `-${(CANVAS_WIDTH * scaleFactor) / 2 / scaleFactor}px`
+                        transform: `translateX(-50%) scale(${scaleFactor})`, 
+                        transformOrigin: 'top center'
                     }"
                 >
                 <!-- Controls -->
