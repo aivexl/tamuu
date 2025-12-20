@@ -11,7 +11,6 @@ import Button from '@/components/ui/Button.vue';
 import { 
     Upload, Image as ImageIcon, Copy, GripVertical, Square,
     Circle, Play, Star, Minus, Heart, Cloud, Leaf, Flower, Sun, Moon,
-    Circle, Play, Star, Minus, Heart, Cloud, Leaf, Flower, Sun, Moon,
     MessageCircle, MessageSquare, Phone, Flag, Shield, Hexagon,
     Award, Bell, Bookmark, Camera, Gift, Music, Umbrella,
     AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignCenterVertical, AlignEndVertical,
