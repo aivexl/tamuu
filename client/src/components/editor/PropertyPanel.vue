@@ -1673,7 +1673,10 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 </div>
                 
                 <!-- Ken Burns Background Effect -->
-                <div v-if="currentSection.backgroundUrl" class="space-y-2 pt-3 border-t border-slate-100">
+                <div class="space-y-2 pt-3 border-t border-slate-100">
+                    <div v-if="!currentSection.backgroundUrl" class="px-2 py-1.5 bg-amber-50 rounded border border-amber-100 text-[9px] text-amber-700 mb-2">
+                        💡 Ken Burns requires a background image.
+                    </div>
                     <div class="flex items-center justify-between">
                         <div>
                             <Label class="text-xs font-bold text-slate-600 flex items-center gap-1.5">
@@ -1713,7 +1716,10 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 </div>
 
                 <!-- Zoom Effect (Section Level) -->
-                <div v-if="currentSection.backgroundUrl" class="space-y-3 pt-3 border-t border-slate-100">
+                <div class="space-y-3 pt-3 border-t border-slate-100">
+                    <div v-if="!currentSection.backgroundUrl" class="px-2 py-1.5 bg-amber-50 rounded border border-amber-100 text-[9px] text-amber-700 mb-2">
+                        💡 Zoom Effect requires a background image.
+                    </div>
                     <div class="flex items-center justify-between">
                         <div>
                             <Label class="text-xs font-bold text-slate-600 flex items-center gap-1.5">
