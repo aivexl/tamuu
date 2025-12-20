@@ -56,7 +56,6 @@ const filteredSections = computed((): (any)[] => {
 
 // State
 const isOpened = ref(false); 
-const isRevealing = ref(false); // Mid-transition state
 const shutterVisible = ref(false);
 const openBtnTriggered = ref(false);
 const flowMode = ref(false); 
@@ -104,8 +103,10 @@ onMounted(async () => {
         });
     }, { threshold: 0.1 });
 
-    // Initialize Lenis
-    if (scrollContainer.value) {
+    // Only use Lenis on desktop for better mobile performance
+    const isMobile = windowWidth.value < 768;
+    
+    if (!isMobile && scrollContainer.value) {
         lenis = new Lenis({
             wrapper: scrollContainer.value,
             content: scrollContainer.value.firstElementChild as HTMLElement,
@@ -135,41 +136,37 @@ onUnmounted(() => {
 });
 
 /**
- * SIMPLE REVEAL - No animations, just switch to Flow Mode
+ * ELEGANT REVEAL - Smooth scroll to Section 2
  */
 const handleOpenInvitation = async () => {
     if (openBtnTriggered.value) return;
     openBtnTriggered.value = true;
     
-    // Step 1: Open state
+    // Step 1: Trigger opening state (button fades out)
     isOpened.value = true; 
     
-    // Step 2: Transition to Flow Mode
+    // Step 2: Brief pause for elegance, then transition
     setTimeout(() => {
         flowMode.value = true;
         
-        nextTick(async () => {
+        nextTick(() => {
+            const scrollOffset = coverHeightComputed.value * scaleFactor.value;
+            
+            // Use native smooth scroll for elegant transition
             if (scrollContainer.value) {
-                // Ensure Lenis and DOM know about the new height
-                if (lenis) {
-                    lenis.resize();
-                    lenis.start();
-                }
-
-                const scrollOffset = coverHeightComputed.value * scaleFactor.value;
-                
-                // Jump to Section 2
-                if (lenis) {
-                    lenis.scrollTo(scrollOffset, { immediate: true, force: true });
-                } else {
-                    scrollContainer.value.scrollTop = scrollOffset;
-                }
-
-                // Final sync
-                setTimeout(() => lenis?.resize(), 100);
+                scrollContainer.value.scrollTo({
+                    top: scrollOffset,
+                    behavior: 'smooth'
+                });
+            }
+            
+            // Start Lenis if available (desktop)
+            if (lenis) {
+                lenis.resize();
+                lenis.start();
             }
         });
-    }, 400); 
+    }, 300);
 };
 
 // Dimensions & Scaling
@@ -349,23 +346,29 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 </script>
 
 <template>
-    <div ref="mainViewport" class="h-[100dvh] w-screen overflow-hidden transition-colors duration-500 relative bg-white flex flex-col items-center" :style="viewportBackgroundStyle">
+    <div ref="mainViewport" class="h-[100dvh] w-screen overflow-hidden transition-colors duration-500 relative" :style="viewportBackgroundStyle">
         
         <!-- MAIN SCROLL ENGINE -->
         <div ref="scrollContainer" class="scroll-container w-full h-full" :class="flowMode ? 'overflow-y-auto overflow-x-hidden' : 'overflow-hidden'">
-            <!-- Height Spacer (Essential for scaled scroll) -->
-            <div :style="{ height: flowMode ? `${scaledTotalHeight}px` : '100%', width: '100%' }" class="relative overflow-hidden">
+            <!-- Scaled Content Wrapper (provides correct scroll height) -->
+            <div 
+                class="mx-auto relative"
+                :style="{ 
+                    width: `${CANVAS_WIDTH * scaleFactor}px`,
+                    minHeight: flowMode ? `${scaledTotalHeight}px` : '100%'
+                }"
+            >
                 <div 
-                    class="invitation-parent absolute top-0 left-1/2" 
+                    class="invitation-parent absolute top-0 left-0" 
                     :style="{ 
                         width: `${CANVAS_WIDTH}px`, 
                         height: flowMode ? 'auto' : `${coverHeightComputed}px`,
-                        transform: `translateX(-50%) scale(${scaleFactor})`, 
-                        transformOrigin: 'top center'
+                        transform: `scale(${scaleFactor})`, 
+                        transformOrigin: 'top left'
                     }"
                 >
                 <!-- Controls -->
-                <div v-if="!isFullscreen" class="absolute top-6 left-0 w-full px-6 flex justify-between z-[500] pointer-events-none" :style="{ transform: `scale(${1/scaleFactor})`, transformOrigin: 'top center' }">
+                <div v-if="!isFullscreen" class="absolute top-6 left-0 w-full px-6 flex justify-between z-[500] pointer-events-none" :style="{ transform: `scale(${1/scaleFactor})`, transformOrigin: 'top left' }">
                     <button class="p-4 bg-black/50 text-white rounded-full backdrop-blur-3xl pointer-events-auto border border-white/20 shadow-2xl" @click="goBack"><ArrowLeft class="w-7 h-7" /></button>
                     <button class="p-4 bg-black/50 text-white rounded-full backdrop-blur-3xl pointer-events-auto border border-white/20 shadow-2xl" @click="toggleFullscreen"><Maximize2 class="w-7 h-7" /></button>
                 </div>
@@ -373,7 +376,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                 <!-- 
                     THE UNIFIED ATOMIC CONTAINER
                 -->
-                <div class="relative w-full" :class="!flowMode ? 'overflow-hidden' : ''" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? 'auto' : `${coverHeightComputed}px` }">
+                <div class="relative w-full" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? 'auto' : `${coverHeightComputed}px` }">
                     
                     <!-- NATURAL FLOW MODE (Active after Reveal) -->
                     <div v-if="flowMode" class="flex flex-col w-full relative h-auto">
@@ -381,7 +384,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             v-for="(section, index) in filteredSections" 
                             :key="section.key"
                             :ref="(el) => setSectionRef(el, index)" :data-index="index"
-                            class="relative w-full flex-shrink-0 page-section overflow-hidden"
+                            class="relative w-full flex-shrink-0 page-section"
                             :style="{ 
                                 height: index === 0 ? `${coverHeightComputed}px` : `${CANVAS_HEIGHT}px`,
                                 backgroundColor: section.backgroundColor || 'transparent'
