@@ -360,6 +360,11 @@ export interface TemplateElement {
     openInvitationConfig?: OpenInvitationConfig;
     animationTrigger?: 'scroll' | 'click' | 'open_btn';
     motionPathConfig?: MotionPathConfig;
+
+    // User-editable properties (for dashboard editing)
+    isUserEditable?: boolean;
+    editableLabel?: string;
+    editableType?: 'text' | 'image' | 'maps';
 }
 
 export interface MotionPathConfig {

@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { ref } from "vue";
 import DashboardHeader from "@/components/dashboard/DashboardHeader.vue";
 import InvitationInfoCard from "@/components/dashboard/InvitationInfoCard.vue";
 import IconGridMenu from "@/components/dashboard/IconGridMenu.vue";
 import StatusToggles from "@/components/dashboard/StatusToggles.vue";
-import SectionList from "@/components/dashboard/SectionList.vue";
-import AddSectionButton from "@/components/dashboard/AddSectionButton.vue";
+import TemplateEditArea from "@/components/dashboard/TemplateEditArea.vue";
 import Modal from "@/components/ui/Modal.vue";
 import { useInvitationStore } from "@/stores/invitation";
 
@@ -31,11 +29,7 @@ const handleCloseModal = () => {
 
       <StatusToggles />
 
-      <div class="space-y-3">
-        <h2 class="text-lg font-semibold text-gray-900">Kelola Halaman</h2>
-        <SectionList />
-        <AddSectionButton />
-      </div>
+      <TemplateEditArea />
     </div>
 
     <!-- Panel Modal -->
