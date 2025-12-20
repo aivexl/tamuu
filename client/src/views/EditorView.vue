@@ -296,12 +296,16 @@ const handleElementTransformEnd = async (sectionKey: string, id: string, props: 
 
 const handleSectionZoomUpdate = async (sectionKey: string, updates: any) => {
     const currentZoom = getSectionData(sectionKey).zoomConfig || DEFAULT_ZOOM_CONFIG;
+    
+    // Skip refetch for drag/resize operations (only targetRegion updates) to prevent box reset
+    const isPositionOnlyUpdate = updates.targetRegion && Object.keys(updates).length === 1;
+    
     await store.updateSection(templateId.value, sectionKey, {
         zoomConfig: {
             ...currentZoom,
             ...updates
         }
-    });
+    }, { skipRefetch: isPositionOnlyUpdate });
 };
 </script>
 

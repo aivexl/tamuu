@@ -225,17 +225,22 @@ export const useTemplateStore = defineStore("template", {
         async updateSection(
             templateId: string,
             sectionType: string,
-            updates: Partial<SectionDesign>
+            updates: Partial<SectionDesign>,
+            options: { skipRefetch?: boolean } = {}
         ) {
-            console.log('[Store] updateSection called:', { templateId, sectionType, updates });
+            console.log('[Store] updateSection called:', { templateId, sectionType, updates, options });
 
             const template = this.templates.find((t) => t.id === templateId);
             if (template) {
                 const section = template.sections[sectionType];
                 if (section) {
                     console.log(`[Store] Optimistically updating section ${sectionType}:`, updates);
-                    // Optimistic update
-                    Object.assign(section, updates);
+                    // Optimistic update - deep merge for nested objects like zoomConfig
+                    if (updates.zoomConfig && section.zoomConfig) {
+                        section.zoomConfig = { ...section.zoomConfig, ...updates.zoomConfig };
+                    } else {
+                        Object.assign(section, updates);
+                    }
                 } else {
                     console.warn(`[Store] Section ${sectionType} not found in template ${templateId}`);
                 }
@@ -247,6 +252,12 @@ export const useTemplateStore = defineStore("template", {
                 console.log(`[Store] Sending section update to API: ${sectionType}`, updates);
                 await CloudflareAPI.updateSection(templateId, sectionType, updates);
                 console.log(`[Store] API updateSection SUCCESS for ${sectionType}`);
+
+                // Skip refetch if specified (useful for drag operations where we trust the optimistic update)
+                if (options.skipRefetch) {
+                    console.log(`[Store] Skipping refetch as requested`);
+                    return;
+                }
 
                 // After successful save, refetch with cache bypass to get authoritative DB state
                 const freshTemplate = await CloudflareAPI.getTemplate(templateId, true);
