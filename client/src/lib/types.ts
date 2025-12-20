@@ -331,6 +331,7 @@ export interface GuestWishesConfig {
 export interface TemplateElement {
     id: string;
     type: ElementType;
+    isGif?: boolean; // True if element is an animated GIF (requires HTML rendering)
     name: string;
     position: { x: number; y: number };
     size: { width: number; height: number };

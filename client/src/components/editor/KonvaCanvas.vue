@@ -128,6 +128,16 @@ const sortedElements = computed(() => {
     return [...props.elements].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
 });
 
+// Separate GIF elements for HTML overlay rendering (Konva can't animate GIFs)
+const gifElements = computed(() => {
+    return sortedElements.value.filter(el => el.type === 'image' && el.isGif && el.imageUrl);
+});
+
+// Non-GIF elements for Konva canvas rendering  
+const canvasElements = computed(() => {
+    return sortedElements.value.filter(el => !(el.type === 'image' && el.isGif));
+});
+
 const handleElementDblClick = (element: TemplateElement) => {
     if (element.type === 'text' || element.type === 'button') {
         const currentText = element.openInvitationConfig?.buttonText || element.content || '';
@@ -559,9 +569,9 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
         <!-- Overlay -->
         <v-rect :config="configOverlay" />
 
-        <!-- Elements -->
+        <!-- Elements (excluding GIFs which are rendered as HTML overlay) -->
         <v-group
-          v-for="element in sortedElements"
+          v-for="element in canvasElements"
           :key="element.id"
           :config="{
             x: element.position.x,
@@ -1194,5 +1204,32 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
         />
       </v-layer>
     </v-stage>
+
+    <!-- GIF Overlay - Animated GIFs rendered as HTML (Konva canvas can't animate GIFs) -->
+    <div 
+      v-for="gif in gifElements"
+      :key="'gif-' + gif.id"
+      class="absolute pointer-events-auto cursor-move"
+      :style="{
+        left: (gif.position.x * scale) + 'px',
+        top: (gif.position.y * scale) + 'px',
+        width: (gif.size.width * scale) + 'px',
+        height: (gif.size.height * scale) + 'px',
+        transform: `rotate(${gif.rotation || 0}deg) scaleX(${gif.flipHorizontal ? -1 : 1}) scaleY(${gif.flipVertical ? -1 : 1})`,
+        zIndex: gif.zIndex || 1,
+        opacity: gif.opacity ?? 1,
+        outline: selectedElementId === gif.id ? '2px solid #3b82f6' : 'none',
+        outlineOffset: '2px'
+      }"
+      @mousedown.stop="handleElementClick(gif.id)"
+      @click.stop="handleElementClick(gif.id)"
+    >
+      <img
+        :src="getProxiedImageUrl(gif.imageUrl)"
+        :alt="gif.name"
+        class="w-full h-full object-cover"
+        draggable="false"
+      />
+    </div>
   </div>
 </template>
