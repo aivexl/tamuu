@@ -965,12 +965,12 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
 
             <!-- ============ TYPE-SPECIFIC SETTINGS ============ -->
 
-            <!-- IMAGE SETTINGS -->
-            <div v-if="element.type === 'image'" class="space-y-3 pt-3 border-t">
-                <Label class="text-xs font-semibold text-slate-500 uppercase">Image</Label>
-                <input type="file" ref="fileInputRef" class="hidden" accept="image/*" @change="handleImageUpload" />
+            <!-- IMAGE/GIF SETTINGS -->
+            <div v-if="element.type === 'image' || element.type === 'gif'" class="space-y-3 pt-3 border-t">
+                <Label class="text-xs font-semibold text-slate-500 uppercase">{{ element.type === 'gif' ? 'GIF' : 'Image' }}</Label>
+                <input type="file" ref="fileInputRef" class="hidden" :accept="element.type === 'gif' ? 'image/gif' : 'image/*'" @change="handleImageUpload" />
                 <Button variant="outline" class="w-full justify-center gap-2" @click="triggerImageUpload" :disabled="isUploading">
-                    <Upload class="w-4 h-4" /> {{ isUploading ? 'Uploading...' : 'Upload Image' }}
+                    <Upload class="w-4 h-4" /> {{ isUploading ? 'Uploading...' : element.type === 'gif' ? 'Upload GIF' : 'Upload Image' }}
                 </Button>
                 <Input :model-value="element.imageUrl || ''" @update:model-value="val => handleUpdate({ imageUrl: val })" placeholder="Or paste URL..." />
                 <div>
