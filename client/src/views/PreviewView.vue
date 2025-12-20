@@ -144,13 +144,15 @@ const getZoomClass = (section: any, index: number): Record<string, boolean> => {
 
 // Helper: Calculate zoom transform (scale + translate) from box dimensions
 // The transform should make the virtual box fill the viewport exactly
-const getZoomTransform = (section: any): { scale: number; translateX: number; translateY: number } => {
+const getZoomTransform = (section: any): { scale: number; translateX: number; translateY: number; originX: number; originY: number } => {
     const targetRegion = section.zoomConfig?.targetRegion;
     if (!targetRegion) {
         return { 
             scale: section.zoomConfig?.scale || 1.3, 
             translateX: 0, 
-            translateY: 0 
+            translateY: 0,
+            originX: 50,
+            originY: 50
         };
     }
     
@@ -168,15 +170,17 @@ const getZoomTransform = (section: any): { scale: number; translateX: number; tr
     // Clamp the scale to reasonable values (1.1x to 5x)
     const scale = Math.max(1.1, Math.min(5, calculatedScale));
     
-    // Calculate translate: move the box center to the viewport center (50%, 50%)
-    // After scaling, the box center needs to be at the center of the viewport
-    // translateX = (50 - boxCenterX) * scale (in percentage units)
-    // But since transform-origin is at box center, we need a different approach
-    // Using transform-origin at center (50% 50%) and translating before scale
-    const translateX = (50 - boxCenterX);
-    const translateY = (50 - boxCenterY);
+    // Calculate translate to center the box after scaling
+    // When scaling from center (50%, 50%), a point at (boxX, boxY) moves to:
+    //   newX = 50 + (boxX - 50) * scale
+    //   newY = 50 + (boxY - 50) * scale
+    // To bring it back to center (50%, 50%), we need to translate by:
+    //   translateX = -(boxX - 50) * scale = (50 - boxX) * scale
+    //   translateY = -(boxY - 50) * scale = (50 - boxY) * scale
+    const translateX = (50 - boxCenterX) * scale;
+    const translateY = (50 - boxCenterY) * scale;
     
-    return { scale, translateX, translateY };
+    return { scale, translateX, translateY, originX: 50, originY: 50 };
 };
 
 
