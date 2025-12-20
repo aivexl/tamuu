@@ -152,6 +152,10 @@ export class DatabaseService {
                 transitionEffect: (section.transition_effect as string) || 'none',
                 transitionDuration: (section.transition_duration as number) || 1000,
                 transitionTrigger: (section.transition_trigger as any) || 'scroll',
+                // @ts-ignore - new fields
+                particleType: (section.particle_type as any) || 'none',
+                // @ts-ignore - new fields
+                kenBurnsEnabled: section.ken_burns_enabled === 1,
                 elements: sectionElements.map((el) => this.mapElementToResponse(el)),
             };
         });
