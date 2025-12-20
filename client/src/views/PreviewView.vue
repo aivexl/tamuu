@@ -320,21 +320,27 @@ const getButtonStyle = (el: any) => {
 };
 
 const viewportBackgroundStyle = computed(() => {
-    const s1 = filteredSections.value[0];
-    if (!s1) return { backgroundColor: '#ffffff' };
+    // Portrait: use section 1 background (top of invitation)
+    // Landscape: use last section background (to fill bottom area)
+    const section = isPortrait.value 
+        ? filteredSections.value[0] 
+        : filteredSections.value[filteredSections.value.length - 1];
+    
+    if (!section) return { backgroundColor: '#ffffff' };
     
     const style: any = {
-        backgroundColor: s1.backgroundColor || '#ffffff'
+        backgroundColor: section.backgroundColor || '#ffffff'
     };
 
-    if (s1.backgroundUrl) {
-        style.backgroundImage = `url(${getProxiedImageUrl(s1.backgroundUrl)})`;
+    if (section.backgroundUrl) {
+        style.backgroundImage = `url(${getProxiedImageUrl(section.backgroundUrl)})`;
         style.backgroundSize = 'cover';
         style.backgroundPosition = 'center';
     }
 
     return style;
 });
+
 
 const toggleFullscreen = () => {
     if (!mainViewport.value) return;
