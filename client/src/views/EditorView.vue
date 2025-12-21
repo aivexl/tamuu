@@ -523,7 +523,7 @@ const handleSectionZoomUpdate = async (sectionKey: string, updates: any) => {
                                 'opacity-40 grayscale': section.isVisible === false,
                                 'ken-burns': getSectionData(section.key).kenBurnsEnabled
                             }" 
-                            class="transition-all duration-300 relative overflow-hidden"
+                            class="transition-all duration-300 relative overflow-visible"
                         >
                              <KonvaCanvas 
                                 :section-type="section.key"
