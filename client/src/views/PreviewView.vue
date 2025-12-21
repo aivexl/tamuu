@@ -115,6 +115,9 @@ const handleSectionClick = (index: number, section: any) => {
         if (!clickedSections.value.includes(index)) {
             clickedSections.value.push(index);
             console.log(`[Zoom] Section ${index} added to clickedSections:`, clickedSections.value);
+            
+            // Start multi-point zoom animation explicitly on click
+            startZoomAnimation(index, section);
         }
     }
 };
@@ -278,6 +281,11 @@ const startZoomAnimation = (sectionIndex: number, section: any) => {
     const zoomConfig = section.zoomConfig;
     if (!zoomConfig?.enabled) return;
     
+    // Check trigger: don't start engine until trigger condition is met
+    if (zoomConfig.trigger === 'click' && !clickedSections.value.includes(sectionIndex)) return;
+    if (zoomConfig.trigger === 'open_btn' && !isOpened.value) return;
+    if (zoomConfig.trigger === 'scroll' && !visibleSections.value.includes(sectionIndex)) return;
+
     const points = zoomConfig.points || [];
     if (points.length <= 1) {
         // Single point or legacy - no cycling needed
@@ -285,19 +293,18 @@ const startZoomAnimation = (sectionIndex: number, section: any) => {
         return;
     }
     
-    // Clear any existing timer
+    // START ENHANCEMENT: Clear existing timers and start from Normal state (-1)
+    // to ensure the first point (0) also gets a smooth transition.
     if (zoomAnimationTimers.value[sectionIndex]) {
         clearTimeout(zoomAnimationTimers.value[sectionIndex]);
     }
 
+    // Set to Normal state first
+    currentZoomPointIndex.value[sectionIndex] = -1;
     let currentIndex = 0;
-    currentZoomPointIndex.value[sectionIndex] = currentIndex;
-    
-    const loop = !!zoomConfig.loop; // Default to false
-    
+
     const runNext = () => {
         const currentPoint = points[currentIndex];
-        // Time to stay at THIS point + transition duration
         const stayDuration = currentPoint?.duration || zoomConfig.duration || 3000;
         const transitionDuration = zoomConfig.transitionDuration || 1000;
         const totalPointTime = stayDuration + transitionDuration;
@@ -314,11 +321,9 @@ const startZoomAnimation = (sectionIndex: number, section: any) => {
                     console.log(`[Zoom] Section ${sectionIndex}: looping back to point 0`);
                     runNext();
                 } else if (zoomConfig.behavior === 'reset') {
-                    // Transition back to normal (identity)
                     currentIndex = -1;
                     currentZoomPointIndex.value[sectionIndex] = currentIndex;
                     console.log(`[Zoom] Section ${sectionIndex}: returning to normal`);
-                    // We don't call runNext() because -1 is the end state
                     delete zoomAnimationTimers.value[sectionIndex];
                 } else {
                     delete zoomAnimationTimers.value[sectionIndex];
@@ -333,7 +338,11 @@ const startZoomAnimation = (sectionIndex: number, section: any) => {
         }, totalPointTime) as any;
     };
 
-    runNext();
+    // Delay move to point 0 slightly to ensure the transition from -1 is triggered
+    setTimeout(() => {
+        currentZoomPointIndex.value[sectionIndex] = 0;
+        runNext();
+    }, 50);
 };
 
 // Stop zoom animation when section is no longer visible
@@ -393,17 +402,29 @@ onMounted(async () => {
         });
     }, { threshold: 0.1, root: scrollContainer.value });
     
-    // Auto-trigger Section 0 visibility and zoom animation (it's already in view on mount)
+    // Auto-trigger Section 0 visibility and zoom animation
     setTimeout(() => {
         if (!visibleSections.value.includes(0)) {
             visibleSections.value.push(0);
         }
-        // Start zoom animation for section 0
+        
+        // Start zoom animation for section 0 if trigger is scroll (default)
         const section0 = filteredSections.value[0];
-        if (section0) {
+        if (section0 && (!section0.zoomConfig?.trigger || section0.zoomConfig.trigger === 'scroll')) {
             startZoomAnimation(0, section0);
         }
     }, 100);
+
+    // Watch for isOpened to trigger 'open_btn' zoom animations
+    watch(isOpened, (opened) => {
+        if (opened) {
+            filteredSections.value.forEach((section, index) => {
+                if (section.zoomConfig?.enabled && section.zoomConfig.trigger === 'open_btn') {
+                    startZoomAnimation(index, section);
+                }
+            });
+        }
+    });
 
     // Initialize Lenis
     if (scrollContainer.value) {
