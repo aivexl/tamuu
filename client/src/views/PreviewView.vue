@@ -236,14 +236,17 @@ const getZoomTransform = (section: any, sectionIndex: number): { scale: number; 
     const scale = Math.max(1.1, Math.min(5, calculatedScale));
     
     // Calculate translate to center the box after scaling
-    // When scaling from center (50%, 50%), a point at (boxX, boxY) moves to:
-    //   newX = 50 + (boxX - 50) * scale
-    //   newY = 50 + (boxY - 50) * scale
-    // To bring it back to center (50%, 50%), we need to translate by:
-    //   translateX = -(boxX - 50) * scale = (50 - boxX) * scale
-    //   translateY = -(boxY - 50) * scale = (50 - boxY) * scale
-    const translateX = (50 - boxCenterX) * scale;
-    const translateY = (50 - boxCenterY) * scale;
+    // Since we use transform: scale(S) translate(T), the translation T is applied
+    // in the scaled coordinate system. To move a point P that has been scaled around 50%
+    // back to the center (50%), we need to translate by (50 - P).
+    // Screen position P' = 50 + (P - 50) * S. 
+    // We want P' + T_screen = 50. 
+    // In scaled space, T_screen = T_local * S.
+    // 50 + (P - 50) * S + T_local * S = 50
+    // (P - 50) * S + T_local * S = 0
+    // T_local = 50 - P
+    const translateX = 50 - boxCenterX;
+    const translateY = 50 - boxCenterY;
     
     return { scale, translateX, translateY, originX: 50, originY: 50 };
 };
@@ -270,50 +273,54 @@ const startZoomAnimation = (sectionIndex: number, section: any) => {
         return;
     }
     
-    // Initialize at first point
-    currentZoomPointIndex.value[sectionIndex] = 0;
-    
-    // Get timing config
-    const duration = zoomConfig.duration || 3000; // Time to stay at each point
-    const transitionDuration = zoomConfig.transitionDuration || 1000;
-    const loop = zoomConfig.loop !== false; // Default to loop
-    
-    // Total time per point = stay duration + transition
-    const intervalTime = duration + transitionDuration;
-    
-    console.log(`[Zoom] Starting animation for section ${sectionIndex}: ${points.length} points, interval=${intervalTime}ms, loop=${loop}`);
-    
     // Clear any existing timer
     if (zoomAnimationTimers.value[sectionIndex]) {
-        clearInterval(zoomAnimationTimers.value[sectionIndex]);
+        clearTimeout(zoomAnimationTimers.value[sectionIndex]);
     }
+
+    let currentIndex = 0;
+    currentZoomPointIndex.value[sectionIndex] = currentIndex;
     
-    // Start cycling through points
-    zoomAnimationTimers.value[sectionIndex] = setInterval(() => {
-        const currentIdx = currentZoomPointIndex.value[sectionIndex] ?? 0;
-        const nextIdx = currentIdx + 1;
-        
-        if (nextIdx >= points.length) {
-            if (loop) {
-                currentZoomPointIndex.value[sectionIndex] = 0;
-                console.log(`[Zoom] Section ${sectionIndex}: looping back to point 0`);
+    const loop = !!zoomConfig.loop; // Default to false
+    
+    const runNext = () => {
+        const currentPoint = points[currentIndex];
+        // Time to stay at THIS point + transition duration
+        const stayDuration = currentPoint?.duration || zoomConfig.duration || 3000;
+        const transitionDuration = zoomConfig.transitionDuration || 1000;
+        const totalPointTime = stayDuration + transitionDuration;
+
+        console.log(`[Zoom] Section ${sectionIndex} at point ${currentIndex}, staying for ${stayDuration}ms + ${transitionDuration}ms transition`);
+
+        zoomAnimationTimers.value[sectionIndex] = setTimeout(() => {
+            const nextIdx = currentIndex + 1;
+            
+            if (nextIdx >= points.length) {
+                if (loop) {
+                    currentIndex = 0;
+                    currentZoomPointIndex.value[sectionIndex] = currentIndex;
+                    console.log(`[Zoom] Section ${sectionIndex}: looping back to point 0`);
+                    runNext();
+                } else {
+                    delete zoomAnimationTimers.value[sectionIndex];
+                    console.log(`[Zoom] Section ${sectionIndex}: animation complete`);
+                }
             } else {
-                // Stop at last point if not looping
-                clearInterval(zoomAnimationTimers.value[sectionIndex]);
-                delete zoomAnimationTimers.value[sectionIndex];
-                console.log(`[Zoom] Section ${sectionIndex}: animation complete, stopped at last point`);
+                currentIndex = nextIdx;
+                currentZoomPointIndex.value[sectionIndex] = currentIndex;
+                console.log(`[Zoom] Section ${sectionIndex}: moved to point ${currentIndex}`);
+                runNext();
             }
-        } else {
-            currentZoomPointIndex.value[sectionIndex] = nextIdx;
-            console.log(`[Zoom] Section ${sectionIndex}: moving to point ${nextIdx}`);
-        }
-    }, intervalTime);
+        }, totalPointTime) as any;
+    };
+
+    runNext();
 };
 
 // Stop zoom animation when section is no longer visible
 const stopZoomAnimation = (sectionIndex: number) => {
     if (zoomAnimationTimers.value[sectionIndex]) {
-        clearInterval(zoomAnimationTimers.value[sectionIndex]);
+        clearTimeout(zoomAnimationTimers.value[sectionIndex]);
         delete zoomAnimationTimers.value[sectionIndex];
         console.log(`[Zoom] Stopped animation for section ${sectionIndex}`);
     }
@@ -414,7 +421,7 @@ onUnmounted(() => {
     
     // Clean up all zoom animation timers
     Object.keys(zoomAnimationTimers.value).forEach(key => {
-        clearInterval(zoomAnimationTimers.value[parseInt(key)]);
+        clearTimeout(zoomAnimationTimers.value[parseInt(key)]);
     });
     zoomAnimationTimers.value = {};
 });
