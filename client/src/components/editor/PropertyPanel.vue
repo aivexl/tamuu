@@ -242,12 +242,12 @@ const updateLottieConfig = (updates: Partial<{ url: string; loop: boolean; autop
 };
 
 // Section update handler - updates local state AND persists to DB
-const handleSectionUpdate = async (updates: Partial<SectionDesign>) => {
+const handleSectionUpdate = async (updates: Partial<SectionDesign>, options: { skipRefetch?: boolean } = {}) => {
     if (!props.activeSectionType || !store.activeTemplateId) return;
     
-    console.log('[PropertyPanel] Updating section:', updates);
+    console.log('[PropertyPanel] Updating section:', updates, 'options:', options);
     try {
-        await store.updateSection(store.activeTemplateId, props.activeSectionType, updates);
+        await store.updateSection(store.activeTemplateId, props.activeSectionType, updates, options);
         console.log('[PropertyPanel] Update successful');
         toast({
             title: "Tersimpan",
@@ -439,23 +439,31 @@ const generateZoomPointId = () => `zp-${Date.now()}-${Math.floor(Math.random() *
 
 // Add a new zoom point
 const addZoomPoint = () => {
-    if (!currentSection.value?.zoomConfig) return;
+    if (!currentSection.value?.zoomConfig) {
+        console.warn('[PropertyPanel] No zoomConfig found, cannot add point');
+        return;
+    }
     
-    const points = [...(currentSection.value.zoomConfig.points || [])];
+    const currentPoints = currentSection.value.zoomConfig.points || [];
+    console.log('[PropertyPanel] Current points before add:', currentPoints.length, currentPoints);
+    
     const newPoint = {
         id: generateZoomPointId(),
-        label: `Point ${points.length + 1}`,
+        label: `Point ${currentPoints.length + 1}`,
         targetRegion: { x: 50, y: 50, width: 50, height: 50 },
     };
-    points.push(newPoint);
+    
+    // Create new array with spread plus new point
+    const newPoints = [...currentPoints, newPoint];
+    console.log('[PropertyPanel] New points after add:', newPoints.length, newPoints);
     
     handleSectionUpdate({ 
         zoomConfig: { 
             ...currentSection.value.zoomConfig, 
-            points, 
-            selectedPointIndex: points.length - 1 
+            points: newPoints, 
+            selectedPointIndex: newPoints.length - 1 
         } 
-    });
+    }, { skipRefetch: true });
 };
 
 // Remove a zoom point by index
@@ -479,7 +487,7 @@ const removeZoomPoint = (index: number) => {
             points, 
             selectedPointIndex: newIndex 
         } 
-    });
+    }, { skipRefetch: true });
 };
 
 // Select a zoom point by index
@@ -491,7 +499,7 @@ const selectZoomPoint = (index: number) => {
             ...currentSection.value.zoomConfig, 
             selectedPointIndex: index 
         } 
-    });
+    }, { skipRefetch: true });
 };
 
 // Update zoom point label
@@ -508,7 +516,7 @@ const updateZoomPointLabel = (index: number, label: string) => {
             ...currentSection.value.zoomConfig, 
             points 
         } 
-    });
+    }, { skipRefetch: true });
 };
 
 // Get selected point X coordinate
