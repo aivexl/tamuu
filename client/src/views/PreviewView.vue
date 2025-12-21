@@ -627,7 +627,6 @@ const getButtonStyle = (el: any) => {
         justifyContent: 'center',
         gap: '8px',
         border: 'none',
-        overflow: 'hidden',
         width: '100%',
         height: '100%',
         opacity: el.opacity ?? 1
