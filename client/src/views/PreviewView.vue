@@ -9,6 +9,7 @@ import { iconPaths } from '@/lib/icon-paths';
 import { shapePaths } from '@/lib/shape-paths';
 import { getProxiedImageUrl } from "@/lib/image-utils";
 import ParticleOverlay from '@/components/effects/ParticleOverlay.vue';
+import LottieElement from '@/components/elements/LottieElement.vue';
 
 // Library Imports
 import Lenis from 'lenis';
@@ -665,6 +666,15 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         <div v-else-if="el.type === 'guest_wishes'" class="w-full h-full p-4 bg-white/30 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg h-full overflow-hidden flex flex-col gap-3">
                                             <div v-for="i in 2" :key="i" class="flex flex-col gap-1"><div class="h-3 bg-black/10 rounded w-1/3"></div><div class="h-4 bg-black/5 rounded w-full"></div></div>
                                         </div>
+                                        <LottieElement
+                                            v-else-if="el.type === 'lottie'"
+                                            :animation-url="el.lottieConfig?.url || ''"
+                                            :direction="el.lottieConfig?.direction || 'left'"
+                                            :speed="el.lottieConfig?.speed || 1"
+                                            :loop="el.lottieConfig?.loop !== false"
+                                            :auto-play="el.lottieConfig?.autoplay !== false"
+                                            class="w-full h-full"
+                                        />
                                     </AnimatedElement>
                                 </template>
                             </div>
@@ -758,6 +768,15 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                             <div v-else-if="el.type === 'guest_wishes'" class="w-full h-full p-4 bg-white/30 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg h-full overflow-hidden flex flex-col gap-3">
                                                 <div v-for="i in 2" :key="i" class="flex flex-col gap-1"><div class="h-3 bg-black/10 rounded w-1/3"></div><div class="h-4 bg-black/5 rounded w-full"></div></div>
                                             </div>
+                                            <LottieElement
+                                                v-else-if="el.type === 'lottie'"
+                                                :animation-url="el.lottieConfig?.url || ''"
+                                                :direction="el.lottieConfig?.direction || 'left'"
+                                                :speed="el.lottieConfig?.speed || 1"
+                                                :loop="el.lottieConfig?.loop !== false"
+                                                :auto-play="el.lottieConfig?.autoplay !== false"
+                                                class="w-full h-full"
+                                            />
                                         </AnimatedElement>
                                     </template>
                                 </div>
@@ -841,6 +860,15 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                                    <path :d="shapePaths[el.shapeConfig.shapeType] || el.shapeConfig.pathData || ''" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" stroke-linecap="round" stroke-linejoin="round" />
                                                 </svg>
                                             </div>
+                                            <LottieElement
+                                                v-else-if="el.type === 'lottie'"
+                                                :animation-url="el.lottieConfig?.url || ''"
+                                                :direction="el.lottieConfig?.direction || 'left'"
+                                                :speed="el.lottieConfig?.speed || 1"
+                                                :loop="el.lottieConfig?.loop !== false"
+                                                :auto-play="el.lottieConfig?.autoplay !== false"
+                                                class="w-full h-full"
+                                            />
                                         </AnimatedElement>
                                     </template>
                                 </div>
