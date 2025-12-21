@@ -145,26 +145,24 @@ const getZoomClass = (section: any, index: number): Record<string, boolean> => {
 
 // Helper: Calculate zoom transform (scale + translate) from box dimensions
 // The transform should make the virtual box fill the viewport exactly
-const getZoomTransform = (section: any): { scale: number; translateX: number; translateY: number; originX: number; originY: number } => {
+const getZoomTransform = (section: any, sectionIndex: number): { scale: number; translateX: number; translateY: number; originX: number; originY: number } => {
     const zoomConfig = section.zoomConfig;
     if (!zoomConfig) {
         return { scale: 1.3, translateX: 0, translateY: 0, originX: 50, originY: 50 };
     }
     
-    // Get target region - prefer points array, fallback to legacy targetRegion
+    // Get target region - use animation index for multi-point, fallback to legacy targetRegion
     let targetRegion = null;
     const points = zoomConfig.points || [];
     
     if (points.length > 0) {
-        // Use selectedPointIndex or first point
-        const idx = zoomConfig.selectedPointIndex || 0;
-        const point = points[Math.min(idx, points.length - 1)];
+        // Use current animation point index (cycles through points)
+        const animIdx = currentZoomPointIndex.value[sectionIndex] ?? 0;
+        const point = points[Math.min(animIdx, points.length - 1)];
         targetRegion = point?.targetRegion;
-        console.log('[Zoom] Using points array, index:', idx, 'targetRegion:', targetRegion);
     } else if (zoomConfig.targetRegion) {
         // Fallback to legacy targetRegion
         targetRegion = zoomConfig.targetRegion;
-        console.log('[Zoom] Using legacy targetRegion:', targetRegion);
     }
     
     if (!targetRegion) {
@@ -204,6 +202,77 @@ const getZoomTransform = (section: any): { scale: number; translateX: number; tr
     return { scale, translateX, translateY, originX: 50, originY: 50 };
 };
 
+// ========================================
+// MULTI-POINT ZOOM ANIMATION ENGINE
+// ========================================
+
+// Current zoom point index per section (for sequential animation)
+const currentZoomPointIndex = ref<Record<number, number>>({});
+
+// Active interval timers per section
+const zoomAnimationTimers = ref<Record<number, number>>({});
+
+// Start sequential zoom animation for a section when it becomes visible
+const startZoomAnimation = (sectionIndex: number, section: any) => {
+    const zoomConfig = section.zoomConfig;
+    if (!zoomConfig?.enabled) return;
+    
+    const points = zoomConfig.points || [];
+    if (points.length <= 1) {
+        // Single point or legacy - no cycling needed
+        currentZoomPointIndex.value[sectionIndex] = 0;
+        return;
+    }
+    
+    // Initialize at first point
+    currentZoomPointIndex.value[sectionIndex] = 0;
+    
+    // Get timing config
+    const duration = zoomConfig.duration || 3000; // Time to stay at each point
+    const transitionDuration = zoomConfig.transitionDuration || 1000;
+    const loop = zoomConfig.loop !== false; // Default to loop
+    
+    // Total time per point = stay duration + transition
+    const intervalTime = duration + transitionDuration;
+    
+    console.log(`[Zoom] Starting animation for section ${sectionIndex}: ${points.length} points, interval=${intervalTime}ms, loop=${loop}`);
+    
+    // Clear any existing timer
+    if (zoomAnimationTimers.value[sectionIndex]) {
+        clearInterval(zoomAnimationTimers.value[sectionIndex]);
+    }
+    
+    // Start cycling through points
+    zoomAnimationTimers.value[sectionIndex] = setInterval(() => {
+        const currentIdx = currentZoomPointIndex.value[sectionIndex] ?? 0;
+        const nextIdx = currentIdx + 1;
+        
+        if (nextIdx >= points.length) {
+            if (loop) {
+                currentZoomPointIndex.value[sectionIndex] = 0;
+                console.log(`[Zoom] Section ${sectionIndex}: looping back to point 0`);
+            } else {
+                // Stop at last point if not looping
+                clearInterval(zoomAnimationTimers.value[sectionIndex]);
+                delete zoomAnimationTimers.value[sectionIndex];
+                console.log(`[Zoom] Section ${sectionIndex}: animation complete, stopped at last point`);
+            }
+        } else {
+            currentZoomPointIndex.value[sectionIndex] = nextIdx;
+            console.log(`[Zoom] Section ${sectionIndex}: moving to point ${nextIdx}`);
+        }
+    }, intervalTime);
+};
+
+// Stop zoom animation when section is no longer visible
+const stopZoomAnimation = (sectionIndex: number) => {
+    if (zoomAnimationTimers.value[sectionIndex]) {
+        clearInterval(zoomAnimationTimers.value[sectionIndex]);
+        delete zoomAnimationTimers.value[sectionIndex];
+        console.log(`[Zoom] Stopped animation for section ${sectionIndex}`);
+    }
+};
+
 
 let observer: IntersectionObserver | null = null;
 let lenis: Lenis | null = null;
@@ -241,15 +310,26 @@ onMounted(async () => {
                 // Only add if not already present (for reactivity)
                 if (!visibleSections.value.includes(index)) {
                     visibleSections.value.push(index);
+                    
+                    // Start multi-point zoom animation for this section
+                    const section = filteredSections.value[index];
+                    if (section) {
+                        startZoomAnimation(index, section);
+                    }
                 }
             }
         });
     }, { threshold: 0.1, root: scrollContainer.value });
     
-    // Auto-trigger Section 0 visibility (it's already in view on mount)
+    // Auto-trigger Section 0 visibility and zoom animation (it's already in view on mount)
     setTimeout(() => {
         if (!visibleSections.value.includes(0)) {
             visibleSections.value.push(0);
+        }
+        // Start zoom animation for section 0
+        const section0 = filteredSections.value[0];
+        if (section0) {
+            startZoomAnimation(0, section0);
         }
     }, 100);
 
@@ -285,6 +365,12 @@ onUnmounted(() => {
     window.removeEventListener('resize', updateDimensions);
     window.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    
+    // Clean up all zoom animation timers
+    Object.keys(zoomAnimationTimers.value).forEach(key => {
+        clearInterval(zoomAnimationTimers.value[parseInt(key)]);
+    });
+    zoomAnimationTimers.value = {};
 });
 
 /**
@@ -610,10 +696,11 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 :class="getZoomClass(section, index)"
                                 :style="{ 
                                     transformOrigin: 'center center',
-                                    '--zoom-scale': getZoomTransform(section).scale,
-                                    '--zoom-translate-x': `${getZoomTransform(section).translateX}%`,
-                                    '--zoom-translate-y': `${getZoomTransform(section).translateY}%`,
-                                    '--zoom-duration': `${section.zoomConfig?.duration || 5000}ms`
+                                    '--zoom-scale': getZoomTransform(section, index).scale,
+                                    '--zoom-translate-x': `${getZoomTransform(section, index).translateX}%`,
+                                    '--zoom-translate-y': `${getZoomTransform(section, index).translateY}%`,
+                                    '--zoom-duration': `${section.zoomConfig?.duration || 5000}ms`,
+                                    transition: `transform ${section.zoomConfig?.transitionDuration || 1000}ms ease-in-out`
                                 }"
                             >
                                 <!-- Background Image -->
@@ -717,10 +804,11 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 :class="getZoomClass(filteredSections[1], 1)"
                                 :style="{ 
                                     transformOrigin: 'center center',
-                                    '--zoom-scale': getZoomTransform(filteredSections[1]).scale,
-                                    '--zoom-translate-x': `${getZoomTransform(filteredSections[1]).translateX}%`,
-                                    '--zoom-translate-y': `${getZoomTransform(filteredSections[1]).translateY}%`,
-                                    '--zoom-duration': `${filteredSections[1].zoomConfig?.duration || 5000}ms`
+                                    '--zoom-scale': getZoomTransform(filteredSections[1], 1).scale,
+                                    '--zoom-translate-x': `${getZoomTransform(filteredSections[1], 1).translateX}%`,
+                                    '--zoom-translate-y': `${getZoomTransform(filteredSections[1], 1).translateY}%`,
+                                    '--zoom-duration': `${filteredSections[1].zoomConfig?.duration || 5000}ms`,
+                                    transition: `transform ${filteredSections[1].zoomConfig?.transitionDuration || 1000}ms ease-in-out`
                                 }"
                             >
                                 <!-- Background Image -->
@@ -816,10 +904,11 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                 :class="getZoomClass(filteredSections[0], 0)"
                                 :style="{ 
                                     transformOrigin: 'center center',
-                                    '--zoom-scale': getZoomTransform(filteredSections[0]).scale,
-                                    '--zoom-translate-x': `${getZoomTransform(filteredSections[0]).translateX}%`,
-                                    '--zoom-translate-y': `${getZoomTransform(filteredSections[0]).translateY}%`,
-                                    '--zoom-duration': `${filteredSections[0].zoomConfig?.duration || 5000}ms`
+                                    '--zoom-scale': getZoomTransform(filteredSections[0], 0).scale,
+                                    '--zoom-translate-x': `${getZoomTransform(filteredSections[0], 0).translateX}%`,
+                                    '--zoom-translate-y': `${getZoomTransform(filteredSections[0], 0).translateY}%`,
+                                    '--zoom-duration': `${filteredSections[0].zoomConfig?.duration || 5000}ms`,
+                                    transition: `transform ${filteredSections[0].zoomConfig?.transitionDuration || 1000}ms ease-in-out`
                                 }"
                             >
                                 <!-- Background Image -->
