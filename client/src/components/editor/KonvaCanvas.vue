@@ -318,6 +318,24 @@ const editingPathElement = computed(() => {
     return props.elements.find(el => el.id === store.pathEditingId);
 });
 
+// Reference to the canvas container for extended path editing zone
+const canvasContainer = ref<HTMLDivElement | null>(null);
+
+// Handle clicks on the extended path editing zone (area outside canvas)
+const handleExtendedPathClick = (e: MouseEvent) => {
+    if (!store.pathEditingId || !editingPathElement.value || !canvasContainer.value) return;
+    
+    const rect = canvasContainer.value.getBoundingClientRect();
+    // Calculate position relative to the canvas container, accounting for extended padding
+    const extendedPadding = 200; // matches the CSS padding
+    const x = Math.round((e.clientX - rect.left - extendedPadding) / props.scale);
+    const y = Math.round((e.clientY - rect.top - extendedPadding) / props.scale);
+    
+    const points = [...(editingPathElement.value.motionPathConfig?.points || [])];
+    points.push({ x, y });
+    store.updateMotionPath(store.activeTemplateId!, props.sectionType, editingPathElement.value.id, points);
+};
+
 const handlePathPointDragMove = (e: any, index: number) => {
     if (!editingPathElement.value) return;
     const node = e.target;
@@ -847,7 +865,14 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
 </script>
 
 <template>
-  <div class="relative bg-white shadow-sm">
+  <!-- Extended Path Editing Zone - visible when editing path to allow clicks outside canvas -->
+  <div 
+    ref="canvasContainer"
+    class="relative"
+    :class="{ 'path-edit-zone': store.pathEditingId }"
+    @click.self="handleExtendedPathClick"
+  >
+    <div class="relative bg-white shadow-sm">
     <v-stage 
         ref="stage"
         :config="configStage" 
@@ -1685,5 +1710,39 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
         </template>
         </div>
     </template>
-  </div>
+    </div> <!-- Close inner canvas div -->
+  </div> <!-- Close outer path-edit-zone container -->
 </template>
+
+<style scoped>
+/* Extended path editing zone - adds padding around canvas when editing motion path */
+.path-edit-zone {
+    padding: 200px;
+    margin: -200px;
+    cursor: crosshair;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(99, 102, 241, 0.03) 10px,
+        rgba(99, 102, 241, 0.03) 20px
+    );
+}
+
+.path-edit-zone::before {
+    content: 'Click anywhere to add path points';
+    position: absolute;
+    top: 170px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: #6366f1;
+    background: white;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid #c7d2fe;
+    box-shadow: 0 2px 6px rgba(99, 102, 241, 0.15);
+    white-space: nowrap;
+    z-index: 1000;
+}
+</style>
