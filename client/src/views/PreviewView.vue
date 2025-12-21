@@ -204,6 +204,18 @@ const getZoomTransform = (section: any, sectionIndex: number): { scale: number; 
     if (points.length > 0) {
         // Use current animation point index (cycles through points)
         const animIdx = currentZoomPointIndex.value[sectionIndex] ?? 0;
+        
+        // Special case: -1 means reset to normal (scale 1, translate 0)
+        if (animIdx === -1) {
+            return { 
+                scale: 1, 
+                translateX: 0, 
+                translateY: 0,
+                originX: 50,
+                originY: 50
+            };
+        }
+        
         const point = points[Math.min(animIdx, points.length - 1)];
         targetRegion = point?.targetRegion;
     } else if (zoomConfig.targetRegion) {
@@ -301,9 +313,16 @@ const startZoomAnimation = (sectionIndex: number, section: any) => {
                     currentZoomPointIndex.value[sectionIndex] = currentIndex;
                     console.log(`[Zoom] Section ${sectionIndex}: looping back to point 0`);
                     runNext();
+                } else if (zoomConfig.behavior === 'reset') {
+                    // Transition back to normal (identity)
+                    currentIndex = -1;
+                    currentZoomPointIndex.value[sectionIndex] = currentIndex;
+                    console.log(`[Zoom] Section ${sectionIndex}: returning to normal`);
+                    // We don't call runNext() because -1 is the end state
+                    delete zoomAnimationTimers.value[sectionIndex];
                 } else {
                     delete zoomAnimationTimers.value[sectionIndex];
-                    console.log(`[Zoom] Section ${sectionIndex}: animation complete`);
+                    console.log(`[Zoom] Section ${sectionIndex}: animation complete (stay mode)`);
                 }
             } else {
                 currentIndex = nextIdx;
