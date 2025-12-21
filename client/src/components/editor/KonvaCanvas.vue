@@ -486,33 +486,86 @@ watch(
 
 const ZOOM_TARGET_ID = 'zoom-target-box';
 
-const zoomTargetConfig = computed(() => {
-    if (!props.zoomConfig?.enabled || !props.isActiveSection) return null;
+// Colors for different zoom points (cycle through)
+const ZOOM_POINT_COLORS = [
+    '#6366f1', // indigo
+    '#10b981', // emerald
+    '#f59e0b', // amber
+    '#ec4899', // pink
+    '#8b5cf6', // violet
+    '#14b8a6', // teal
+];
+
+// Generate config for multiple zoom points
+const zoomTargetConfigs = computed(() => {
+    if (!props.zoomConfig?.enabled || !props.isActiveSection) return [];
     
-    const tr = props.zoomConfig.targetRegion || { x: 50, y: 50, width: 50, height: 50 };
+    const points = props.zoomConfig.points || [];
+    const selectedIdx = props.zoomConfig.selectedPointIndex || 0;
     
-    // x,y are center percentages
-    const w = Math.max(20, (tr.width / 100) * CANVAS_WIDTH);
-    const h = Math.max(20, (tr.height / 100) * CANVAS_HEIGHT);
-    const px = (tr.x / 100) * CANVAS_WIDTH - w / 2;
-    const py = (tr.y / 100) * CANVAS_HEIGHT - h / 2;
+    // If no points set, fallback to legacy targetRegion as single point
+    if (points.length === 0 && props.zoomConfig.targetRegion) {
+        const tr = props.zoomConfig.targetRegion;
+        const w = Math.max(20, (tr.width / 100) * CANVAS_WIDTH);
+        const h = Math.max(20, (tr.height / 100) * CANVAS_HEIGHT);
+        const px = (tr.x / 100) * CANVAS_WIDTH - w / 2;
+        const py = (tr.y / 100) * CANVAS_HEIGHT - h / 2;
+        
+        return [{
+            id: `${ZOOM_TARGET_ID}-0`,
+            pointIndex: 0,
+            x: px,
+            y: py,
+            width: w,
+            height: h,
+            draggable: true,
+            stroke: ZOOM_POINT_COLORS[0],
+            strokeWidth: 3,
+            dash: [5, 5],
+            fill: 'rgba(99, 102, 241, 0.08)',
+            name: 'zoom-target',
+            isSelected: true,
+        }];
+    }
     
-    return {
-        id: ZOOM_TARGET_ID,
-        x: px,
-        y: py,
-        width: w,
-        height: h,
-        draggable: true,
-        stroke: '#6366f1',
-        strokeWidth: 2,
-        dash: [5, 5],
-        fill: 'rgba(99, 102, 241, 0.05)',
-        name: 'zoom-target'
-    };
+    return points.map((point, idx) => {
+        const tr = point.targetRegion || { x: 50, y: 50, width: 50, height: 50 };
+        const w = Math.max(20, (tr.width / 100) * CANVAS_WIDTH);
+        const h = Math.max(20, (tr.height / 100) * CANVAS_HEIGHT);
+        const px = (tr.x / 100) * CANVAS_WIDTH - w / 2;
+        const py = (tr.y / 100) * CANVAS_HEIGHT - h / 2;
+        
+        const isSelected = idx === selectedIdx;
+        const color = ZOOM_POINT_COLORS[idx % ZOOM_POINT_COLORS.length];
+        
+        return {
+            id: `${ZOOM_TARGET_ID}-${idx}`,
+            pointIndex: idx,
+            x: px,
+            y: py,
+            width: w,
+            height: h,
+            draggable: true,
+            stroke: color,
+            strokeWidth: isSelected ? 3 : 2,
+            dash: isSelected ? [5, 5] : [3, 3],
+            fill: isSelected ? `${color}15` : `${color}08`,
+            name: 'zoom-target',
+            isSelected,
+        };
+    });
 });
 
-const handleZoomTargetDragEnd = (e: any) => {
+// Keep legacy single config for backward compat (used in transformer watcher)
+const zoomTargetConfig = computed(() => {
+    const configs = zoomTargetConfigs.value;
+    if (configs.length === 0) return null;
+    // Return the selected one for transformer
+    const selected = configs.find(c => c.isSelected);
+    return selected || configs[0];
+});
+
+const handleZoomTargetDragEnd = (e: any, pointIndex: number) => {
     const node = e.target;
     const w = node.width();
     const h = node.height();
@@ -524,11 +577,12 @@ const handleZoomTargetDragEnd = (e: any) => {
     const y = (cy / CANVAS_HEIGHT) * 100;
     
     emit('sectionZoomUpdate', { 
-        targetRegion: { ...props.zoomConfig.targetRegion, x: Math.round(x), y: Math.round(y) } 
+        pointIndex,
+        targetRegion: { x: Math.round(x), y: Math.round(y) } 
     });
 };
 
-const handleZoomTargetTransformEnd = (e: any) => {
+const handleZoomTargetTransformEnd = (e: any, pointIndex: number) => {
     const node = e.target;
     // Get transformed dimensions
     const scaleX = node.scaleX();
@@ -551,6 +605,7 @@ const handleZoomTargetTransformEnd = (e: any) => {
     const ph = (h / CANVAS_HEIGHT) * 100;
     
     emit('sectionZoomUpdate', { 
+        pointIndex,
         targetRegion: { 
             x: Math.round(x), 
             y: Math.round(y), 
@@ -558,6 +613,12 @@ const handleZoomTargetTransformEnd = (e: any) => {
             height: Math.round(ph) 
         } 
     });
+};
+
+const handleZoomTargetClick = (e: any, pointIndex: number) => {
+    e.cancelBubble = true;
+    // Select this point
+    emit('sectionZoomUpdate', { selectedPointIndex: pointIndex });
 };
 
 const handleTransformEnd = () => {
@@ -1585,12 +1646,15 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
             @transformend="handleTransformEnd"
         />
 
-        <!-- Zoom Target Box -->
+        <!-- Zoom Target Boxes (Multiple Points) -->
         <v-rect
-            v-if="zoomTargetConfig"
-            :config="zoomTargetConfig"
-            @dragend="handleZoomTargetDragEnd"
-            @transformend="handleZoomTargetTransformEnd"
+            v-for="boxConfig in zoomTargetConfigs"
+            :key="boxConfig.id"
+            :config="boxConfig"
+            @click="(e: any) => handleZoomTargetClick(e, boxConfig.pointIndex)"
+            @tap="(e: any) => handleZoomTargetClick(e, boxConfig.pointIndex)"
+            @dragend="(e: any) => handleZoomTargetDragEnd(e, boxConfig.pointIndex)"
+            @transformend="(e: any) => handleZoomTargetTransformEnd(e, boxConfig.pointIndex)"
         />
       </v-layer>
     </v-stage>

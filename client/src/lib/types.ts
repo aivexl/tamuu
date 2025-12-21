@@ -300,20 +300,42 @@ export interface CountdownConfig {
     };
 }
 
+// Single zoom target point
+export interface ZoomPoint {
+    id: string;                        // Unique identifier
+    label?: string;                    // Optional label (e.g., "Bride", "Groom")
+    targetRegion: {
+        x: number;                     // Center X (%)
+        y: number;                     // Center Y (%)
+        width: number;                 // Width (%)
+        height: number;                // Height (%)
+    };
+    scale?: number;                    // Optional per-point scale override
+    duration?: number;                 // Optional per-point duration override
+}
+
 export interface ZoomAnimationConfig {
     enabled: boolean;
     direction: 'in' | 'out';           // Zoom in or out
-    scale: number;                     // Target scale (e.g., 1.5 = 150%)
-    duration: number;                  // Animation duration in ms
-    targetRegion: {                    // Virtual box (relative coordinates 0-100%)
-        x: number;                       // Left offset %
-        y: number;                       // Top offset %
-        width: number;                   // Width %
-        height: number;                  // Height %
-    };
-    behavior: 'stay' | 'reset';        // After animation: stay zoomed or reset
+    scale: number;                     // Default scale (e.g., 1.5 = 150%)
+    duration: number;                  // Default animation duration per point in ms
+    behavior: 'stay' | 'reset';        // 'stay' = smooth pan to next, 'reset' = back to normal first
     resetDelay?: number;               // Delay before reset (if behavior = 'reset')
     trigger: 'scroll' | 'click' | 'open_btn';
+
+    // Multi-point support
+    points?: ZoomPoint[];              // Array of zoom targets
+    transitionDuration?: number;       // Time between points in ms (default: 1000)
+    loop?: boolean;                    // Loop back to first point after last
+    selectedPointIndex?: number;       // Currently selected point in editor (UI state)
+
+    // DEPRECATED - kept for backward compatibility (migrated to points array)
+    targetRegion?: {                   // Virtual box (relative coordinates 0-100%)
+        x: number;                     // Center X %
+        y: number;                     // Center Y %
+        width: number;                 // Width %
+        height: number;                // Height %
+    };
 }
 
 export type ElementStyle = 'classic' | 'minimal' | 'modern' | 'elegant' | 'rustic' | 'romantic' | 'bold' | 'vintage' | 'boho' | 'luxury' | 'dark' | 'glass' | 'outline' | 'geometric' | 'floral' | 'pastel' | 'monochrome' | 'neon' | 'brutalist' | 'cloud';

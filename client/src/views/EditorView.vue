@@ -297,7 +297,36 @@ const handleElementTransformEnd = async (sectionKey: string, id: string, props: 
 const handleSectionZoomUpdate = async (sectionKey: string, updates: any) => {
     const currentZoom = getSectionData(sectionKey).zoomConfig || DEFAULT_ZOOM_CONFIG;
     
-    // Skip refetch for drag/resize operations (only targetRegion updates) to prevent box reset
+    // Handle pointIndex - update specific point in points array
+    if (typeof updates.pointIndex === 'number' && updates.targetRegion) {
+        const points = [...(currentZoom.points || [])];
+        const idx = updates.pointIndex;
+        
+        if (idx >= 0 && idx < points.length) {
+            points[idx] = {
+                ...points[idx],
+                targetRegion: {
+                    ...points[idx].targetRegion,
+                    ...updates.targetRegion
+                }
+            };
+            
+            await store.updateSection(templateId.value, sectionKey, {
+                zoomConfig: { ...currentZoom, points }
+            }, { skipRefetch: true });
+        }
+        return;
+    }
+    
+    // Handle selectedPointIndex update (when clicking a zoom box to select it)
+    if (typeof updates.selectedPointIndex === 'number') {
+        await store.updateSection(templateId.value, sectionKey, {
+            zoomConfig: { ...currentZoom, selectedPointIndex: updates.selectedPointIndex }
+        }, { skipRefetch: true });
+        return;
+    }
+    
+    // Legacy: Skip refetch for drag/resize operations (only targetRegion updates) to prevent box reset
     const isPositionOnlyUpdate = updates.targetRegion && Object.keys(updates).length === 1;
     
     await store.updateSection(templateId.value, sectionKey, {

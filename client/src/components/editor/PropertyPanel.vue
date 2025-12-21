@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useTemplateStore } from '@/stores/template';
 import { DEFAULT_ZOOM_CONFIG } from '@/lib/constants';
-import { type TemplateElement, type SectionDesign, type CountdownConfig, type RSVPFormConfig, type IconStyle, type ElementStyle } from '@/lib/types';
+import { type TemplateElement, type SectionDesign, type CountdownConfig, type RSVPFormConfig, type IconStyle, type ElementStyle, type ZoomPoint } from '@/lib/types';
 import { iconPaths } from '@/lib/icon-paths';
 import { uploadFile } from '@/services/cloudflare-api';
 import Input from '@/components/ui/Input.vue';
@@ -13,7 +13,7 @@ import {
     MessageCircle, MessageSquare, Hexagon,
     AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignCenterVertical, AlignEndVertical,
     Trash2, ChevronsUp, ArrowUp, ArrowDown, ChevronsDown,
-    FlipHorizontal2, FlipVertical2
+    FlipHorizontal2, FlipVertical2, Plus
 } from 'lucide-vue-next';
 import ElementPermissionToggles from './ElementPermissionToggles.vue';
 import { useToast } from '@/composables/use-toast';
@@ -430,8 +430,146 @@ const updateRSVPConfig = (updates: Partial<RSVPFormConfig>) => {
     handleUpdate({ rsvpFormConfig: { ...current, ...updates } });
 };
 
+// ============================================
+// ZOOM POINT MANAGEMENT FUNCTIONS
+// ============================================
 
-// Define extended icon lists
+// Generate unique ID for zoom points
+const generateZoomPointId = () => `zp-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+// Add a new zoom point
+const addZoomPoint = () => {
+    if (!currentSection.value?.zoomConfig) return;
+    
+    const points = [...(currentSection.value.zoomConfig.points || [])];
+    const newPoint = {
+        id: generateZoomPointId(),
+        label: `Point ${points.length + 1}`,
+        targetRegion: { x: 50, y: 50, width: 50, height: 50 },
+    };
+    points.push(newPoint);
+    
+    handleSectionUpdate({ 
+        zoomConfig: { 
+            ...currentSection.value.zoomConfig, 
+            points, 
+            selectedPointIndex: points.length - 1 
+        } 
+    });
+};
+
+// Remove a zoom point by index
+const removeZoomPoint = (index: number) => {
+    if (!currentSection.value?.zoomConfig) return;
+    
+    const points = [...(currentSection.value.zoomConfig.points || [])];
+    if (points.length <= 0 || index < 0 || index >= points.length) return;
+    
+    points.splice(index, 1);
+    
+    // Adjust selected index if needed
+    let newIndex = currentSection.value.zoomConfig.selectedPointIndex || 0;
+    if (newIndex >= points.length) {
+        newIndex = Math.max(0, points.length - 1);
+    }
+    
+    handleSectionUpdate({ 
+        zoomConfig: { 
+            ...currentSection.value.zoomConfig, 
+            points, 
+            selectedPointIndex: newIndex 
+        } 
+    });
+};
+
+// Select a zoom point by index
+const selectZoomPoint = (index: number) => {
+    if (!currentSection.value?.zoomConfig) return;
+    
+    handleSectionUpdate({ 
+        zoomConfig: { 
+            ...currentSection.value.zoomConfig, 
+            selectedPointIndex: index 
+        } 
+    });
+};
+
+// Update zoom point label
+const updateZoomPointLabel = (index: number, label: string) => {
+    if (!currentSection.value?.zoomConfig) return;
+    
+    const points = [...(currentSection.value.zoomConfig.points || [])];
+    if (index < 0 || index >= points.length) return;
+    
+    points[index] = { ...points[index], label } as ZoomPoint;
+    
+    handleSectionUpdate({ 
+        zoomConfig: { 
+            ...currentSection.value.zoomConfig, 
+            points 
+        } 
+    });
+};
+
+// Get selected point X coordinate
+const getSelectedPointX = (): number => {
+    if (!currentSection.value?.zoomConfig?.points?.length) return 50;
+    const idx = currentSection.value.zoomConfig.selectedPointIndex || 0;
+    const point = currentSection.value.zoomConfig.points[idx];
+    return point?.targetRegion?.x ?? 50;
+};
+
+// Get selected point Y coordinate  
+const getSelectedPointY = (): number => {
+    if (!currentSection.value?.zoomConfig?.points?.length) return 50;
+    const idx = currentSection.value.zoomConfig.selectedPointIndex || 0;
+    const point = currentSection.value.zoomConfig.points[idx];
+    return point?.targetRegion?.y ?? 50;
+};
+
+// Update selected point X coordinate
+const updateSelectedPointX = (x: number) => {
+    if (!currentSection.value?.zoomConfig?.points?.length) return;
+    
+    const idx = currentSection.value.zoomConfig.selectedPointIndex || 0;
+    const points = [...currentSection.value.zoomConfig.points];
+    
+    if (idx >= 0 && idx < points.length) {
+        points[idx] = {
+            ...points[idx],
+            targetRegion: { ...points[idx].targetRegion!, x }
+        } as ZoomPoint;
+        handleSectionUpdate({ 
+            zoomConfig: { 
+                ...currentSection.value.zoomConfig, 
+                points 
+            } 
+        });
+    }
+};
+
+// Update selected point Y coordinate
+const updateSelectedPointY = (y: number) => {
+    if (!currentSection.value?.zoomConfig?.points?.length) return;
+    
+    const idx = currentSection.value.zoomConfig.selectedPointIndex || 0;
+    const points = [...currentSection.value.zoomConfig.points];
+    
+    if (idx >= 0 && idx < points.length) {
+        points[idx] = {
+            ...points[idx],
+            targetRegion: { ...points[idx].targetRegion!, y }
+        } as ZoomPoint;
+        handleSectionUpdate({ 
+            zoomConfig: { 
+                ...currentSection.value.zoomConfig, 
+                points 
+            } 
+        });
+    }
+};
+
+
 const extendedSocialIcons = [
     'instagram', 'facebook', 'twitter', 'youtube', 'linkedin', 'tiktok', 'whatsapp', 'telegram', 
     'message-circle', 'send', 'share-2', 'globe', 'link', 'external-link', 'mail', 'at-sign',
@@ -1976,42 +2114,130 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                         <div>
                             <div class="flex justify-between items-center text-[10px] mb-1">
                                 <span class="text-slate-400">Duration</span>
-                                <span class="font-medium text-slate-600">{{ currentSection?.zoomConfig?.duration || 5000 }}ms</span>
+                                <span class="font-medium text-slate-600">{{ currentSection?.zoomConfig?.duration || 3000 }}ms</span>
                             </div>
                             <input 
                                 type="range" 
-                                min="2000" 
-                                max="15000" 
+                                min="1000" 
+                                max="10000" 
                                 step="500" 
-                                :value="currentSection?.zoomConfig?.duration || 5000"
+                                :value="currentSection?.zoomConfig?.duration || 3000"
                                 @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), duration: Number(e.target.value) } })"
                                 class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                             />
                         </div>
 
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <span class="text-[10px] text-slate-400">Target X (%)</span>
-                                <input 
-                                    type="number" 
-                                    min="0" max="100"
-                                    :value="currentSection?.zoomConfig?.targetRegion?.x ?? 50"
-                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), targetRegion: { ...(currentSection?.zoomConfig?.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), x: Number(e.target.value) } } })"
-                                    class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
-                                />
+                        <!-- Multi-Point Zoom Section -->
+                        <div class="space-y-2 pt-2 border-t border-slate-100">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-medium text-slate-500">📍 Zoom Points ({{ (currentSection?.zoomConfig?.points || []).length }})</span>
+                                <button 
+                                    @click="addZoomPoint"
+                                    class="flex items-center gap-1 px-2 py-1 text-[10px] bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors"
+                                >
+                                    <Plus class="w-3 h-3" />
+                                    Add Point
+                                </button>
                             </div>
-                            <div>
-                                <span class="text-[10px] text-slate-400">Target Y (%)</span>
-                                <input 
-                                    type="number" 
-                                    min="0" max="100"
-                                    :value="currentSection?.zoomConfig?.targetRegion?.y ?? 50"
-                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), targetRegion: { ...(currentSection?.zoomConfig?.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), y: Number(e.target.value) } } })"
-                                    class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
-                                />
+
+                            <!-- Points List -->
+                            <div v-if="(currentSection?.zoomConfig?.points || []).length > 0" class="space-y-1.5 max-h-48 overflow-y-auto">
+                                <div 
+                                    v-for="(point, idx) in (currentSection?.zoomConfig?.points || [])" 
+                                    :key="point.id"
+                                    class="flex items-center gap-2 p-2 rounded-md border transition-all cursor-pointer"
+                                    :class="idx === (currentSection?.zoomConfig?.selectedPointIndex || 0) 
+                                        ? 'border-indigo-400 bg-indigo-50/50' 
+                                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'"
+                                    @click="selectZoomPoint(idx)"
+                                >
+                                    <span 
+                                        class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
+                                        :class="idx === (currentSection?.zoomConfig?.selectedPointIndex || 0)
+                                            ? 'bg-indigo-500 text-white'
+                                            : 'bg-slate-200 text-slate-600'"
+                                    >{{ idx + 1 }}</span>
+                                    <input 
+                                        type="text"
+                                        :value="point.label || `Point ${idx + 1}`"
+                                        @input="(e: any) => updateZoomPointLabel(idx, e.target.value)"
+                                        @click.stop
+                                        class="flex-1 text-xs bg-transparent border-none outline-none text-slate-700 placeholder:text-slate-400"
+                                        placeholder="Label..."
+                                    />
+                                    <span class="text-[9px] text-slate-400">({{ point.targetRegion?.x || 50 }}, {{ point.targetRegion?.y || 50 }})</span>
+                                    <button
+                                        @click.stop="removeZoomPoint(idx)"
+                                        class="p-1 hover:bg-red-100 rounded text-slate-400 hover:text-red-500 transition-colors"
+                                    >
+                                        <Trash2 class="w-3 h-3" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div v-else class="text-center py-4 text-slate-400">
+                                <p class="text-xs">No zoom points yet</p>
+                                <p class="text-[10px] mt-1">Click "Add Point" to create one</p>
+                            </div>
+
+                            <!-- Selected Point Coordinates (for reference) -->
+                            <div v-if="(currentSection?.zoomConfig?.points || []).length > 0" class="grid grid-cols-2 gap-2 pt-2">
+                                <div>
+                                    <span class="text-[10px] text-slate-400">Target X (%)</span>
+                                    <input 
+                                        type="number" 
+                                        min="0" max="100"
+                                        :value="getSelectedPointX()"
+                                        @change="(e: any) => updateSelectedPointX(Number(e.target.value))"
+                                        class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
+                                    />
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400">Target Y (%)</span>
+                                    <input 
+                                        type="number" 
+                                        min="0" max="100"
+                                        :value="getSelectedPointY()"
+                                        @change="(e: any) => updateSelectedPointY(Number(e.target.value))"
+                                        class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- Multi-point Options (only show if > 1 point) -->
+                            <div v-if="(currentSection?.zoomConfig?.points || []).length > 1" class="space-y-2 pt-2 border-t border-slate-100">
+                                <div>
+                                    <div class="flex justify-between items-center text-[10px] mb-1">
+                                        <span class="text-slate-400">Transition Time</span>
+                                        <span class="font-medium text-slate-600">{{ currentSection?.zoomConfig?.transitionDuration || 1000 }}ms</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        min="500" 
+                                        max="5000" 
+                                        step="250" 
+                                        :value="currentSection?.zoomConfig?.transitionDuration || 1000"
+                                        @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), transitionDuration: Number(e.target.value) } })"
+                                        class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                                    />
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] text-slate-400">Loop Animation</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            :checked="currentSection?.zoomConfig?.loop || false"
+                                            @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), loop: e.target.checked } })"
+                                            class="sr-only peer"
+                                        >
+                                        <div class="w-7 h-4 bg-slate-200 peer-focus:ring-1 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    </label>
+                                </div>
                             </div>
                         </div>
-                        <p class="text-[9px] text-slate-400 italic">(50, 50) is the center of the background image.</p>
+
+                        <p class="text-[9px] text-slate-400 italic">Drag the virtual box on canvas to set target position.</p>
                     </div>
                 </div>
                 

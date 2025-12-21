@@ -365,20 +365,42 @@ export interface MotionPathConfig {
     enabled?: boolean;
     closed?: boolean; // Whether the path is a closed loop
 }
-export interface ZoomAnimationConfig {
-    enabled: boolean;
-    direction: 'in' | 'out';
-    scale: number;
-    duration: number;
+// Single zoom target point
+export interface ZoomPoint {
+    id: string;
+    label?: string;
     targetRegion: {
         x: number;
         y: number;
         width: number;
         height: number;
     };
+    scale?: number;
+    duration?: number;
+}
+
+export interface ZoomAnimationConfig {
+    enabled: boolean;
+    direction: 'in' | 'out';
+    scale: number;
+    duration: number;
     behavior: 'stay' | 'reset';
     resetDelay?: number;
     trigger: 'scroll' | 'click' | 'open_btn';
+
+    // Multi-point support
+    points?: ZoomPoint[];
+    transitionDuration?: number;
+    loop?: boolean;
+    selectedPointIndex?: number;
+
+    // DEPRECATED - backward compat
+    targetRegion?: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    };
 }
 
 export interface LottieConfig {
