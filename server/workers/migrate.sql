@@ -33,3 +33,6 @@ ALTER TABLE template_sections ADD COLUMN zoom_config TEXT;
 
 -- Elements-Level (Legacy/Cleanup - column may exist but is no longer used)
 ALTER TABLE template_elements ADD COLUMN zoom_config TEXT;
+
+-- Lottie Animation Configuration (for generic Lottie elements)
+ALTER TABLE template_elements ADD COLUMN lottie_config TEXT;

@@ -110,6 +110,7 @@ export interface DBTemplateElement {
     can_edit_content: number;
     is_content_protected: number;
     show_copy_button: number;
+    lottie_config: string | null; // JSON string (LottieConfig)
     created_at: string;
     updated_at: string;
 }
@@ -216,6 +217,7 @@ export interface TemplateElement {
     canEditContent?: boolean;
     isContentProtected?: boolean;
     showCopyButton?: boolean;
+    lottieConfig?: LottieConfig;
 }
 
 export interface CustomSection {
@@ -375,4 +377,12 @@ export interface ZoomAnimationConfig {
     behavior: 'stay' | 'reset';
     resetDelay?: number;
     trigger: 'scroll' | 'click' | 'open_btn';
+}
+
+export interface LottieConfig {
+    url: string;              // Lottie animation URL (.json or .lottie)
+    loop?: boolean;           // Default: true
+    autoplay?: boolean;       // Default: true
+    speed?: number;           // Playback speed (0.5 - 2), default: 1
+    direction?: 'left' | 'right'; // For flipping animation horizontally
 }

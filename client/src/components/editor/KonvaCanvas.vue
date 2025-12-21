@@ -155,13 +155,13 @@ const mapsElements = computed(() => {
 
 // All creature elements for HTML overlay rendering (Lottie + SVG animations)
 const creatureElements = computed(() => {
-    const creatureTypes = ['flying_bird', 'lottie_bird', 'lottie_butterfly', 'svg_bird', 'svg_butterfly'];
+    const creatureTypes = ['flying_bird', 'lottie_bird', 'lottie_butterfly', 'svg_bird', 'svg_butterfly', 'lottie'];
     return sortedElements.value.filter(el => creatureTypes.includes(el.type));
 });
 
 // Non-overlay elements for Konva canvas rendering  
 const canvasElements = computed(() => {
-    const overlayTypes = ['gif', 'maps_point', 'flying_bird', 'lottie_bird', 'lottie_butterfly', 'svg_bird', 'svg_butterfly'];
+    const overlayTypes = ['gif', 'maps_point', 'flying_bird', 'lottie_bird', 'lottie_butterfly', 'svg_bird', 'svg_butterfly', 'lottie'];
     return sortedElements.value.filter(el => !overlayTypes.includes(el.type));
 });
 
@@ -1640,6 +1640,17 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
             :color="overlayEl.flyingBirdConfig?.birdColor || '#1a1a1a'"
             :direction="overlayEl.flyingBirdConfig?.direction || 'left'"
             :flap-speed="overlayEl.flyingBirdConfig?.flapSpeed || 0.5"
+            class="w-full h-full cursor-move"
+        />
+
+        <!-- Generic Lottie Animation -->
+        <LottieElement
+            v-if="overlayEl.type === 'lottie'"
+            :animation-url="overlayEl.lottieConfig?.url || ''"
+            :direction="overlayEl.lottieConfig?.direction || 'left'"
+            :speed="overlayEl.lottieConfig?.speed || 1"
+            :loop="overlayEl.lottieConfig?.loop !== false"
+            :auto-play="overlayEl.lottieConfig?.autoplay !== false"
             class="w-full h-full cursor-move"
         />
         

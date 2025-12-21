@@ -1071,6 +1071,93 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 </div>
             </div>
 
+            <!-- LOTTIE ANIMATION SETTINGS -->
+            <div v-if="element.type === 'lottie'" class="space-y-4 pt-4 border-t border-purple-100">
+                <div class="flex items-center justify-between">
+                    <Label class="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Lottie Animation</Label>
+                    <span class="text-[10px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full font-medium">✨ Animated</span>
+                </div>
+                
+                <!-- Lottie URL Input -->
+                <div class="space-y-2">
+                    <Label class="text-xs text-slate-500">Animation URL</Label>
+                    <Input 
+                        :model-value="element.lottieConfig?.url || ''" 
+                        @update:model-value="val => handleUpdate({ lottieConfig: { ...element.lottieConfig, url: val } })" 
+                        placeholder="Paste Lottie URL (.json or .lottie)"
+                        class="text-xs"
+                    />
+                    <p class="text-[10px] text-slate-400 leading-relaxed">
+                        Get free animations from <a href="https://lottiefiles.com" target="_blank" class="text-purple-500 hover:underline font-medium">LottieFiles.com</a>
+                    </p>
+                </div>
+
+                <!-- Speed Slider -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <Label class="text-xs text-slate-500">Speed</Label>
+                        <span class="text-[10px] font-mono text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">{{ element.lottieConfig?.speed || 1 }}x</span>
+                    </div>
+                    <input 
+                        type="range" 
+                        min="0.25" 
+                        max="3" 
+                        step="0.25" 
+                        :value="element.lottieConfig?.speed || 1"
+                        @input="(e: any) => handleUpdate({ lottieConfig: { ...element.lottieConfig, speed: Number(e.target.value) } })"
+                        class="w-full h-2 bg-gradient-to-r from-purple-100 to-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                    />
+                    <div class="flex justify-between text-[9px] text-slate-400">
+                        <span>0.25x (Slow)</span>
+                        <span>1x</span>
+                        <span>3x (Fast)</span>
+                    </div>
+                </div>
+
+                <!-- Loop Toggle -->
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div>
+                        <Label class="text-xs text-slate-700 font-medium">Loop Animation</Label>
+                        <p class="text-[10px] text-slate-400">Repeat animation continuously</p>
+                    </div>
+                    <button
+                        class="w-10 h-5 rounded-full transition-colors relative"
+                        :class="element.lottieConfig?.loop !== false ? 'bg-purple-500' : 'bg-slate-300'"
+                        @click="handleUpdate({ lottieConfig: { ...element.lottieConfig, loop: element.lottieConfig?.loop === false ? true : false } })"
+                    >
+                        <span 
+                            class="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
+                            :class="element.lottieConfig?.loop !== false ? 'translate-x-5' : 'translate-x-0.5'"
+                        ></span>
+                    </button>
+                </div>
+
+                <!-- Direction Toggle -->
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div>
+                        <Label class="text-xs text-slate-700 font-medium">Flip Horizontal</Label>
+                        <p class="text-[10px] text-slate-400">Mirror the animation</p>
+                    </div>
+                    <button
+                        class="w-10 h-5 rounded-full transition-colors relative"
+                        :class="element.lottieConfig?.direction === 'right' ? 'bg-purple-500' : 'bg-slate-300'"
+                        @click="handleUpdate({ lottieConfig: { ...element.lottieConfig, direction: element.lottieConfig?.direction === 'right' ? 'left' : 'right' } })"
+                    >
+                        <span 
+                            class="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
+                            :class="element.lottieConfig?.direction === 'right' ? 'translate-x-5' : 'translate-x-0.5'"
+                        ></span>
+                    </button>
+                </div>
+
+                <!-- Preview Hint -->
+                <div v-if="!element.lottieConfig?.url" class="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 text-center">
+                    <span class="text-2xl">🎬</span>
+                    <p class="text-xs text-purple-600 font-medium mt-2">Paste a Lottie URL above to preview</p>
+                    <p class="text-[10px] text-purple-400 mt-1">Supports .json and .lottie formats</p>
+                </div>
+            </div>
+
             <!-- SHAPE SETTINGS -->
             <div v-if="element.type === 'shape'" class="space-y-4 pt-4 border-t border-slate-100">
                 <div class="flex items-center justify-between mb-1">

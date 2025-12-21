@@ -2,7 +2,7 @@
 import { useTemplateStore } from '@/stores/template';
 import { type TemplateElement, type ElementType } from '@/lib/types';
 import Button from '@/components/ui/Button.vue';
-import { Type, Image as ImageIcon, Clock, MessageSquare, MailOpen, Users, Heart, Square, Film, MapPin, Bird, Feather } from 'lucide-vue-next';
+import { Type, Image as ImageIcon, Clock, MessageSquare, MailOpen, Users, Heart, Square, Film, MapPin } from 'lucide-vue-next';
 
 interface Props {
   activeSection: string;
@@ -302,6 +302,21 @@ const handleAddElement = async (type: ElementType) => {
                 id: newId
             };
             break;
+        case 'lottie':
+            newElement = {
+                ...newElement,
+                name: 'Lottie Animation',
+                lottieConfig: {
+                    url: '',
+                    loop: true,
+                    autoplay: true,
+                    speed: 1,
+                    direction: 'left'
+                },
+                size: { width: 150, height: 150 },
+                id: newId
+            };
+            break;
     }
 
     await store.addElement(store.activeTemplateId, props.activeSection, newElement);
@@ -406,45 +421,21 @@ const handleAddElement = async (type: ElementType) => {
                 <span class="text-xs">Maps Point</span>
             </Button>
 
-            <!-- Creatures Section -->
+            <!-- Animations Section -->
             <div class="col-span-2 pt-2 border-t border-slate-100">
-                <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Animated Creatures</span>
+                <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Animations</span>
             </div>
 
             <Button 
                 variant="outline" 
-                class="flex flex-col items-center justify-center h-20 gap-2 hover:bg-amber-50 hover:border-amber-200 transition-all"
-                @click="handleAddElement('lottie_bird')"
+                class="flex flex-col items-center justify-center h-20 gap-2 hover:bg-purple-50 hover:border-purple-200 transition-all col-span-2"
+                @click="handleAddElement('lottie')"
             >
-                <Bird class="w-6 h-6 text-amber-600" />
-                <span class="text-xs">Lottie Bird</span>
-            </Button>
-
-            <Button 
-                variant="outline" 
-                class="flex flex-col items-center justify-center h-20 gap-2 hover:bg-pink-50 hover:border-pink-200 transition-all"
-                @click="handleAddElement('lottie_butterfly')"
-            >
-                <Feather class="w-6 h-6 text-pink-500" />
-                <span class="text-xs">Lottie Butterfly</span>
-            </Button>
-
-            <Button 
-                variant="outline" 
-                class="flex flex-col items-center justify-center h-20 gap-2 hover:bg-slate-100 hover:border-slate-300 transition-all"
-                @click="handleAddElement('svg_bird')"
-            >
-                <Bird class="w-6 h-6 text-gray-800" />
-                <span class="text-xs">SVG Bird</span>
-            </Button>
-
-            <Button 
-                variant="outline" 
-                class="flex flex-col items-center justify-center h-20 gap-2 hover:bg-purple-50 hover:border-purple-200 transition-all"
-                @click="handleAddElement('svg_butterfly')"
-            >
-                <Feather class="w-6 h-6 text-purple-500" />
-                <span class="text-xs">SVG Butterfly</span>
+                <div class="relative">
+                    <div class="absolute -inset-1 bg-purple-100 rounded-full animate-pulse opacity-75"></div>
+                    <Film class="w-6 h-6 text-purple-600 relative z-10" />
+                </div>
+                <span class="text-xs">Lottie Animation</span>
             </Button>
         </div>
     </div>

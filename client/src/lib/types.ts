@@ -362,6 +362,14 @@ export interface FlyingBirdConfig {
     creatureType: 'bird' | 'butterfly'; // Type of creature
 }
 
+export interface LottieConfig {
+    url: string;              // Lottie animation URL (.json or .lottie)
+    loop?: boolean;           // Default: true
+    autoplay?: boolean;       // Default: true
+    speed?: number;           // Playback speed (0.5 - 2), default: 1
+    direction?: 'left' | 'right'; // For flipping animation horizontally
+}
+
 export interface TemplateElement {
     id: string;
     type: ElementType;
@@ -405,6 +413,9 @@ export interface TemplateElement {
     // For Maps Point element
     mapsConfig?: MapsPointConfig;
 
+    // Lottie Animation (generic)
+    lottieConfig?: LottieConfig;
+
     // 3D Motion & Effects
     parallaxFactor?: number;         // -1 to 1, where 0 is static, positive = moves with mouse, negative = opposite
 
@@ -424,7 +435,7 @@ export interface MapsPointConfig {
     buttonText?: string;
 }
 
-export type ElementType = 'image' | 'gif' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'rsvp-form' | 'guest_wishes' | 'open_invitation_button' | 'button' | 'shape' | 'maps_point' | 'flying_bird' | 'lottie_bird' | 'lottie_butterfly' | 'svg_bird' | 'svg_butterfly';
+export type ElementType = 'image' | 'gif' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'rsvp-form' | 'guest_wishes' | 'open_invitation_button' | 'button' | 'shape' | 'maps_point' | 'lottie' | 'flying_bird' | 'lottie_bird' | 'lottie_butterfly' | 'svg_bird' | 'svg_butterfly';
 
 export interface MotionPathConfig {
     points: Array<{ x: number, y: number }>;

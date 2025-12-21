@@ -450,9 +450,9 @@ export class DatabaseService {
           rsvp_form_config, guest_wishes_config, open_invitation_config,
           rotation, flip_horizontal, flip_vertical, motion_path_config,
           can_edit_position, can_edit_content, is_content_protected, show_copy_button,
-          created_at, updated_at
+          lottie_config, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
             .bind(
                 id,
@@ -486,6 +486,7 @@ export class DatabaseService {
                 element.canEditContent ? 1 : 0,
                 element.isContentProtected ? 1 : 0,
                 element.showCopyButton ? 1 : 0,
+                element.lottieConfig ? JSON.stringify(element.lottieConfig) : null,
                 now,
                 now
             )
@@ -617,6 +618,12 @@ export class DatabaseService {
         if (updates.showCopyButton !== undefined) {
             sets.push('"show_copy_button" = ?');
             values.push(updates.showCopyButton ? 1 : 0);
+        }
+
+        // Lottie Animation
+        if (updates.lottieConfig !== undefined) {
+            sets.push('"lottie_config" = ?');
+            values.push(updates.lottieConfig ? JSON.stringify(updates.lottieConfig) : null);
         }
 
         // Move "No Updates" check to after all possible property processing
@@ -766,6 +773,9 @@ export class DatabaseService {
             canEditContent: el.can_edit_content === 1,
             isContentProtected: el.is_content_protected === 1,
             showCopyButton: el.show_copy_button === 1,
+
+            // Lottie Animation
+            lottieConfig: safeParseJSON(el.lottie_config, undefined),
         };
     }
 }
