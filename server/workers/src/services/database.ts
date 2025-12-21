@@ -445,14 +445,14 @@ export class DatabaseService {
             .prepare(`
         INSERT INTO template_elements (
           id, section_id, type, name, position_x, position_y, width, height, z_index,
-          animation, loop_animation, animation_delay, animation_speed, animation_duration, animation_trigger,
+          animation, loop_animation, animation_delay, animation_speed, animation_duration, animation_trigger, animation_loop,
           content, image_url, text_style, icon_style, countdown_config,
           rsvp_form_config, guest_wishes_config, open_invitation_config,
           rotation, flip_horizontal, flip_vertical, motion_path_config,
           can_edit_position, can_edit_content, is_content_protected, show_copy_button,
           lottie_config, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
             .bind(
                 id,
@@ -470,6 +470,7 @@ export class DatabaseService {
                 element.animationSpeed ?? 500,
                 element.animationDuration ?? 1000,
                 element.animationTrigger || 'scroll',
+                element.animationLoop ? 1 : 0,
                 element.content || null,
                 element.imageUrl || null,
                 element.textStyle ? JSON.stringify(element.textStyle) : null,
@@ -626,6 +627,12 @@ export class DatabaseService {
             values.push(updates.lottieConfig ? JSON.stringify(updates.lottieConfig) : null);
         }
 
+        // Animation Loop
+        if (updates.animationLoop !== undefined) {
+            sets.push('"animation_loop" = ?');
+            values.push(updates.animationLoop ? 1 : 0);
+        }
+
         // Move "No Updates" check to after all possible property processing
         if (sets.length === 1 && sets[0] === 'updated_at = ?') return;
 
@@ -754,6 +761,7 @@ export class DatabaseService {
             animationSpeed: el.animation_speed,
             animationDuration: el.animation_duration,
             animationTrigger: (el.animation_trigger || 'scroll') as 'scroll' | 'click' | 'open_btn',
+            animationLoop: el.animation_loop === 1,
             content: el.content || undefined,
             imageUrl: el.image_url || undefined,
             textStyle: safeParseJSON(el.text_style, undefined),

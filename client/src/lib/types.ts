@@ -382,6 +382,7 @@ export interface TemplateElement {
     animationDelay?: number;
     animationSpeed?: number; // ms
     animationDuration?: number; // ms
+    animationLoop?: boolean; // Whether to loop the entrance animation continuously
     zIndex: number;
     locked?: boolean;
     flipHorizontal?: boolean;

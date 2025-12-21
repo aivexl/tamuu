@@ -905,6 +905,24 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 </select>
             </div>
 
+            <!-- Loop Animation Toggle -->
+            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <div>
+                    <Label class="text-xs text-slate-700 font-medium">Loop Animation</Label>
+                    <p class="text-[10px] text-slate-400">Repeat animation continuously</p>
+                </div>
+                <button
+                    class="w-10 h-5 rounded-full transition-colors relative"
+                    :class="element.animationLoop ? 'bg-indigo-500' : 'bg-slate-300'"
+                    @click="handleUpdate({ animationLoop: !element.animationLoop })"
+                >
+                    <span 
+                        class="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
+                        :class="element.animationLoop ? 'translate-x-5' : 'translate-x-0.5'"
+                    ></span>
+                </button>
+            </div>
+
             <!-- Animation Trigger (New Element Level) -->
             <div class="space-y-1">
                 <Label class="text-xs text-slate-500">Animation Trigger</Label>

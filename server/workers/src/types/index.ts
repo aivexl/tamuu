@@ -92,6 +92,7 @@ export interface DBTemplateElement {
     animation_speed: number;
     animation_duration: number;
     animation_trigger: string | null;
+    animation_loop: number; // SQLite boolean - whether to loop the entrance animation
     content: string | null;
     image_url: string | null;
     text_style: string | null; // JSON string
@@ -200,6 +201,7 @@ export interface TemplateElement {
     animationSpeed?: number;
     animationDuration?: number;
     animationTrigger?: 'scroll' | 'click' | 'open_btn';
+    animationLoop?: boolean;
     content?: string;
     imageUrl?: string;
     textStyle?: TextStyle;
