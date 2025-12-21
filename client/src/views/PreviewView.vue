@@ -577,7 +577,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             v-for="(section, index) in filteredSections" 
                             :key="section.key"
                             :ref="(el) => setSectionRef(el, index)" :data-index="index"
-                            class="relative w-full flex-shrink-0 page-section overflow-visible"
+                            class="relative w-full flex-shrink-0 page-section overflow-hidden"
                             :style="{ 
                                 height: index === 0 ? `${coverHeightComputed}px` : `${CANVAS_HEIGHT}px`,
                                 backgroundColor: section.backgroundColor || 'transparent'
@@ -687,7 +687,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                         <!-- BOTTOM LAYER: Section 2 (visible behind Section 1) -->
                         <div 
                             v-if="filteredSections[1]" 
-                            class="absolute inset-0 z-[1] overflow-visible" 
+                            class="absolute inset-0 z-[1] overflow-hidden" 
                             :style="{ backgroundColor: filteredSections[1].backgroundColor || '#ffffff' }"
                             @click="handleSectionClick(1, filteredSections[1])"
                         >
@@ -786,7 +786,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                         <!-- TOP LAYER: Section 1 (Cover) -->
                         <div 
                             v-if="filteredSections[0]" 
-                            class="absolute inset-0 z-[2] atomic-cover-layer overflow-visible" 
+                            class="absolute inset-0 z-[2] atomic-cover-layer overflow-hidden" 
                             :style="{ backgroundColor: filteredSections[0].backgroundColor || '#cccccc' }"
                             @click="handleSectionClick(0, filteredSections[0])"
                         >

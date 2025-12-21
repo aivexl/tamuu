@@ -619,7 +619,7 @@ const parallaxStyle = computed(() => {
     <!-- 1. Entrance Layer -->
     <div :style="entranceStyle" class="relative">
       <!-- 2. Zoom Layer -->
-      <div :style="zoomStyle" class="relative">
+      <div :style="zoomStyle" class="relative overflow-hidden">
         <!-- 3. Path Layer (Float, Fly, Sway) -->
         <div :style="loopStyles.pathStyle" class="relative w-full h-full">
           <!-- 4. Wing Layer (Flap) -->
