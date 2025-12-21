@@ -179,6 +179,55 @@ export async function deleteElement(
 }
 
 // ============================================
+// BATCH UPDATE API (OPTIMIZED - 1 KV DELETE!)
+// ============================================
+
+export interface BatchSectionUpdate {
+    sectionType: string;
+    updates: Partial<SectionDesign>;
+}
+
+export interface BatchElementUpdate {
+    elementId: string;
+    updates: Partial<TemplateElement>;
+}
+
+export interface BatchUpdateResponse {
+    success: boolean;
+    updated: {
+        sections: number;
+        elements: number;
+        total: number;
+    };
+    errors: string[];
+    duration: number;
+}
+
+/**
+ * Batch update multiple sections and elements in a single API call.
+ * This dramatically reduces KV delete operations from N to 1.
+ * 
+ * @param templateId - The template to update
+ * @param sections - Array of section updates
+ * @param elements - Array of element updates
+ * @returns BatchUpdateResponse with counts and any errors
+ */
+export async function batchUpdate(
+    templateId: string,
+    sections: BatchSectionUpdate[],
+    elements: BatchElementUpdate[]
+): Promise<BatchUpdateResponse> {
+    return request<BatchUpdateResponse>('/api/batch-update', {
+        method: 'POST',
+        body: JSON.stringify({
+            templateId,
+            sections,
+            elements
+        })
+    });
+}
+
+// ============================================
 // RSVP API
 // ============================================
 

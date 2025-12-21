@@ -17,6 +17,7 @@ import { elementsRouter } from './routes/elements';
 import { rsvpRouter } from './routes/rsvp';
 import { uploadRouter } from './routes/upload';
 import { authRouter } from './routes/auth';
+import { batchRouter } from './routes/batch';
 
 
 // Create Hono app with environment type
@@ -160,6 +161,7 @@ app.route('/api/elements', elementsRouter);
 app.route('/api/rsvp', rsvpRouter);
 app.route('/api/upload', uploadRouter);
 app.route('/api/auth', authRouter);
+app.route('/api/batch-update', batchRouter);
 
 
 // ============================================

@@ -177,7 +177,8 @@ templatesRouter.post('/', async (c) => {
 
     const template = await db.createTemplate(body);
 
-    // Invalidate cache
+    // Invalidate templates list only on CREATE (when list actually changes)
+    // This is the only place we need to invalidate the list
     await cache.invalidateTemplatesList();
 
     return c.json(template, 201);
@@ -197,12 +198,18 @@ templatesRouter.put('/:id', async (c) => {
 
     await db.updateTemplate(id, body);
 
-    // Invalidate all related caches
+    // Invalidate template cache only (1 delete instead of 3)
+    // Public view has 48h TTL and will refresh when user publishes
     await cache.invalidateTemplate(id);
-    await cache.invalidatePublicView(id); // Also invalidate public view
+
+    // Only invalidate public view if explicitly publishing
+    if (body.status === 'published') {
+        await cache.invalidatePublicView(id);
+    }
 
     return c.json({ success: true });
 });
+
 
 // ============================================
 // DELETE TEMPLATE
@@ -216,9 +223,10 @@ templatesRouter.delete('/:id', async (c) => {
 
     await db.deleteTemplate(id);
 
-    // Invalidate all related caches
+    // Invalidate caches - DELETE truly changes the list, so invalidate it
     await cache.invalidateTemplate(id);
-    await cache.invalidatePublicView(id); // Also invalidate public view
+    await cache.invalidatePublicView(id);
+    await cache.invalidateTemplatesList(); // Only on DELETE, list actually changes
 
     return c.json({ success: true });
 });

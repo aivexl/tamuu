@@ -149,12 +149,14 @@ export class CacheService {
 
     /**
      * Invalidate template cache
+     * OPTIMIZED: No longer auto-invalidates templates list to save KV delete operations
+     * Call invalidateTemplatesList() separately only when truly needed (create/delete template)
      */
     async invalidateTemplate(id: string): Promise<void> {
         try {
             await this.kv.delete(`${CACHE_KEYS.TEMPLATE}${id}`);
-            // Also invalidate templates list
-            await this.invalidateTemplatesList();
+            // NOTE: Removed auto-invalidation of templates list to save delete operations
+            // Templates list has 10-min TTL and will refresh naturally
         } catch (err) {
             console.error('Failed to invalidate template cache:', err);
         }
@@ -329,14 +331,13 @@ export class CacheService {
 
     /**
      * Clear all caches (for development/debugging)
+     * WARNING: DISABLED IN PRODUCTION - This can consume hundreds of delete operations!
+     * Use individual invalidate methods instead.
      */
-    async clearAll(): Promise<void> {
-        try {
-            const list = await this.kv.list();
-            await Promise.all(list.keys.map((key) => this.kv.delete(key.name)));
-        } catch (err) {
-            console.error('Failed to clear all caches:', err);
-        }
+    async clearAll(): Promise<{ skipped: boolean; reason?: string }> {
+        // SAFETY: Disable mass delete to stay within free tier limits
+        console.warn('clearAll() is disabled to prevent exceeding KV delete limits');
+        return { skipped: true, reason: 'Mass delete disabled for free tier optimization' };
     }
 
     /**

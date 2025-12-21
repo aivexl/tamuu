@@ -44,7 +44,7 @@ const handleSave = async () => {
     
     isSaving.value = true;
     try {
-        // Update template name and slug if edited
+        // Update template name if edited
         const updates: any = {};
         if (editableName.value && editableName.value !== currentTemplate.value.name) {
             updates.name = editableName.value;
@@ -55,8 +55,15 @@ const handleSave = async () => {
             await CloudflareAPI.updateTemplate(templateId.value, updates);
         }
         
+        // MANUAL SAVE: Batch save all dirty elements and sections
+        const result = await store.saveAllChanges(templateId.value);
+        
         lastSavedAt.value = new Date();
-        showSaveToast('Template berhasil disimpan!', 'success');
+        if (result.saved > 0) {
+            showSaveToast(`Berhasil menyimpan ${result.saved} perubahan!`, 'success');
+        } else {
+            showSaveToast('Template tersimpan!', 'success');
+        }
     } catch (error) {
         console.error('Save failed:', error);
         showSaveToast('Gagal menyimpan template', 'destructive');
@@ -406,11 +413,21 @@ const handleSectionZoomUpdate = async (sectionKey: string, updates: any) => {
                     <span v-if="isPublishing" class="animate-spin">⏳</span>
                     {{ isPublishing ? 'Processing...' : (isPublished ? 'Unpublish' : 'Publish') }}
                 </Button>
-                <!-- Save Button (Standard) -->
-                <Button variant="ghost" class="flex items-center gap-2 hover:bg-slate-100" @click="handleSave" :disabled="isSaving">
+                <!-- Save Button with Unsaved Changes Indicator -->
+                <Button 
+                    :variant="store.isDirty ? 'primary' : 'ghost'" 
+                    :class="[
+                        'flex items-center gap-2 relative',
+                        store.isDirty ? 'bg-teal-600 text-white hover:bg-teal-700' : 'hover:bg-slate-100'
+                    ]"
+                    @click="handleSave" 
+                    :disabled="isSaving"
+                >
                     <Save v-if="!isSaving" class="w-4 h-4" />
                     <span v-if="isSaving" class="animate-spin">⏳</span>
-                    {{ isSaving ? 'Saving...' : 'Save' }}
+                    {{ isSaving ? 'Saving...' : (store.isDirty ? 'Save*' : 'Save') }}
+                    <!-- Unsaved indicator dot -->
+                    <span v-if="store.isDirty && !isSaving" class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                 </Button>
             </div>
         </header>

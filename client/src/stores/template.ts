@@ -26,6 +26,10 @@ interface State {
     tempIdMap: Map<string, string>; // Maps temp-id -> db-id for race conditions
     pendingUpdates: Map<string, PendingUpdate[]>; // Queue updates for elements with pending temp IDs
     pathEditingId: string | null;
+    // Manual save mode
+    isDirty: boolean;
+    dirtyElements: Set<string>; // Track elements that have been modified locally
+    dirtySections: Set<string>; // Track sections that have been modified locally
 }
 
 export const useTemplateStore = defineStore("template", {
@@ -40,6 +44,10 @@ export const useTemplateStore = defineStore("template", {
         isOnline: navigator.onLine,
         tempIdMap: new Map(),
         pendingUpdates: new Map(),
+        // Manual save mode
+        isDirty: false,
+        dirtyElements: new Set(),
+        dirtySections: new Set(),
     }),
 
     actions: {
@@ -197,7 +205,7 @@ export const useTemplateStore = defineStore("template", {
             sectionType: string,
             elementId: string,
             updates: Partial<TemplateElement>,
-            options: { skipDb?: boolean } = {}
+            options: { skipDb?: boolean; forceSync?: boolean } = {}
         ) {
             console.log('[Store] updateElement called:', { templateId, sectionType, elementId, updates, options });
 
@@ -217,23 +225,25 @@ export const useTemplateStore = defineStore("template", {
                 }
             }
 
-            if (options.skipDb) {
-                console.log('[Store] skipDb=true, not calling API');
+            // MANUAL SAVE MODE: Skip DB by default, mark as dirty
+            // Only sync to DB if forceSync=true (called from saveAllChanges)
+            if (!options.forceSync) {
+                this.isDirty = true;
+                this.dirtyElements.add(`${templateId}:${sectionType}:${targetId}`);
+                console.log('[Store] Element marked dirty, will save on manual save');
                 return;
             }
 
             // ENTERPRISE FIX: Check if this is a temp ID without a real ID mapping yet
-            // This happens when user edits element properties BEFORE createElement API returns
             const isTempId = elementId.startsWith('el-') || elementId.startsWith('temp-');
             const hasMappedRealId = this.tempIdMap.has(elementId);
 
             if (isTempId && !hasMappedRealId) {
-                // Queue the update - it will be flushed when addElement completes
-                console.log(`[Store] QUEUING update for pending element ${elementId} (API hasn't returned real ID yet)`);
+                console.log(`[Store] QUEUING update for pending element ${elementId}`);
                 const queue = this.pendingUpdates.get(elementId) || [];
                 queue.push({ templateId, sectionType, updates });
                 this.pendingUpdates.set(elementId, queue);
-                return; // Don't call API yet - wait for real ID
+                return;
             }
 
             try {
@@ -248,7 +258,7 @@ export const useTemplateStore = defineStore("template", {
             templateId: string,
             sectionType: string,
             updates: Partial<SectionDesign>,
-            options: { skipRefetch?: boolean } = {}
+            options: { skipRefetch?: boolean; forceSync?: boolean } = {}
         ) {
             console.log('[Store] updateSection called:', { templateId, sectionType, updates, options });
 
@@ -270,18 +280,26 @@ export const useTemplateStore = defineStore("template", {
                 console.warn(`[Store] Template ${templateId} not found`);
             }
 
+            // MANUAL SAVE MODE: Skip DB by default, mark as dirty
+            if (!options.forceSync) {
+                this.isDirty = true;
+                this.dirtySections.add(`${templateId}:${sectionType}`);
+                console.log('[Store] Section marked dirty, will save on manual save');
+                return;
+            }
+
             try {
                 console.log(`[Store] Sending section update to API: ${sectionType}`, updates);
                 await CloudflareAPI.updateSection(templateId, sectionType, updates);
                 console.log(`[Store] API updateSection SUCCESS for ${sectionType}`);
 
-                // Skip refetch if specified (useful for drag operations where we trust the optimistic update)
+                // Skip refetch if specified
                 if (options.skipRefetch) {
                     console.log(`[Store] Skipping refetch as requested`);
                     return;
                 }
 
-                // After successful save, refetch with cache bypass to get authoritative DB state
+                // After successful save, refetch with cache bypass
                 const freshTemplate = await CloudflareAPI.getTemplate(templateId, true);
                 if (freshTemplate) {
                     const existing = this.templates.find((t) => t.id === templateId);
@@ -295,6 +313,110 @@ export const useTemplateStore = defineStore("template", {
                 throw error;
             }
         },
+
+        /**
+         * MANUAL SAVE: Batch save all dirty elements and sections
+         * NOW USES BATCH ENDPOINT = 1 KV DELETE ONLY!
+         */
+        async saveAllChanges(templateId: string): Promise<{ success: boolean; saved: number }> {
+            if (!this.isDirty) {
+                console.log('[Store] No changes to save');
+                return { success: true, saved: 0 };
+            }
+
+            console.log('[Store] saveAllChanges called, dirty elements:', this.dirtyElements.size, 'sections:', this.dirtySections.size);
+
+            const template = this.templates.find((t) => t.id === templateId);
+            if (!template) {
+                console.error('[Store] Template not found for saveAllChanges');
+                return { success: false, saved: 0 };
+            }
+
+            // Build batch payload
+            const sectionUpdates: Array<{ sectionType: string; updates: Partial<SectionDesign> }> = [];
+            const elementUpdates: Array<{ elementId: string; updates: Partial<TemplateElement> }> = [];
+
+            // 1. Collect dirty sections
+            for (const key of this.dirtySections) {
+                const parts = key.split(':');
+                const tid = parts[0];
+                const sectionType = parts[1];
+                if (!tid || !sectionType || tid !== templateId) continue;
+
+                const section = template.sections[sectionType];
+                if (!section) continue;
+
+                // Collect section data (excluding elements - they're stored separately)
+                sectionUpdates.push({
+                    sectionType,
+                    updates: {
+                        backgroundColor: section.backgroundColor,
+                        backgroundUrl: section.backgroundUrl,
+                        overlayOpacity: section.overlayOpacity,
+                        textColor: section.textColor,
+                        animation: section.animation,
+                        isVisible: section.isVisible,
+                        zoomConfig: section.zoomConfig,
+                        particleType: section.particleType,
+                        kenBurnsEnabled: section.kenBurnsEnabled,
+                        openInvitationConfig: section.openInvitationConfig,
+                    }
+                });
+            }
+
+            // 2. Collect dirty elements
+            for (const key of this.dirtyElements) {
+                const parts = key.split(':');
+                const tid = parts[0];
+                const sectionType = parts[1];
+                const elementId = parts[2];
+                if (!tid || !sectionType || !elementId || tid !== templateId) continue;
+
+                // Skip temp IDs that haven't been synced yet
+                if (elementId.startsWith('el-') || elementId.startsWith('temp-')) {
+                    console.log(`[Store] Skipping temp element ${elementId}`);
+                    continue;
+                }
+
+                const section = template.sections[sectionType];
+                if (!section) continue;
+
+                const element = section.elements.find((e) => e.id === elementId);
+                if (!element) continue;
+
+                elementUpdates.push({
+                    elementId,
+                    updates: element
+                });
+            }
+
+            // 3. Call batch endpoint (SINGLE API CALL!)
+            try {
+                console.log(`[Store] Calling batch update: ${sectionUpdates.length} sections, ${elementUpdates.length} elements`);
+
+                const result = await CloudflareAPI.batchUpdate(
+                    templateId,
+                    sectionUpdates,
+                    elementUpdates
+                );
+
+                console.log(`[Store] Batch update response:`, result);
+
+                // Clear dirty state on success
+                this.dirtyElements.clear();
+                this.dirtySections.clear();
+                this.isDirty = false;
+
+                return {
+                    success: result.success,
+                    saved: result.updated.total
+                };
+            } catch (error) {
+                console.error('[Store] Batch update failed:', error);
+                return { success: false, saved: 0 };
+            }
+        },
+
 
         // ... (Implement other actions similarly: deleteElement, reorderElements, etc.)
         // For brevity in this turn, I will implement the most critical ones.
