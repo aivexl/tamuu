@@ -6,6 +6,7 @@ export const DEFAULT_ZOOM_POINT = {
     id: '',
     label: '',
     targetRegion: { x: 50, y: 50, width: 50, height: 50 },
+    duration: 3000,
 };
 
 // Default zoom animation configuration

@@ -13,7 +13,7 @@ import {
     MessageCircle, MessageSquare, Hexagon,
     AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignCenterVertical, AlignEndVertical,
     Trash2, ChevronsUp, ArrowUp, ArrowDown, ChevronsDown,
-    FlipHorizontal2, FlipVertical2, Plus
+    FlipHorizontal2, FlipVertical2, Plus, Clock
 } from 'lucide-vue-next';
 import ElementPermissionToggles from './ElementPermissionToggles.vue';
 import { useToast } from '@/composables/use-toast';
@@ -574,6 +574,22 @@ const updateSelectedPointY = (y: number) => {
                 points 
             } 
         });
+    }
+};
+
+// Update zoom point duration
+const updateZoomPointDuration = (idx: number, duration: number) => {
+    if (!currentSection.value?.zoomConfig?.points) return;
+    
+    const points = [...currentSection.value.zoomConfig.points];
+    if (idx >= 0 && idx < points.length) {
+        points[idx] = { ...points[idx], duration } as ZoomPoint;
+        handleSectionUpdate({ 
+            zoomConfig: { 
+                ...currentSection.value.zoomConfig, 
+                points 
+            } 
+        }, { skipRefetch: true });
     }
 };
 
@@ -2170,9 +2186,21 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                         :value="point.label || `Point ${idx + 1}`"
                                         @input="(e: any) => updateZoomPointLabel(idx, e.target.value)"
                                         @click.stop
-                                        class="flex-1 text-xs bg-transparent border-none outline-none text-slate-700 placeholder:text-slate-400"
+                                        class="flex-1 text-xs bg-transparent border-none outline-none text-slate-700 placeholder:text-slate-400 font-medium"
                                         placeholder="Label..."
                                     />
+                                    <div class="flex items-center gap-1 bg-slate-100 rounded px-1.5 py-0.5" @click.stop>
+                                        <Clock class="w-2.5 h-2.5 text-slate-400" />
+                                        <input 
+                                            type="number"
+                                            :value="point.duration || currentSection.zoomConfig.duration || 3000"
+                                            @input="(e: any) => updateZoomPointDuration(idx, Number(e.target.value))"
+                                            class="w-10 text-[10px] bg-transparent border-none outline-none text-slate-600 font-bold"
+                                            step="500"
+                                            min="500"
+                                        />
+                                        <span class="text-[8px] text-slate-400">ms</span>
+                                    </div>
                                     <span class="text-[9px] text-slate-400">({{ point.targetRegion?.x || 50 }}, {{ point.targetRegion?.y || 50 }})</span>
                                     <button
                                         @click.stop="removeZoomPoint(idx)"
