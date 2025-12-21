@@ -9,6 +9,12 @@ import * as CloudflareAPI from "@/services/cloudflare-api";
 import { PREDEFINED_SECTION_TYPES } from "@/lib/types";
 
 
+interface PendingUpdate {
+    templateId: string;
+    sectionType: string;
+    updates: Partial<TemplateElement>;
+}
+
 interface State {
     templates: Template[];
     activeTemplateId: string | null;
@@ -18,6 +24,7 @@ interface State {
     error: string | null;
     isOnline: boolean;
     tempIdMap: Map<string, string>; // Maps temp-id -> db-id for race conditions
+    pendingUpdates: Map<string, PendingUpdate[]>; // Queue updates for elements with pending temp IDs
     pathEditingId: string | null;
 }
 
@@ -32,6 +39,7 @@ export const useTemplateStore = defineStore("template", {
         error: null,
         isOnline: navigator.onLine,
         tempIdMap: new Map(),
+        pendingUpdates: new Map(),
     }),
 
     actions: {
@@ -197,7 +205,7 @@ export const useTemplateStore = defineStore("template", {
             const realId = this.tempIdMap.get(elementId) || elementId;
             const targetId = realId;
 
-            // Optimistic update
+            // Optimistic update - always apply locally first
             const template = this.templates.find((t) => t.id === templateId);
             if (template) {
                 const section = template.sections[sectionType];
@@ -212,6 +220,20 @@ export const useTemplateStore = defineStore("template", {
             if (options.skipDb) {
                 console.log('[Store] skipDb=true, not calling API');
                 return;
+            }
+
+            // ENTERPRISE FIX: Check if this is a temp ID without a real ID mapping yet
+            // This happens when user edits element properties BEFORE createElement API returns
+            const isTempId = elementId.startsWith('el-') || elementId.startsWith('temp-');
+            const hasMappedRealId = this.tempIdMap.has(elementId);
+
+            if (isTempId && !hasMappedRealId) {
+                // Queue the update - it will be flushed when addElement completes
+                console.log(`[Store] QUEUING update for pending element ${elementId} (API hasn't returned real ID yet)`);
+                const queue = this.pendingUpdates.get(elementId) || [];
+                queue.push({ templateId, sectionType, updates });
+                this.pendingUpdates.set(elementId, queue);
+                return; // Don't call API yet - wait for real ID
             }
 
             try {
@@ -279,6 +301,8 @@ export const useTemplateStore = defineStore("template", {
 
         async addElement(templateId: string, sectionType: string, element: TemplateElement) {
             const tempId = element.id;
+            console.log(`[Store] addElement called with tempId: ${tempId}`);
+
             // Optimistic add
             const template = this.templates.find((t) => t.id === templateId);
             if (template) {
@@ -290,26 +314,53 @@ export const useTemplateStore = defineStore("template", {
 
             try {
                 const createdElement = await CloudflareAPI.createElement(templateId, sectionType, element);
+                const realId = createdElement.id;
+                console.log(`[Store] createElement returned realId: ${realId} for tempId: ${tempId}`);
 
                 // Update mapping for race conditions
-                this.tempIdMap.set(tempId, createdElement.id);
+                this.tempIdMap.set(tempId, realId);
 
-                // Sync ID
+                // Sync ID in store
                 const t = this.templates.find((t) => t.id === templateId);
                 if (t) {
                     const s = t.sections[sectionType];
                     if (s) {
                         const el = s.elements.find((e) => e.id === tempId);
                         if (el) {
-                            el.id = createdElement.id;
+                            el.id = realId;
                         }
                     }
                 }
                 if (this.selectedElementId === tempId) {
-                    this.selectedElementId = createdElement.id;
+                    this.selectedElementId = realId;
+                }
+
+                // ENTERPRISE FIX: Flush any pending updates that were queued while waiting for real ID
+                const pendingQueue = this.pendingUpdates.get(tempId);
+                if (pendingQueue && pendingQueue.length > 0) {
+                    console.log(`[Store] FLUSHING ${pendingQueue.length} pending updates for ${tempId} -> ${realId}`);
+
+                    // Merge all pending updates into one to minimize API calls
+                    const mergedUpdates: Partial<TemplateElement> = {};
+                    for (const pending of pendingQueue) {
+                        Object.assign(mergedUpdates, pending.updates);
+                    }
+
+                    console.log(`[Store] Merged pending updates:`, mergedUpdates);
+
+                    // Send merged update to API with real ID
+                    try {
+                        await CloudflareAPI.updateElement(realId, mergedUpdates, templateId);
+                        console.log(`[Store] Successfully flushed pending updates for ${realId}`);
+                    } catch (error) {
+                        console.error(`[Store] Failed to flush pending updates for ${realId}:`, error);
+                    }
+
+                    // Clear the queue
+                    this.pendingUpdates.delete(tempId);
                 }
             } catch (error) {
-                console.error(error);
+                console.error("[Store] Failed to create element:", error);
             }
         },
 
