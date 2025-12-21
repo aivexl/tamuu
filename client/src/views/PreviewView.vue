@@ -294,7 +294,6 @@ const startZoomAnimation = (sectionIndex: number, section: any) => {
     }
     
     // START ENHANCEMENT: Clear existing timers and start from Normal state (-1)
-    // to ensure the first point (0) also gets a smooth transition.
     if (zoomAnimationTimers.value[sectionIndex]) {
         clearTimeout(zoomAnimationTimers.value[sectionIndex]);
     }
@@ -304,12 +303,17 @@ const startZoomAnimation = (sectionIndex: number, section: any) => {
     let currentIndex = 0;
 
     const runNext = () => {
+        if (currentIndex < 0 || currentIndex >= points.length) {
+            delete zoomAnimationTimers.value[sectionIndex];
+            return;
+        }
+
         const currentPoint = points[currentIndex];
         const stayDuration = currentPoint?.duration || zoomConfig.duration || 3000;
         const transitionDuration = zoomConfig.transitionDuration || 1000;
         const totalPointTime = stayDuration + transitionDuration;
 
-        console.log(`[Zoom] Section ${sectionIndex} at point ${currentIndex}, staying for ${stayDuration}ms + ${transitionDuration}ms transition`);
+        console.log(`[Zoom] Section ${sectionIndex} at point ${currentIndex} of ${points.length}, staying for ${stayDuration}ms + ${transitionDuration}ms transition`);
 
         zoomAnimationTimers.value[sectionIndex] = setTimeout(() => {
             const nextIdx = currentIndex + 1;
@@ -338,11 +342,11 @@ const startZoomAnimation = (sectionIndex: number, section: any) => {
         }, totalPointTime) as any;
     };
 
-    // Delay move to point 0 slightly to ensure the transition from -1 is triggered
-    setTimeout(() => {
+    // Store the init timer as well to prevent overlapping starts
+    zoomAnimationTimers.value[sectionIndex] = setTimeout(() => {
         currentZoomPointIndex.value[sectionIndex] = 0;
         runNext();
-    }, 50);
+    }, 50) as any;
 };
 
 // Stop zoom animation when section is no longer visible
@@ -383,39 +387,37 @@ onMounted(async () => {
         await store.fetchTemplate(templateId.value);
     }
     
-    // Observer for scroll-based animations
-    observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            const index = parseInt((entry.target as HTMLElement).dataset.index || '-1');
-            if (entry.isIntersecting && index !== -1) {
-                // Only add if not already present (for reactivity)
-                if (!visibleSections.value.includes(index)) {
-                    visibleSections.value.push(index);
-                    
-                    // Start multi-point zoom animation for this section
-                    const section = filteredSections.value[index];
-                    if (section) {
-                        startZoomAnimation(index, section);
+    // Watch for template to be fully loaded before starting observer/initial zoom
+    watch(currentTemplate, (template) => {
+        if (!template || observer) return;
+
+        console.log('[Zoom] Template loaded, initializing IntersectionObserver');
+        
+        // Observer for scroll-based animations
+        observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const index = parseInt((entry.target as HTMLElement).dataset.index || '-1');
+                if (entry.isIntersecting && index !== -1) {
+                    if (!visibleSections.value.includes(index)) {
+                        visibleSections.value.push(index);
+                        const section = filteredSections.value[index];
+                        if (section) startZoomAnimation(index, section);
                     }
                 }
-            }
-        });
-    }, { threshold: 0.1, root: scrollContainer.value });
-    
-    // Auto-trigger Section 0 visibility and zoom animation
-    setTimeout(() => {
-        if (!visibleSections.value.includes(0)) {
-            visibleSections.value.push(0);
-        }
-        
-        // Start zoom animation for section 0 if trigger is scroll (default)
-        const section0 = filteredSections.value[0];
-        if (section0 && (!section0.zoomConfig?.trigger || section0.zoomConfig.trigger === 'scroll')) {
-            startZoomAnimation(0, section0);
-        }
-    }, 100);
+            });
+        }, { threshold: 0.1, root: scrollContainer.value });
 
-    // Watch for isOpened to trigger 'open_btn' zoom animations
+        // Auto-trigger Section 0 if needed
+        setTimeout(() => {
+            if (!visibleSections.value.includes(0)) visibleSections.value.push(0);
+            const section0 = filteredSections.value[0];
+            if (section0 && (!section0.zoomConfig?.trigger || section0.zoomConfig.trigger === 'scroll')) {
+                startZoomAnimation(0, section0);
+            }
+        }, 100);
+    }, { immediate: true });
+
+    // Watch for isOpened (other logic unchanged)
     watch(isOpened, (opened) => {
         if (opened) {
             filteredSections.value.forEach((section, index) => {
