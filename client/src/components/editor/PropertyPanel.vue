@@ -226,6 +226,21 @@ const updateIconStyle = (updates: Partial<IconStyle>) => {
     });
 };
 
+// Helper to update lottieConfig with proper defaults
+const updateLottieConfig = (updates: Partial<{ url: string; loop: boolean; autoplay: boolean; speed: number; direction: 'left' | 'right' }>) => {
+    const currentConfig = element.value?.lottieConfig || { url: '', loop: true, autoplay: true, speed: 1, direction: 'left' as const };
+    const newConfig = {
+        url: currentConfig.url ?? '',
+        loop: currentConfig.loop ?? true,
+        autoplay: currentConfig.autoplay ?? true,
+        speed: currentConfig.speed ?? 1,
+        direction: currentConfig.direction ?? 'left',
+        ...updates
+    };
+    console.log('[PropertyPanel] Updating lottieConfig:', newConfig);
+    handleUpdate({ lottieConfig: newConfig });
+};
+
 // Section update handler - updates local state AND persists to DB
 const handleSectionUpdate = async (updates: Partial<SectionDesign>) => {
     if (!props.activeSectionType || !store.activeTemplateId) return;
@@ -1083,7 +1098,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                     <Label class="text-xs text-slate-500">Animation URL</Label>
                     <Input 
                         :model-value="element.lottieConfig?.url || ''" 
-                        @update:model-value="val => handleUpdate({ lottieConfig: { ...element.lottieConfig, url: val } })" 
+                        @update:model-value="val => updateLottieConfig({ url: val })" 
                         placeholder="Paste Lottie URL (.json or .lottie)"
                         class="text-xs"
                     />
@@ -1104,7 +1119,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                         max="3" 
                         step="0.25" 
                         :value="element.lottieConfig?.speed || 1"
-                        @input="(e: any) => handleUpdate({ lottieConfig: { ...element.lottieConfig, speed: Number(e.target.value) } })"
+                        @input="(e: any) => updateLottieConfig({ speed: Number(e.target.value) })"
                         class="w-full h-2 bg-gradient-to-r from-purple-100 to-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
                     />
                     <div class="flex justify-between text-[9px] text-slate-400">
@@ -1123,7 +1138,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                     <button
                         class="w-10 h-5 rounded-full transition-colors relative"
                         :class="element.lottieConfig?.loop !== false ? 'bg-purple-500' : 'bg-slate-300'"
-                        @click="handleUpdate({ lottieConfig: { ...element.lottieConfig, loop: element.lottieConfig?.loop === false ? true : false } })"
+                        @click="updateLottieConfig({ loop: element.lottieConfig?.loop === false ? true : false })"
                     >
                         <span 
                             class="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
@@ -1141,7 +1156,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                     <button
                         class="w-10 h-5 rounded-full transition-colors relative"
                         :class="element.lottieConfig?.direction === 'right' ? 'bg-purple-500' : 'bg-slate-300'"
-                        @click="handleUpdate({ lottieConfig: { ...element.lottieConfig, direction: element.lottieConfig?.direction === 'right' ? 'left' : 'right' } })"
+                        @click="updateLottieConfig({ direction: element.lottieConfig?.direction === 'right' ? 'left' : 'right' })"
                     >
                         <span 
                             class="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
