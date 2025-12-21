@@ -426,9 +426,10 @@ watch(
     const tr = transformer.value.getNode();
     const stageNode = stage.value.getStage();
     
-    // If zoom box is active and no element selected, attach to it
+    // If zoom box is active and no element selected, attach to selected zoom point
     if (!newId && props.isActiveSection && props.zoomConfig?.enabled) {
-        const zoomBoxNode = stageNode.findOne('#zoom-target-box');
+        const selectedIdx = props.zoomConfig.selectedPointIndex || 0;
+        const zoomBoxNode = stageNode.findOne(`#zoom-target-box-${selectedIdx}`);
         if (zoomBoxNode) {
             tr.nodes([zoomBoxNode]);
             tr.moveToTop();
@@ -471,7 +472,8 @@ watch(
         if (!stageNode) return;
 
         if (active && enabled) {
-            const zoomBoxNode = stageNode.findOne('#zoom-target-box');
+            const selectedIdx = props.zoomConfig?.selectedPointIndex || 0;
+            const zoomBoxNode = stageNode.findOne(`#zoom-target-box-${selectedIdx}`);
             if (zoomBoxNode) {
                 tr.nodes([zoomBoxNode]);
                 tr.moveToTop();
@@ -480,6 +482,31 @@ watch(
         } else if (!props.selectedElementId) {
             tr.nodes([]);
             tr.getLayer().batchDraw();
+        }
+    }
+);
+
+// Watch for selectedPointIndex change to switch transformer to different zoom box
+watch(
+    () => props.zoomConfig?.selectedPointIndex,
+    async (newIdx) => {
+        if (!transformer.value || !stage.value) return;
+        if (!props.isActiveSection || !props.zoomConfig?.enabled) return;
+        if (props.selectedElementId) return; // Element selection takes priority
+        
+        await nextTick();
+        const tr = transformer.value?.getNode?.();
+        if (!tr) return;
+        
+        const stageNode = stage.value?.getStage?.();
+        if (!stageNode) return;
+        
+        const idx = newIdx || 0;
+        const zoomBoxNode = stageNode.findOne(`#zoom-target-box-${idx}`);
+        if (zoomBoxNode) {
+            tr.nodes([zoomBoxNode]);
+            tr.moveToTop();
+            tr.getLayer()?.batchDraw();
         }
     }
 );
