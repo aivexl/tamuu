@@ -146,10 +146,30 @@ const getZoomClass = (section: any, index: number): Record<string, boolean> => {
 // Helper: Calculate zoom transform (scale + translate) from box dimensions
 // The transform should make the virtual box fill the viewport exactly
 const getZoomTransform = (section: any): { scale: number; translateX: number; translateY: number; originX: number; originY: number } => {
-    const targetRegion = section.zoomConfig?.targetRegion;
+    const zoomConfig = section.zoomConfig;
+    if (!zoomConfig) {
+        return { scale: 1.3, translateX: 0, translateY: 0, originX: 50, originY: 50 };
+    }
+    
+    // Get target region - prefer points array, fallback to legacy targetRegion
+    let targetRegion = null;
+    const points = zoomConfig.points || [];
+    
+    if (points.length > 0) {
+        // Use selectedPointIndex or first point
+        const idx = zoomConfig.selectedPointIndex || 0;
+        const point = points[Math.min(idx, points.length - 1)];
+        targetRegion = point?.targetRegion;
+        console.log('[Zoom] Using points array, index:', idx, 'targetRegion:', targetRegion);
+    } else if (zoomConfig.targetRegion) {
+        // Fallback to legacy targetRegion
+        targetRegion = zoomConfig.targetRegion;
+        console.log('[Zoom] Using legacy targetRegion:', targetRegion);
+    }
+    
     if (!targetRegion) {
         return { 
-            scale: section.zoomConfig?.scale || 1.3, 
+            scale: zoomConfig.scale || 1.3, 
             translateX: 0, 
             translateY: 0,
             originX: 50,
