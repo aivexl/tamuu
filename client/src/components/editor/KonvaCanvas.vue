@@ -7,6 +7,9 @@ import { iconPaths } from '@/lib/icon-paths';
 import { shapePaths } from '@/lib/shape-paths';
 import { useTemplateStore } from '@/stores/template';
 import MapsPointElement from '@/components/elements/MapsPointElement.vue';
+import LottieElement from '@/components/elements/LottieElement.vue';
+import SvgBird from '@/components/elements/SvgBird.vue';
+import SvgButterfly from '@/components/elements/SvgButterfly.vue';
 
 // Track Shift key for bypassing boundaries
 const isShiftPressed = ref(false);
@@ -150,9 +153,16 @@ const mapsElements = computed(() => {
     return sortedElements.value.filter(el => el.type === 'maps_point');
 });
 
-// Non-GIF and non-Maps elements for Konva canvas rendering  
+// All creature elements for HTML overlay rendering (Lottie + SVG animations)
+const creatureElements = computed(() => {
+    const creatureTypes = ['flying_bird', 'lottie_bird', 'lottie_butterfly', 'svg_bird', 'svg_butterfly'];
+    return sortedElements.value.filter(el => creatureTypes.includes(el.type));
+});
+
+// Non-overlay elements for Konva canvas rendering  
 const canvasElements = computed(() => {
-    return sortedElements.value.filter(el => el.type !== 'gif' && el.type !== 'maps_point');
+    const overlayTypes = ['gif', 'maps_point', 'flying_bird', 'lottie_bird', 'lottie_butterfly', 'svg_bird', 'svg_butterfly'];
+    return sortedElements.value.filter(el => !overlayTypes.includes(el.type));
 });
 
 // GIF drag/resize state
@@ -1560,8 +1570,8 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
       </v-layer>
     </v-stage>
 
-    <!-- GIF & Maps Overlay - Rendered as HTML -->
-    <template v-for="overlayEl in [...gifElements, ...mapsElements]" :key="'overlay-' + overlayEl.id">
+    <!-- GIF, Maps & Creature Overlay - Rendered as HTML -->
+    <template v-for="overlayEl in [...gifElements, ...mapsElements, ...creatureElements]" :key="'overlay-' + overlayEl.id">
         <div 
         class="absolute pointer-events-auto"
         :style="{
@@ -1594,6 +1604,42 @@ const getGuestWishesStyleConfig = (element: TemplateElement) => {
             v-if="overlayEl.type === 'maps_point'"
             :element="overlayEl"
             :is-preview="false"
+            class="w-full h-full cursor-move"
+        />
+
+        <!-- Lottie Bird -->
+        <LottieElement
+            v-if="overlayEl.type === 'lottie_bird'"
+            :animation-url="overlayEl.flyingBirdConfig?.lottieUrl || ''"
+            :direction="overlayEl.flyingBirdConfig?.direction || 'left'"
+            :speed="1"
+            class="w-full h-full cursor-move"
+        />
+
+        <!-- Lottie Butterfly -->
+        <LottieElement
+            v-if="overlayEl.type === 'lottie_butterfly'"
+            :animation-url="overlayEl.flyingBirdConfig?.lottieUrl || ''"
+            :direction="overlayEl.flyingBirdConfig?.direction || 'left'"
+            :speed="1"
+            class="w-full h-full cursor-move"
+        />
+
+        <!-- SVG Bird -->
+        <SvgBird
+            v-if="overlayEl.type === 'svg_bird' || overlayEl.type === 'flying_bird'"
+            :color="overlayEl.flyingBirdConfig?.birdColor || '#1a1a1a'"
+            :direction="overlayEl.flyingBirdConfig?.direction || 'left'"
+            :flap-speed="overlayEl.flyingBirdConfig?.flapSpeed || 0.4"
+            class="w-full h-full cursor-move"
+        />
+
+        <!-- SVG Butterfly -->
+        <SvgButterfly
+            v-if="overlayEl.type === 'svg_butterfly'"
+            :color="overlayEl.flyingBirdConfig?.birdColor || '#1a1a1a'"
+            :direction="overlayEl.flyingBirdConfig?.direction || 'left'"
+            :flap-speed="overlayEl.flyingBirdConfig?.flapSpeed || 0.5"
             class="w-full h-full cursor-move"
         />
         

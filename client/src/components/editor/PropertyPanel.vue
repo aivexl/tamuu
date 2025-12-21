@@ -1437,6 +1437,57 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 </div>
             </div>
 
+            <!-- FLYING BIRD SETTINGS -->
+            <div v-if="element.type === 'flying_bird'" class="space-y-3 pt-3 border-t">
+                <Label class="text-xs font-semibold text-slate-500 uppercase">Flying Bird Settings</Label>
+                
+                <!-- Direction -->
+                <div>
+                    <span class="text-xs text-slate-400">Direction</span>
+                    <select 
+                        class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" 
+                        :value="element.flyingBirdConfig?.direction || 'left'"
+                        @change="(e: any) => handleUpdate({ flyingBirdConfig: { ...element.flyingBirdConfig!, direction: e.target.value } })"
+                    >
+                        <option value="left">← Fly Left</option>
+                        <option value="right">→ Fly Right</option>
+                    </select>
+                </div>
+                
+                <!-- Color -->
+                <div>
+                    <span class="text-xs text-slate-400">Bird Color</span>
+                    <div class="flex gap-2">
+                        <input 
+                            type="color" 
+                            :value="element.flyingBirdConfig?.birdColor || '#1a1a1a'" 
+                            @input="(e: any) => handleUpdate({ flyingBirdConfig: { ...element.flyingBirdConfig!, birdColor: e.target.value } })"
+                            class="w-10 h-10 p-1 rounded border cursor-pointer" 
+                        />
+                        <Input 
+                            :model-value="element.flyingBirdConfig?.birdColor || '#1a1a1a'" 
+                            @update:model-value="val => handleUpdate({ flyingBirdConfig: { ...element.flyingBirdConfig!, birdColor: val } })" 
+                            class="flex-1" 
+                        />
+                    </div>
+                </div>
+                
+                <!-- Flap Speed -->
+                <div>
+                    <span class="text-xs text-slate-400">Flap Speed</span>
+                    <select 
+                        class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" 
+                        :value="element.flyingBirdConfig?.flapSpeed || 0.3"
+                        @change="(e: any) => handleUpdate({ flyingBirdConfig: { ...element.flyingBirdConfig!, flapSpeed: Number(e.target.value) } })"
+                    >
+                        <option value="0.15">Fast (0.15s)</option>
+                        <option value="0.3">Normal (0.3s)</option>
+                        <option value="0.5">Slow (0.5s)</option>
+                        <option value="0.8">Very Slow (0.8s)</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- GUEST WISHES SETTINGS -->
             <div v-if="element.type === 'guest_wishes'" class="space-y-3 pt-3 border-t">
                 <Label class="text-xs font-semibold text-slate-500 uppercase">Guest Wishes Settings</Label>

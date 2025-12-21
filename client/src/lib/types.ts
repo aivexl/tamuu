@@ -351,6 +351,17 @@ export interface GuestWishesConfig {
     layout: 'list' | 'grid' | 'masonry';
 }
 
+export interface FlyingBirdConfig {
+    birdColor: string;           // Default: '#1a1a1a' (black)
+    direction: 'left' | 'right'; // Default: 'left'
+    flapSpeed: number;           // Default: 0.3 (seconds)
+    flyEnabled: boolean;         // Enable horizontal movement
+    flySpeed: number;            // Horizontal movement speed (seconds)
+    animationType: 'lottie' | 'svg'; // Lottie or SVG animation
+    lottieUrl?: string;          // URL to Lottie JSON
+    creatureType: 'bird' | 'butterfly'; // Type of creature
+}
+
 export interface TemplateElement {
     id: string;
     type: ElementType;
@@ -379,6 +390,7 @@ export interface TemplateElement {
     rsvpFormConfig?: RSVPFormConfig;
     guestWishesConfig?: GuestWishesConfig;
     shapeConfig?: ShapeConfig;
+    flyingBirdConfig?: FlyingBirdConfig;
 
     openInvitationConfig?: OpenInvitationConfig;
     animationTrigger?: 'scroll' | 'click' | 'open_btn';
@@ -412,7 +424,7 @@ export interface MapsPointConfig {
     buttonText?: string;
 }
 
-export type ElementType = 'image' | 'gif' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'rsvp-form' | 'guest_wishes' | 'open_invitation_button' | 'button' | 'shape' | 'maps_point';
+export type ElementType = 'image' | 'gif' | 'text' | 'icon' | 'countdown' | 'rsvp_form' | 'rsvp-form' | 'guest_wishes' | 'open_invitation_button' | 'button' | 'shape' | 'maps_point' | 'flying_bird' | 'lottie_bird' | 'lottie_butterfly' | 'svg_bird' | 'svg_butterfly';
 
 export interface MotionPathConfig {
     points: Array<{ x: number, y: number }>;

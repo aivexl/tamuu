@@ -2,7 +2,7 @@
 import { useTemplateStore } from '@/stores/template';
 import { type TemplateElement, type ElementType } from '@/lib/types';
 import Button from '@/components/ui/Button.vue';
-import { Type, Image as ImageIcon, Clock, MessageSquare, MailOpen, Users, Heart, Square, Film, MapPin } from 'lucide-vue-next';
+import { Type, Image as ImageIcon, Clock, MessageSquare, MailOpen, Users, Heart, Square, Film, MapPin, Bird, Feather } from 'lucide-vue-next';
 
 interface Props {
   activeSection: string;
@@ -215,6 +215,93 @@ const handleAddElement = async (type: ElementType) => {
                 id: newId
             };
             break;
+        case 'flying_bird':
+            newElement = {
+                ...newElement,
+                name: 'Flying Bird',
+                flyingBirdConfig: {
+                    birdColor: '#1a1a1a',
+                    direction: 'left',
+                    flapSpeed: 0.3,
+                    flyEnabled: false,
+                    flySpeed: 8,
+                    animationType: 'svg',
+                    creatureType: 'bird'
+                },
+                size: { width: 60, height: 40 },
+                id: newId
+            };
+            break;
+        case 'lottie_bird':
+            newElement = {
+                ...newElement,
+                name: 'Lottie Bird',
+                flyingBirdConfig: {
+                    birdColor: '#1a1a1a',
+                    direction: 'left',
+                    flapSpeed: 0.3,
+                    flyEnabled: false,
+                    flySpeed: 8,
+                    animationType: 'lottie',
+                    creatureType: 'bird',
+                    lottieUrl: 'https://lottie.host/bba6f485-8e68-4d45-8f69-d97d55b3bfec/vD1FLgPzC5.json'
+                },
+                size: { width: 80, height: 80 },
+                id: newId
+            };
+            break;
+        case 'lottie_butterfly':
+            newElement = {
+                ...newElement,
+                name: 'Lottie Butterfly',
+                flyingBirdConfig: {
+                    birdColor: '#1a1a1a',
+                    direction: 'left',
+                    flapSpeed: 0.5,
+                    flyEnabled: false,
+                    flySpeed: 10,
+                    animationType: 'lottie',
+                    creatureType: 'butterfly',
+                    lottieUrl: 'https://lottie.host/47a32bbc-c9d7-455e-95c6-6e0b9ec69d80/oeUaIxqzfJ.json'
+                },
+                size: { width: 80, height: 80 },
+                id: newId
+            };
+            break;
+        case 'svg_bird':
+            newElement = {
+                ...newElement,
+                name: 'SVG Bird',
+                flyingBirdConfig: {
+                    birdColor: '#1a1a1a',
+                    direction: 'left',
+                    flapSpeed: 0.4,
+                    flyEnabled: false,
+                    flySpeed: 8,
+                    animationType: 'svg',
+                    creatureType: 'bird'
+                },
+                size: { width: 80, height: 50 },
+                id: newId
+            };
+            break;
+        case 'svg_butterfly':
+            newElement = {
+                ...newElement,
+                name: 'SVG Butterfly',
+                flyingBirdConfig: {
+                    birdColor: '#1a1a1a',
+                    direction: 'left',
+                    flapSpeed: 0.5,
+                    flyEnabled: false,
+                    flySpeed: 10,
+                    animationType: 'svg',
+                    creatureType: 'butterfly'
+                },
+                size: { width: 70, height: 70 },
+                id: newId
+            };
+            break;
     }
 
     await store.addElement(store.activeTemplateId, props.activeSection, newElement);
@@ -317,6 +404,47 @@ const handleAddElement = async (type: ElementType) => {
                 </div>
                 <!-- lucide-vue-next imports MapPin check needed -->
                 <span class="text-xs">Maps Point</span>
+            </Button>
+
+            <!-- Creatures Section -->
+            <div class="col-span-2 pt-2 border-t border-slate-100">
+                <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Animated Creatures</span>
+            </div>
+
+            <Button 
+                variant="outline" 
+                class="flex flex-col items-center justify-center h-20 gap-2 hover:bg-amber-50 hover:border-amber-200 transition-all"
+                @click="handleAddElement('lottie_bird')"
+            >
+                <Bird class="w-6 h-6 text-amber-600" />
+                <span class="text-xs">Lottie Bird</span>
+            </Button>
+
+            <Button 
+                variant="outline" 
+                class="flex flex-col items-center justify-center h-20 gap-2 hover:bg-pink-50 hover:border-pink-200 transition-all"
+                @click="handleAddElement('lottie_butterfly')"
+            >
+                <Feather class="w-6 h-6 text-pink-500" />
+                <span class="text-xs">Lottie Butterfly</span>
+            </Button>
+
+            <Button 
+                variant="outline" 
+                class="flex flex-col items-center justify-center h-20 gap-2 hover:bg-slate-100 hover:border-slate-300 transition-all"
+                @click="handleAddElement('svg_bird')"
+            >
+                <Bird class="w-6 h-6 text-gray-800" />
+                <span class="text-xs">SVG Bird</span>
+            </Button>
+
+            <Button 
+                variant="outline" 
+                class="flex flex-col items-center justify-center h-20 gap-2 hover:bg-purple-50 hover:border-purple-200 transition-all"
+                @click="handleAddElement('svg_butterfly')"
+            >
+                <Feather class="w-6 h-6 text-purple-500" />
+                <span class="text-xs">SVG Butterfly</span>
             </Button>
         </div>
     </div>

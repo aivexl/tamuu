@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-vue": "^0.10.10",
     "@types/animejs": "^3.1.13",
     "@types/gsap": "^1.20.2",
     "@vueuse/core": "^14.1.0",
@@ -28,6 +29,7 @@
     "vue": "^3.5.24",
     "vue-konva": "^3.2.6",
     "vue-router": "^4.6.4",
+    "vue3-lottie": "^3.3.1",
     "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
