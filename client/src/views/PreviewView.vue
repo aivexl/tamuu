@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref, nextTick, provide, reactive } from 'vue';
+import { onMounted, onUnmounted, computed, ref, nextTick, provide, reactive, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useTemplateStore } from '@/stores/template';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/lib/constants';
@@ -301,6 +301,7 @@ const startZoomAnimation = (sectionIndex: number, section: any) => {
     // Set to Normal state first
     currentZoomPointIndex.value[sectionIndex] = -1;
     let currentIndex = 0;
+    const loop = !!zoomConfig.loop;
 
     const runNext = () => {
         if (currentIndex < 0 || currentIndex >= points.length) {
