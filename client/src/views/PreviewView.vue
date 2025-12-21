@@ -120,27 +120,73 @@ const handleSectionClick = (index: number, section: any) => {
 };
 
 // Helper: Get the appropriate zoom animation class based on config
+// FOR MULTI-POINT ANIMATION: Disable keyframe classes and use transition-based approach
 const getZoomClass = (section: any, index: number): Record<string, boolean> => {
     if (!shouldZoom(section, index)) {
         return {};
     }
     
-    const direction = section.zoomConfig?.direction || 'in';
-    const behavior = section.zoomConfig?.behavior || 'stay';
+    const zoomConfig = section.zoomConfig;
+    const points = zoomConfig?.points || [];
+    
+    // IMPORTANT: For multi-point animation, we DON'T use CSS keyframe classes
+    // because they override our transition-based smooth animation.
+    // Instead, the animation is handled by getZoomStyle with transform transitions.
+    if (points.length > 1) {
+        return {}; // No keyframe classes for multi-point mode
+    }
+    
+    // Legacy single-point or no-points mode: use keyframe animations
+    const direction = zoomConfig?.direction || 'in';
+    const behavior = zoomConfig?.behavior || 'stay';
     
     if (behavior === 'reset') {
-        // Use smooth reset animations (zoom in/out then return)
         return {
             'animate-section-zoom-in-reset': direction === 'in',
             'animate-section-zoom-out-reset': direction === 'out'
         };
     } else {
-        // Stay zoomed - use regular animations
         return {
             'animate-section-zoom-in': direction === 'in',
             'animate-section-zoom-out': direction === 'out'
         };
     }
+};
+
+// Helper: Get zoom style object with DIRECT transform property for smooth animation
+// This is the key function for multi-point smooth transitions
+const getZoomStyle = (section: any, sectionIndex: number): Record<string, string> => {
+    const zoomConfig = section.zoomConfig;
+    
+    // Base style
+    const style: Record<string, string> = {
+        transformOrigin: 'center center'
+    };
+    
+    // If zoom is not active for this section, return identity transform
+    if (!shouldZoom(section, sectionIndex)) {
+        style.transform = 'scale(1) translate(0%, 0%)';
+        return style;
+    }
+    
+    // Get transform values
+    const transform = getZoomTransform(section, sectionIndex);
+    const points = zoomConfig?.points || [];
+    
+    // Apply direct transform (this is what enables smooth transitions!)
+    style.transform = `scale(${transform.scale}) translate(${transform.translateX}%, ${transform.translateY}%)`;
+    
+    // Apply transition for multi-point animation
+    if (points.length > 1) {
+        const transitionDuration = zoomConfig?.transitionDuration || 1000;
+        // Use cubic-bezier for ultra-smooth, premium feel
+        style.transition = `transform ${transitionDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+    } else {
+        // Single point: no transition needed, animation handled by CSS keyframes
+        style.transition = 'none';
+    }
+    
+    return style;
 };
 
 // Helper: Calculate zoom transform (scale + translate) from box dimensions
@@ -694,14 +740,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             <div
                                 class="absolute inset-0 w-full h-full"
                                 :class="getZoomClass(section, index)"
-                                :style="{ 
-                                    transformOrigin: 'center center',
-                                    '--zoom-scale': getZoomTransform(section, index).scale,
-                                    '--zoom-translate-x': `${getZoomTransform(section, index).translateX}%`,
-                                    '--zoom-translate-y': `${getZoomTransform(section, index).translateY}%`,
-                                    '--zoom-duration': `${section.zoomConfig?.duration || 5000}ms`,
-                                    transition: `transform ${section.zoomConfig?.transitionDuration || 1000}ms ease-in-out`
-                                }"
+                                :style="getZoomStyle(section, index)"
                             >
                                 <!-- Background Image -->
                                 <div
@@ -802,14 +841,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             <div
                                 class="absolute inset-0 w-full h-full"
                                 :class="getZoomClass(filteredSections[1], 1)"
-                                :style="{ 
-                                    transformOrigin: 'center center',
-                                    '--zoom-scale': getZoomTransform(filteredSections[1], 1).scale,
-                                    '--zoom-translate-x': `${getZoomTransform(filteredSections[1], 1).translateX}%`,
-                                    '--zoom-translate-y': `${getZoomTransform(filteredSections[1], 1).translateY}%`,
-                                    '--zoom-duration': `${filteredSections[1].zoomConfig?.duration || 5000}ms`,
-                                    transition: `transform ${filteredSections[1].zoomConfig?.transitionDuration || 1000}ms ease-in-out`
-                                }"
+                                :style="getZoomStyle(filteredSections[1], 1)"
                             >
                                 <!-- Background Image -->
                                 <div
@@ -902,14 +934,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             <div
                                 class="absolute inset-0 w-full h-full"
                                 :class="getZoomClass(filteredSections[0], 0)"
-                                :style="{ 
-                                    transformOrigin: 'center center',
-                                    '--zoom-scale': getZoomTransform(filteredSections[0], 0).scale,
-                                    '--zoom-translate-x': `${getZoomTransform(filteredSections[0], 0).translateX}%`,
-                                    '--zoom-translate-y': `${getZoomTransform(filteredSections[0], 0).translateY}%`,
-                                    '--zoom-duration': `${filteredSections[0].zoomConfig?.duration || 5000}ms`,
-                                    transition: `transform ${filteredSections[0].zoomConfig?.transitionDuration || 1000}ms ease-in-out`
-                                }"
+                                :style="getZoomStyle(filteredSections[0], 0)"
                             >
                                 <!-- Background Image -->
                                 <div
