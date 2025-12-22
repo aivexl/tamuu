@@ -10,7 +10,7 @@ import Label from '@/components/ui/Label.vue';
 import Button from '@/components/ui/Button.vue';
 import { 
     Upload, Square, Circle, Star, Minus, Heart, Cloud, Leaf, Flower, Sun, Moon,
-    MessageCircle, MessageSquare, Hexagon,
+    MessageCircle, Hexagon,
     AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignCenterVertical, AlignEndVertical,
     Trash2, ChevronsUp, ArrowUp, ArrowDown, ChevronsDown,
     FlipHorizontal2, FlipVertical2, Plus, Clock, GripVertical, Copy
@@ -545,7 +545,7 @@ const updateSelectedPointX = (x: number) => {
     if (idx >= 0 && idx < points.length) {
         points[idx] = {
             ...points[idx],
-            targetRegion: { ...points[idx].targetRegion!, x }
+            targetRegion: { ...(points[idx].targetRegion || { x: 50, y: 50, width: 50, height: 50 }), x }
         } as ZoomPoint;
         handleSectionUpdate({ 
             zoomConfig: { 
@@ -566,7 +566,7 @@ const updateSelectedPointY = (y: number) => {
     if (idx >= 0 && idx < points.length) {
         points[idx] = {
             ...points[idx],
-            targetRegion: { ...points[idx].targetRegion!, y }
+            targetRegion: { ...(points[idx].targetRegion || { x: 50, y: 50, width: 50, height: 50 }), y }
         } as ZoomPoint;
         handleSectionUpdate({ 
             zoomConfig: { 
@@ -1931,7 +1931,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                         <input 
                             type="checkbox" 
                             :checked="element.motionPathConfig?.enabled" 
-                            @change="(e: any) => handleUpdate({ motionPathConfig: { ...(element?.motionPathConfig || {}), enabled: e.target.checked } })"
+                            @change="(e: any) => handleUpdate({ motionPathConfig: { points: element?.motionPathConfig?.points || [], duration: element?.motionPathConfig?.duration || 3000, loop: element?.motionPathConfig?.loop ?? true, enabled: e.target.checked } })"
                             class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3 h-3"
                         />
                     </div>
@@ -1964,7 +1964,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                             max="10000" 
                             step="100" 
                             :value="element.motionPathConfig.duration || 3000"
-                            @input="(e: any) => handleUpdate({ motionPathConfig: { ...element?.motionPathConfig, duration: Number(e.target.value) } })"
+                            @input="(e: any) => handleUpdate({ motionPathConfig: { points: element?.motionPathConfig?.points || [], enabled: element?.motionPathConfig?.enabled ?? false, loop: element?.motionPathConfig?.loop ?? true, duration: Number(e.target.value) } })"
                             class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                         />
 
@@ -1973,7 +1973,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                             <input 
                                 type="checkbox" 
                                 :checked="element.motionPathConfig.loop !== false" 
-                                @change="(e: any) => handleUpdate({ motionPathConfig: { ...element?.motionPathConfig, loop: e.target.checked } })"
+                                @change="(e: any) => handleUpdate({ motionPathConfig: { points: element?.motionPathConfig?.points || [], duration: element?.motionPathConfig?.duration || 3000, enabled: element?.motionPathConfig?.enabled ?? false, loop: e.target.checked } })"
                                 class="rounded border-slate-300 text-indigo-600 w-3.5 h-3.5"
                             />
                         </div>
