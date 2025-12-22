@@ -887,9 +887,10 @@ const getSectionSlotStyle = (index: number): any => {
                     firstStyle.transform = 'translateY(-120%) translateZ(0)';
                     firstStyle.opacity = 0.3;
                 } else if (effect === 'door-reveal') {
-                    firstStyle.transform = 'scaleX(0)';
+                    // 3D DOOR EFFECT: Cover rotates like a door opening from the left
+                    firstStyle.transform = 'perspective(1500px) rotateY(-90deg) translateZ(0)';
                     firstStyle.opacity = 0;
-                    firstStyle.transformOrigin = 'center center';
+                    firstStyle.transformOrigin = 'left center';
                 }
             }
 
@@ -924,9 +925,14 @@ const getSectionSlotStyle = (index: number): any => {
                     secondStyle.opacity = 0;
                     secondStyle.transform = 'scale(0.95) translateZ(0)'; // Subtle depth Scale
                 }
+                else if (effect === 'door-reveal') {
+                    // Door reveal: Content starts slightly scaled
+                    secondStyle.transform = 'scale(0.95) translateZ(0)';
+                    secondStyle.opacity = 0;
+                }
             } else {
                 const luxuryEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
-                const easing = (effect === 'fade' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
+                const easing = (effect === 'fade' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal' || effect === 'door-reveal') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
                 secondStyle.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ease-in-out`;
                 secondStyle.transform = 'scale(1) translateY(0) translateZ(0)';
                 secondStyle.opacity = 1;
