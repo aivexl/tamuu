@@ -892,9 +892,9 @@ const getSectionSlotStyle = (index: number): any => {
                     firstStyle.opacity = 0;
                     firstStyle.transformOrigin = 'left center';
                 } else if (effect === 'split-door') {
-                    // SPLIT DOOR: Cover splits from center using clip-path
-                    firstStyle.clipPath = 'inset(0 50% 0 50%)';
-                    firstStyle.opacity = 0;
+                    // SPLIT DOOR: Use CSS animation class for two halves sliding apart
+                    // Animation applied via class, keep opacity 1 (no fade)
+                    firstStyle.animation = `split-door-open ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`;
                 }
             }
 
@@ -1311,5 +1311,26 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
     45% { transform: translate(0, 0) scale(1); }
     55% { transform: translate(0, 0) scale(1); }
     100% { transform: translate(var(--zoom-translate-x, 0), var(--zoom-translate-y, 0)) scale(var(--zoom-scale, 1.3)); }
+}
+
+/* SPLIT DOOR TRANSITION - Two halves sliding apart */
+@keyframes split-door-open {
+    0% {
+        clip-path: polygon(
+            0% 0%, 50% 0%, 50% 100%, 0% 100%,
+            50% 0%, 100% 0%, 100% 100%, 50% 100%
+        );
+    }
+    100% {
+        clip-path: polygon(
+            -50% 0%, 0% 0%, 0% 100%, -50% 100%,
+            100% 0%, 150% 0%, 150% 100%, 100% 100%
+        );
+    }
+}
+
+.split-door-animate {
+    animation: split-door-open var(--split-duration, 1000ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    will-change: clip-path;
 }
 </style>
