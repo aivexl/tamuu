@@ -196,11 +196,11 @@ authRouter.post('/register', async (c) => {
         role: user.role
     });
 
-    // Set cookie
+    // Set cookie - SameSite: None for cross-origin
     setCookie(c, 'auth_token', token, {
         httpOnly: true,
         secure: true,
-        sameSite: 'Lax',
+        sameSite: 'None',
         maxAge: JWT_EXPIRY_DAYS * 24 * 60 * 60,
         path: '/',
     });
@@ -244,11 +244,11 @@ authRouter.post('/login', async (c) => {
         role: user.role
     });
 
-    // Set cookie
+    // Set cookie - SameSite: None for cross-origin
     setCookie(c, 'auth_token', token, {
         httpOnly: true,
         secure: true,
-        sameSite: 'Lax',
+        sameSite: 'None',
         maxAge: JWT_EXPIRY_DAYS * 24 * 60 * 60,
         path: '/',
     });
