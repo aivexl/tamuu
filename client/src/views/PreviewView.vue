@@ -649,79 +649,14 @@ const handleOpenInvitation = async () => {
         
         if (effect === 'none') {
             finishTransition();
-        } else if (effect === 'fade') {
-            gsap.to(coverSection, {
-                opacity: 0,
-                duration: duration,
-                ease: 'power2.inOut',
-                onComplete: finishTransition
-            });
-        } else if (effect === 'slide-up') {
-            gsap.to(coverSection, {
-                y: '-100%',
-                duration: duration,
-                ease: 'power3.out',
-                onComplete: finishTransition
-            });
-        } else if (effect === 'slide-down') {
-            gsap.to(coverSection, {
-                y: '100%',
-                duration: duration,
-                ease: 'power3.out',
-                onComplete: finishTransition
-            });
-        } else if (effect === 'zoom-reveal') {
-            gsap.to(coverSection, {
-                scale: 1.5,
-                opacity: 0,
-                duration: duration,
-                ease: 'power3.inOut',
-                onComplete: finishTransition
-            });
-            if (nextSection) {
-                gsap.fromTo(nextSection, 
-                    { scale: 0.8, opacity: 0 },
-                    { scale: 1, opacity: 1, duration: duration, ease: 'power2.out' }
-                );
-            }
-        } else if (effect === 'stack-reveal') {
-            gsap.to(coverSection, {
-                y: '-100%',
-                duration: duration,
-                ease: 'power4.inOut',
-                onComplete: finishTransition
-            });
-            if (nextSection) {
-                gsap.fromTo(nextSection,
-                    { y: 100 },
-                    { y: 0, duration: duration, ease: 'power4.out' }
-                );
-            }
-        } else if (effect === 'parallax-reveal') {
-            gsap.to(coverSection, {
-                y: '-100%',
-                duration: duration,
-                ease: 'power2.inOut',
-                onComplete: finishTransition
-            });
-            if (nextSection) {
-                gsap.fromTo(nextSection,
-                    { y: '30%' },
-                    { y: '0%', duration: duration, ease: 'power2.out' }
-                );
-            }
-        } else if (effect === 'door-reveal') {
-            gsap.to(coverSection, {
-                scaleX: 0,
-                opacity: 0,
-                duration: duration,
-                ease: 'power4.inOut',
-                transformOrigin: 'center center',
-                onComplete: finishTransition
-            });
-        } else {
-            finishTransition();
+            return;
         }
+
+        // Trigger the "REVEALING" state which applies CSS transitions
+        transitionStage.value = 'REVEALING';
+
+        const totalDurationMs = duration * 1000;
+        setTimeout(finishTransition, totalDurationMs);
     }); 
 };
 
@@ -935,31 +870,69 @@ const getSectionSlotStyle = (index: number): any => {
         overflow: 'hidden',
         backgroundColor: section?.backgroundColor || 'transparent',
         backfaceVisibility: 'hidden',
-        willChange: 'transform, opacity'
+        willChange: 'transform, opacity',
+        clipPath: 'inset(0)',
+        ['-webkit-clip-path' as any]: 'inset(0)'
     };
+
+    const transitionConfig = filteredSections.value[0]?.pageTransition;
+    const effect = transitionConfig?.effect || 'none';
+    const duration = transitionConfig?.duration || 1000;
+    const isReveal = transitionStage.value === 'REVEALING';
 
     if (!flowMode.value) {
         // === ATOMIC MODE (Before transition) ===
-        // Section 0: Top layer at z-index 20
-        // Section 1: Standby layer at z-index 10 (same position, behind)
-        // Sections 2+: Hidden (not needed yet)
-        
         if (isFirst) {
-            return {
+            const firstStyle: any = {
                 ...base,
                 top: '0',
-                zIndex: 20
+                zIndex: 20,
             };
+
+            if (isReveal) {
+                // Apply transition property in the same frame as the transform change
+                firstStyle.transition = `transform ${duration}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${duration}ms ease-in-out`;
+                
+                if (effect === 'slide-up') firstStyle.transform = 'translateY(-100%)';
+                else if (effect === 'slide-down') firstStyle.transform = 'translateY(100%)';
+                else if (effect === 'fade') firstStyle.opacity = 0;
+                else if (effect === 'zoom-reveal') {
+                    firstStyle.transform = 'scale(1.5)';
+                    firstStyle.opacity = 0;
+                } else if (effect === 'stack-reveal' || effect === 'parallax-reveal') {
+                    firstStyle.transform = 'translateY(-100%)';
+                    if (effect === 'stack-reveal') firstStyle.opacity = 0;
+                } else if (effect === 'door-reveal') {
+                    firstStyle.transform = 'scaleX(0)';
+                    firstStyle.opacity = 0;
+                    firstStyle.transformOrigin = 'center center';
+                }
+            }
+
+            return firstStyle;
         }
         
         if (isSecond) {
-            const overlayEnabled = filteredSections.value[0]?.pageTransition?.overlayEnabled || isRevealing.value;
-            return {
+            const overlayEnabled = transitionConfig?.overlayEnabled || isReveal;
+            const secondStyle: any = {
                 ...base,
                 top: '0',
                 zIndex: 10,
-                opacity: overlayEnabled ? 1 : 0 // Hidden until reveal starts
+                opacity: overlayEnabled ? 1 : 0
             };
+
+            // INITIAL STATES vs ANIMATING STATES
+            if (!isReveal) {
+                if (effect === 'zoom-reveal') secondStyle.transform = 'scale(0.8)';
+                else if (effect === 'stack-reveal' || effect === 'parallax-reveal') secondStyle.transform = 'translateY(100px)';
+                else if (effect === 'fade') secondStyle.opacity = 0;
+            } else {
+                secondStyle.transition = `transform ${duration}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${duration}ms ease-in-out`;
+                secondStyle.transform = 'scale(1) translateY(0)';
+                secondStyle.opacity = 1;
+            }
+
+            return secondStyle;
         }
         
         // Sections 2+: Hidden in atomic mode
@@ -1043,7 +1016,10 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                         transform: `scale(${scaleFactor})`, 
                         transformOrigin: isPortrait ? 'top left' : 'top center',
                         marginLeft: isPortrait ? '0' : 'auto',
-                        marginRight: isPortrait ? '0' : 'auto'
+                        marginRight: isPortrait ? '0' : 'auto',
+                        overflow: 'hidden',
+                        clipPath: 'inset(0)',
+                        ['-webkit-clip-path' as any]: 'inset(0)'
                     }"
                 >
 
