@@ -878,7 +878,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                     @dragleave="handleDragLeave"
                     @drop="handleDrop($event, el.id)"
                     @dragend="handleDragEnd"
-                    @click="store.setSelectedElement(el.id)"
+                    @click="store.selectedElementId === el.id ? store.setSelectedElement(null) : store.setSelectedElement(el.id)"
                 >
                     <!-- Drop Line Indicator (Above) -->
                     <div 
