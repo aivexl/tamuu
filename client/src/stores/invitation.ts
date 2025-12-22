@@ -165,5 +165,20 @@ export const useInvitationStore = defineStore("invitation", {
                 ...updates
             };
         },
+
+        addSection() {
+            const newSection: InvitationSection = {
+                id: crypto.randomUUID(),
+                type: 'custom',
+                title: 'Halaman Baru',
+                isVisible: true,
+                order: this.invitation.sections.length + 1,
+                data: {
+                    quote: "Tulis kutipan di sini...",
+                    author: "Penulis"
+                } as any // Default to quotes-like data or empty
+            };
+            this.invitation.sections.push(newSection);
+        }
     },
 });
