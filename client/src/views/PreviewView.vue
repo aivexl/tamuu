@@ -64,7 +64,6 @@ const filteredSections = computed((): (any)[] => {
 const isOpened = ref(false); // Track if "Open" button was clicked
 const isRevealing = ref(false); // Track if middle-of-reveal animation is active
 const isHandoffActive = ref(false); // New: Track the split-second handoff between modes
-const handoffOpacity = ref(1); // CTO Level: Granular control over handoff visibility
 const shutterVisible = ref(false);
 const openBtnTriggered = ref(false);
 const flowMode = ref(false); // Binary mode: Reveal (Atomic) vs Scroll (Flow)
@@ -556,61 +555,25 @@ const handleOpenInvitation = async () => {
     
     // Start the transition orchestration
     isRevealing.value = true;
-    
-    // CTO LEVEL: Pre-trigger Section 2 zoom for perfect mirroring
-    if (filteredSections.value[1]) {
-        visibleSections.value = [...visibleSections.value, 1];
-        startZoomAnimation(1, filteredSections.value[1]);
-    }
 
     // Use GSAP for precision timing
     gsap.delayedCall(animWait / 1000, () => {
         const effect = transition.enabled ? transition.effect : 'none';
-        // LUXURY STANDARD: Minimum 1.2 seconds for any visible transition
-        const rawDuration = transition.duration || 1000;
-        const duration = Math.max(1.2, rawDuration / 1000);
-        
-        console.log(`[Transition] Effect: ${effect}, Duration: ${duration}s, Raw: ${rawDuration}ms`);
+        const duration = (transition.duration || 1000) / 1000;
         
         const finishTransition = () => {
-            // CTO-LEVEL HANDOFF: Buffer the state change to prevent layout snapshots
+            // CTO-LEVEL HANDOFF: Keep layers overlapping briefly for sub-pixel alignment
             isHandoffActive.value = true;
-            handoffOpacity.value = 1;
             flowMode.value = true;
             
             nextTick(() => {
                 if (scrollContainer.value) {
-                    if (lenis) {
-                        lenis.stop();
-                        const scrollOffset = coverHeightComputed.value * scaleFactor.value;
-                        lenis.scrollTo(scrollOffset, { immediate: true });
-                        scrollContainer.value.scrollTop = scrollOffset;
-                    } else {
-                        const scrollOffset = coverHeightComputed.value * scaleFactor.value;
-                        scrollContainer.value.scrollTop = scrollOffset;
-                    }
+                    if (lenis) lenis.stop();
                     
-                    // LUXURY CROSS-FADE: Animate the overlay out smoothly
-                    gsap.to(handoffOpacity, {
-                        value: 0,
-                        duration: 0.4,
-                        ease: "power2.out",
-                        onComplete: () => {
-                            isRevealing.value = false;
-                            isHandoffActive.value = false;
-                            
-                            // CRITICAL: Clear GSAP transforms after handoff is fully complete
-                            gsap.set('.atomic-cover-layer', { clearProps: 'all' });
-                            gsap.set('.atomic-next-layer', { clearProps: 'all' });
-                            
-                            if (lenis) {
-                                lenis.resize();
-                                lenis.start();
-                            }
-                        }
-                    });
-
-                    // Force a re-layout check for visibility triggers
+                    const scrollOffset = coverHeightComputed.value * scaleFactor.value;
+                    scrollContainer.value.scrollTop = scrollOffset;
+                    
+                    // Force a re-layout check
                     const handleScroll = () => {
                         if (!scrollContainer.value) return;
                         const containerRect = scrollContainer.value.getBoundingClientRect();
@@ -630,6 +593,17 @@ const handleOpenInvitation = async () => {
                     
                     scrollContainer.value.addEventListener('scroll', handleScroll);
                     setTimeout(handleScroll, 100);
+                    
+                    // LUXURY DELAY: Wait 150ms for browser paint to stabilize at New scroll position
+                    setTimeout(() => {
+                        isRevealing.value = false;
+                        isHandoffActive.value = false;
+                        
+                        if (lenis) {
+                            lenis.resize();
+                            lenis.start();
+                        }
+                    }, 150);
                 } else {
                     isRevealing.value = false;
                     isHandoffActive.value = false;
@@ -692,12 +666,12 @@ const handleOpenInvitation = async () => {
             gsap.to('.atomic-cover-layer', {
                 y: '-100%',
                 duration: duration,
-                ease: 'power2.inOut',
+                ease: 'none',
                 onComplete: finishTransition
             });
             gsap.fromTo('.atomic-next-layer',
                 { y: '30%' },
-                { y: '0%', duration: duration, ease: 'power2.out' }
+                { y: '0%', duration: duration, ease: 'none' }
             );
         } else if (effect === 'door-reveal') {
             // Split transition using scaleX = 0 on two halves or similar
@@ -907,74 +881,6 @@ const handleFullscreenChange = () => {
         if (lenis) lenis.resize();
     });
 };
-const getSectionWrapperStyle = (index: number) => {
-    const isFirst = index === 0;
-    const isSecond = index === 1;
-    const currentCoverHeight = coverHeightComputed.value;
-    const section = filteredSections.value[index];
-    
-    const base: any = {
-        width: `${CANVAS_WIDTH}px`,
-        position: 'absolute',
-        left: '0',
-        overflow: 'hidden',
-        backgroundColor: section?.backgroundColor || 'transparent'
-    };
-
-    if (!flowMode.value) {
-        // --- ATOMIC MODE (Reveal Preparation) ---
-        // During reveal, GSAP controls the transform/opacity of Section 0
-        // We only set layout properties here
-        if (isFirst) {
-            return {
-                ...base,
-                height: `${currentCoverHeight}px`,
-                zIndex: 20,
-                top: '0px',
-                // Let GSAP handle transform and opacity during reveal
-                willChange: isRevealing.value ? 'transform, opacity' : 'auto'
-            };
-        }
-        if (isSecond) {
-            const transition = filteredSections.value[0]?.pageTransition;
-            const overlayEnabled = transition?.overlayEnabled || isRevealing.value;
-            return {
-                ...base,
-                height: `${CANVAS_HEIGHT}px`,
-                zIndex: 10,
-                top: '0px',
-                opacity: overlayEnabled ? 1 : 0,
-                willChange: isRevealing.value ? 'transform, opacity' : 'auto'
-            };
-        }
-        // Hide other sections in atomic mode
-        return { 
-            ...base,
-            display: 'none',
-            height: `${CANVAS_HEIGHT}px`,
-            top: '0px'
-        };
-    } else {
-        // --- FLOW MODE (Direct Scroll Layout) ---
-        let top = 0;
-        if (index > 0) {
-            top = currentCoverHeight + (index - 1) * CANVAS_HEIGHT;
-        }
-
-        const style: any = {
-            ...base,
-            height: isFirst ? `${currentCoverHeight}px` : `${CANVAS_HEIGHT}px`,
-            top: `${top}px`,
-            zIndex: 1,
-            display: 'block',
-            opacity: 1
-            // CRITICAL: Do NOT set transform here - let GSAP control it until clearProps is called
-        };
-
-        return style;
-    }
-};
-
 const goBack = () => router.push(`/editor/${templateId.value}`);
 </script>
 
@@ -1001,7 +907,6 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                     class="invitation-parent relative" 
                     :style="{ 
                         width: `${CANVAS_WIDTH}px`, 
-                        // CTO LEVEL: Immediately use full height in Flow Mode to prevent clipping
                         height: flowMode ? 'auto' : `${coverHeightComputed}px`,
                         transform: `scale(${scaleFactor})`, 
                         transformOrigin: isPortrait ? 'top left' : 'top center',
@@ -1023,68 +928,113 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                     THE UNIFIED ATOMIC CONTAINER
                     Refined for Luxury Transitions (Zero-Error Architecture)
                 -->
-                <div class="relative w-full" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? `${coverHeightComputed + (filteredSections.length - 1) * CANVAS_HEIGHT}px` : `${coverHeightComputed}px` }">
+                <div class="relative w-full overflow-hidden" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? 'auto' : `${coverHeightComputed}px` }">
                     
-                <!-- THE SINGULAR RENDER STACK (CTO Level: Unified DOM Management) -->
-                <div class="relative w-full" :style="{ height: flowMode ? `${coverHeightComputed + (filteredSections.length - 1) * CANVAS_HEIGHT}px` : `${coverHeightComputed}px` }">
-                    <div 
-                        v-for="(section, index) in filteredSections" 
-                        :key="section.key"
-                        :id="index === 0 ? 'atomic-cover-section' : undefined"
-                        :ref="(el) => setSectionRef(el, index)" :data-index="index"
-                        class="page-section"
-                        :class="{ 'atomic-cover-layer': index === 0, 'atomic-next-layer': index === 1 }"
-                        :style="getSectionWrapperStyle(index)"
-                        @click="handleSectionClick(index, section)"
-                    >
-                        <div
-                            class="absolute inset-0 w-full h-full"
-                            :class="getZoomClass(section, index)"
-                            :style="getZoomStyle(section, index)"
+                    <!-- NATURAL FLOW MODE (Active after Reveal) -->
+                    <div v-if="flowMode" class="flex flex-col w-full relative h-auto">
+                        <div 
+                            v-for="(section, index) in filteredSections" 
+                            :key="section.key"
+                            :ref="(el) => setSectionRef(el, index)" :data-index="index"
+                            class="relative w-full flex-shrink-0 page-section overflow-hidden"
+                            :style="{ 
+                                height: index === 0 ? `${coverHeightComputed}px` : `${CANVAS_HEIGHT}px`,
+                                backgroundColor: section.backgroundColor || 'transparent'
+                            }"
+                            @click="handleSectionClick(index, section)"
                         >
-                            <!-- Background & Effects -->
-                            <div v-if="section.backgroundUrl" class="absolute inset-0 bg-cover bg-center" :class="{ 'animate-ken-burns': section.kenBurnsEnabled && !section.zoomConfig?.enabled }" :style="{ backgroundImage: `url(${getProxiedImageUrl(section.backgroundUrl)})` }" />
-                            <div v-if="section.overlayOpacity && section.overlayOpacity > 0" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: section.overlayOpacity }" />
-                            <ParticleOverlay v-if="section.particleType && section.particleType !== 'none'" :type="section.particleType" />
+                            <div
+                                class="absolute inset-0 w-full h-full"
+                                :class="getZoomClass(section, index)"
+                                :style="getZoomStyle(section, index)"
+                            >
+                                <div v-if="section.backgroundUrl" class="absolute inset-0 bg-cover bg-center" :class="{ 'animate-ken-burns': section.kenBurnsEnabled && !section.zoomConfig?.enabled }" :style="{ backgroundImage: `url(${getProxiedImageUrl(section.backgroundUrl)})` }" />
+                                <div v-if="section.overlayOpacity && section.overlayOpacity > 0" class="absolute inset-0 bg-black pointer-events-none" :style="{ opacity: section.overlayOpacity }" />
+                                <ParticleOverlay v-if="section.particleType && section.particleType !== 'none'" :type="section.particleType" />
 
-                            <!-- Elements -->
-                            <div class="relative w-full h-full">
-                                <template v-for="el in section.elements" :key="el.id">
-                                    <AnimatedElement 
-                                        :animation="el.animation" 
-                                        :loop-animation="el.loopAnimation" 
-                                        :delay="el.animationDelay" 
-                                        :duration="el.animationDuration" 
-                                        :style="getElementStyle(el, index)"
-                                        :immediate="index === 0"
-                                        :trigger-mode="el.animationTrigger || 'scroll'"
-                                        :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : true"
-                                        :element-id="el.id"
-                                        :image-url="el.imageUrl"
-                                        :motion-path-config="el.motionPathConfig"
-                                        :parallax-factor="el.parallaxFactor"
-                                    >
-                                        <img v-if="el.type === 'image' || el.type === 'gif'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain' }" />
-                                        <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
-                                        <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="w-full h-full hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" @click="handleOpenInvitation()">{{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}</button>
-                                        <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center"><svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg></div>
-                                        <div v-else-if="el.type === 'shape' && el.shapeConfig" class="w-full h-full">
-                                            <svg v-if="el.shapeConfig.shapeType.includes('rectangle')" width="100%" height="100%" :viewBox="`0 0 ${el.size.width} ${el.size.height}`" preserveAspectRatio="none"><rect x="0" y="0" :width="el.size.width" :height="el.size.height" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" :rx="el.shapeConfig.shapeType === 'rounded-rectangle' ? (el.shapeConfig.cornerRadius || 20) : 0" /></svg>
-                                            <svg v-else-if="el.shapeConfig.shapeType === 'circle'" width="100%" height="100%" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
-                                            <svg v-else-if="el.shapeConfig.shapeType === 'ellipse'" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="48" ry="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
-                                            <svg v-else width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><path :d="shapePaths[el.shapeConfig.shapeType] || el.shapeConfig.pathData || ''" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
-                                        </div>
-                                        <LottieElement v-else-if="el.type === 'lottie'" :animation-url="el.lottieConfig?.url || ''" :direction="el.lottieConfig?.direction || 'left'" :speed="el.lottieConfig?.speed || 1" :loop="el.lottieConfig?.loop !== false" :auto-play="el.lottieConfig?.autoplay !== false" class="w-full h-full" />
-                                        <div v-else-if="el.type === 'countdown'" class="w-full h-full flex justify-center items-center gap-2"><div v-for="unit in ['Days', 'Hours', 'Min', 'Sec']" :key="unit" class="flex flex-col items-center"><div class="text-2xl font-bold" :style="{ color: el.countdownConfig?.digitColor || '#000' }">00</div><div class="text-[10px] uppercase" :style="{ color: el.countdownConfig?.labelColor || '#666' }">{{ unit }}</div></div></div>
-                                        <div v-else-if="el.type === 'rsvp_form'" class="w-full h-full p-4 bg-white/50 backdrop-blur-sm rounded-xl" />
-                                        <div v-else-if="el.type === 'guest_wishes'" class="w-full h-full p-4 bg-white/30 backdrop-blur-sm rounded-xl" />
-                                    </AnimatedElement>
-                                </template>
+                                <div class="relative w-full h-full">
+                                    <template v-for="el in section.elements" :key="el.id">
+                                        <AnimatedElement 
+                                            :animation="el.animation" 
+                                            :loop-animation="el.loopAnimation" 
+                                            :delay="el.animationDelay" 
+                                            :duration="el.animationDuration" 
+                                            :style="getElementStyle(el, index)"
+                                            :immediate="index === 0"
+                                            :trigger-mode="el.animationTrigger || 'scroll'"
+                                            :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : (index === 0)"
+                                            :element-id="el.id"
+                                            :image-url="el.imageUrl"
+                                            :motion-path-config="el.motionPathConfig"
+                                            :parallax-factor="el.parallaxFactor"
+                                        >
+                                            <img v-if="el.type === 'image' || el.type === 'gif'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full pointer-events-none select-none" :style="{ objectFit: el.objectFit || 'contain' }" />
+                                            <div v-else-if="el.type === 'text'" :style="getTextStyle(el)" class="w-full h-full">{{ el.content }}</div>
+                                            <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="w-full h-full hover:scale-105 active:scale-95 transition-all shadow-xl font-bold" @click="handleOpenInvitation()">{{ el.openInvitationConfig?.buttonText || el.content || 'Buka Undangan' }}</button>
+                                            <div v-else-if="el.type === 'icon'" :style="{ color: el.iconStyle?.iconColor }" class="w-full h-full flex items-center justify-center"><svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg></div>
+                                            <div v-else-if="el.type === 'shape' && el.shapeConfig" class="w-full h-full">
+                                                <svg v-if="el.shapeConfig.shapeType.includes('rectangle')" width="100%" height="100%" :viewBox="`0 0 ${el.size.width} ${el.size.height}`" preserveAspectRatio="none"><rect x="0" y="0" :width="el.size.width" :height="el.size.height" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" :rx="el.shapeConfig.shapeType === 'rounded-rectangle' ? (el.shapeConfig.cornerRadius || 20) : 0" /></svg>
+                                                <svg v-else-if="el.shapeConfig.shapeType === 'circle'" width="100%" height="100%" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
+                                                <svg v-else-if="el.shapeConfig.shapeType === 'ellipse'" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="48" ry="48" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
+                                                <svg v-else width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><path :d="shapePaths[el.shapeConfig.shapeType] || el.shapeConfig.pathData || ''" :fill="el.shapeConfig.fill || 'transparent'" :stroke="el.shapeConfig.stroke || 'transparent'" :stroke-width="el.shapeConfig.strokeWidth || 0" /></svg>
+                                            </div>
+                                            <LottieElement v-else-if="el.type === 'lottie'" :animation-url="el.lottieConfig?.url || ''" :direction="el.lottieConfig?.direction || 'left'" :speed="el.lottieConfig?.speed || 1" :loop="el.lottieConfig?.loop !== false" :auto-play="el.lottieConfig?.autoplay !== false" class="w-full h-full" />
+                                            <div v-else-if="el.type === 'countdown'" class="w-full h-full flex justify-center items-center gap-2"><div v-for="unit in ['Days', 'Hours', 'Min', 'Sec']" :key="unit" class="flex flex-col items-center"><div class="text-2xl font-bold" :style="{ color: el.countdownConfig?.digitColor || '#000' }">00</div><div class="text-[10px] uppercase" :style="{ color: el.countdownConfig?.labelColor || '#666' }">{{ unit }}</div></div></div>
+                                            <div v-else-if="el.type === 'rsvp_form'" class="w-full h-full p-4 bg-white/50 backdrop-blur-sm rounded-xl" />
+                                            <div v-else-if="el.type === 'guest_wishes'" class="w-full h-full p-4 bg-white/30 backdrop-blur-sm rounded-xl" />
+                                        </AnimatedElement>
+                                    </template>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
+                    <!-- ATOMIC REVEAL ENGINE (Mid-Transition Physics) -->
+                    <div v-if="!flowMode || isHandoffActive" class="absolute inset-0 w-full h-full bg-slate-100" :class="{ 'pointer-events-none': flowMode }">
+                        <!-- BOTTOM LAYER: Standby Section -->
+                        <div v-if="filteredSections[1]" class="absolute inset-0 z-[1] atomic-next-layer overflow-hidden" :style="{ backgroundColor: filteredSections[1].backgroundColor || '#dddddd', opacity: (filteredSections[0]?.pageTransition?.overlayEnabled || isRevealing) ? 1 : 0 }">
+                            <div class="absolute inset-0 w-full h-full" :class="getZoomClass(filteredSections[1], 1)" :style="getZoomStyle(filteredSections[1], 1)">
+                                <div v-if="filteredSections[1].backgroundUrl" class="absolute inset-0 bg-cover bg-center" :style="{ backgroundImage: `url(${getProxiedImageUrl(filteredSections[1].backgroundUrl)})` }" />
+                                <div v-if="filteredSections[1].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[1].overlayOpacity }" />
+                                <ParticleOverlay v-if="filteredSections[1].particleType !== 'none'" :type="filteredSections[1].particleType" />
+                                <div class="relative w-full h-full">
+                                    <template v-for="el in filteredSections[1].elements" :key="el.id">
+                                        <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" :style="getElementStyle(el, 1)" :trigger-mode="el.animationTrigger" :force-trigger="isOpened" :element-id="el.id" :image-url="el.imageUrl" :parallax-factor="el.parallaxFactor">
+                                            <img v-if="el.type === 'image'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full" />
+                                            <div v-else-if="el.type === 'text'" :style="getTextStyle(el)">{{ el.content }}</div>
+                                            <div v-else-if="el.type === 'icon'"><svg viewBox="0 0 24 24" fill="currentColor" width="100%"><path :d="(iconPaths as any)[el.iconStyle?.iconName || 'star'] || ''" /></svg></div>
+                                            <LottieElement v-else-if="el.type === 'lottie'" :animation-url="el.lottieConfig?.url || ''" class="w-full h-full" />
+                                        </AnimatedElement>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TOP LAYER: Active Section 1 -->
+                        <div v-if="filteredSections[0]" id="atomic-cover-section" class="absolute inset-0 z-[2] atomic-cover-layer overflow-hidden" :style="{ backgroundColor: filteredSections[0].backgroundColor || '#cccccc' }">
+                            <div class="absolute inset-0 w-full h-full transform-gpu" :class="getZoomClass(filteredSections[0], 0)" :style="getZoomStyle(filteredSections[0], 0)">
+                                <div v-if="filteredSections[0].backgroundUrl" class="absolute inset-0 bg-cover bg-center" :style="{ backgroundImage: `url(${getProxiedImageUrl(filteredSections[0].backgroundUrl)})` }" />
+                                <div v-if="filteredSections[0].overlayOpacity" class="absolute inset-0 bg-black" :style="{ opacity: filteredSections[0].overlayOpacity }" />
+                                <ParticleOverlay v-if="filteredSections[0].particleType !== 'none'" :type="filteredSections[0].particleType" />
+                                <div class="relative w-full h-full">
+                                    <template v-for="el in filteredSections[0].elements" :key="el.id">
+                                        <AnimatedElement :animation="el.animation" :loop-animation="el.loopAnimation" :delay="el.animationDelay" :duration="el.animationDuration" :style="getElementStyle(el, 0)" :trigger-mode="el.animationTrigger" :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : true" :element-id="el.id" :image-url="el.imageUrl" :parallax-factor="el.parallaxFactor">
+                                            <img v-if="el.type === 'image'" :src="getProxiedImageUrl(el.imageUrl)" class="w-full h-full" />
+                                            <div v-else-if="el.type === 'text'" :style="getTextStyle(el)">{{ el.content }}</div>
+                                            <button v-else-if="el.type === 'button' || el.type === 'open_invitation_button'" :style="getButtonStyle(el)" class="w-full h-full font-bold shadow-xl" @click="handleOpenInvitation()">{{ el.openInvitationConfig?.buttonText || 'Buka Undangan' }}</button>
+                                            <LottieElement v-else-if="el.type === 'lottie'" :animation-url="el.lottieConfig?.url || ''" class="w-full h-full" />
+                                        </AnimatedElement>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MIRROR SHUTTERS -->
+                    <div v-if="shutterVisible" class="absolute inset-0 z-[100] flex overflow-hidden pointer-events-none">
+                        <div class="mirror-shutter-left w-1/2 h-full bg-white/20 backdrop-blur-md"></div>
+                        <div class="mirror-shutter-right w-1/2 h-full bg-white/20 backdrop-blur-md"></div>
+                    </div>
                 </div>
             </div>
             </div>
