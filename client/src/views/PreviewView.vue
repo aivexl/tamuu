@@ -910,18 +910,21 @@ const getSectionWrapperStyle = (index: number) => {
         position: 'absolute',
         left: '0',
         overflow: 'hidden',
-        willChange: 'transform, opacity',
         backgroundColor: section?.backgroundColor || 'transparent'
     };
 
-    if (!flowMode.value && !isHandoffActive.value) {
+    if (!flowMode.value) {
         // --- ATOMIC MODE (Reveal Preparation) ---
+        // During reveal, GSAP controls the transform/opacity of Section 0
+        // We only set layout properties here
         if (isFirst) {
             return {
                 ...base,
                 height: `${currentCoverHeight}px`,
                 zIndex: 20,
-                top: 0
+                top: '0px',
+                // Let GSAP handle transform and opacity during reveal
+                willChange: isRevealing.value ? 'transform, opacity' : 'auto'
             };
         }
         if (isSecond) {
@@ -931,11 +934,18 @@ const getSectionWrapperStyle = (index: number) => {
                 ...base,
                 height: `${CANVAS_HEIGHT}px`,
                 zIndex: 10,
-                top: 0,
-                opacity: overlayEnabled ? 1 : 0
+                top: '0px',
+                opacity: overlayEnabled ? 1 : 0,
+                willChange: isRevealing.value ? 'transform, opacity' : 'auto'
             };
         }
-        return { display: 'none' };
+        // Hide other sections in atomic mode
+        return { 
+            ...base,
+            display: 'none',
+            height: `${CANVAS_HEIGHT}px`,
+            top: '0px'
+        };
     } else {
         // --- FLOW MODE (Direct Scroll Layout) ---
         let top = 0;
@@ -948,15 +958,10 @@ const getSectionWrapperStyle = (index: number) => {
             height: isFirst ? `${currentCoverHeight}px` : `${CANVAS_HEIGHT}px`,
             top: `${top}px`,
             zIndex: 1,
-            display: 'block'
+            display: 'block',
+            opacity: 1,
+            transform: 'none' // Reset any GSAP transforms
         };
-
-        // CTO Level refinement: if transitioning from atomic to flow, 
-        // we use a bridge opacity to prevent any flash of content
-        if (isHandoffActive.value && isFirst) {
-            style.opacity = handoffOpacity.value;
-            style.zIndex = 100; // Keep it on top while it fades
-        }
 
         return style;
     }
