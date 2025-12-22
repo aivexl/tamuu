@@ -32,7 +32,14 @@ const currentTemplate = computed(() => {
 });
 
 const sectionDesign = computed(() => {
-    return currentTemplate.value?.sections?.[props.sectionType] || null;
+    const sections = currentTemplate.value?.sections;
+    if (!sections) return null;
+    
+    // Case-insensitive lookup for enterprise-grade robustness
+    const targetType = props.sectionType.toLowerCase();
+    const match = Object.keys(sections).find(k => k.toLowerCase() === targetType);
+    
+    return match ? sections[match] : null;
 });
 
 /**
@@ -95,12 +102,11 @@ const backgroundStyle = computed(() => {
             }"
         >
             <!-- High-Fidelity Image Element -->
-            <img 
+            <SafeImage 
                 v-if="el.type === 'image' || el.type === 'shape'" 
                 :src="el.imageUrl || ''" 
+                alt="Design element"
                 class="w-full h-full object-contain filter drop-shadow-sm"
-                alt=""
-                loading="lazy"
             />
             
             <!-- Abstract Text Placeholder (Clean & Minimal) -->

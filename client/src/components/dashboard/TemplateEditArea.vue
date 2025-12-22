@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import draggable from 'vuedraggable';
 import SectionDesignPreview from './SectionDesignPreview.vue';
@@ -60,13 +60,37 @@ const handleElementUpdate = (elementId: string, updates: Partial<TemplateElement
     invitationStore.updateUserElement(elementId, updates);
 };
 
+// Hydration Engine: Ensures master designs are fully loaded even if bulk fetch was "hollow"
+const hydrateTemplate = async (id: string) => {
+    const template = templateStore.templates.find(t => t.id === id);
+    // If template is missing or hollow (no sections), fetch full data
+    if (!template || Object.keys(template.sections || {}).length === 0) {
+        console.log(`[Hydration] Template ${id} is hollow or missing. Fetching full data...`);
+        await templateStore.fetchTemplate(id);
+    }
+};
+
 onMounted(async () => {
+    // 1. Initial bulk fetch for the list
     if (templateStore.templates.length === 0) {
         await templateStore.fetchTemplates();
     }
-    if (templateId.value && !templateStore.templates.find(t => t.id === templateId.value)) {
-        await templateStore.fetchTemplate(templateId.value);
+    
+    // 2. Proactive Hydration for selected template
+    if (templateId.value) {
+        await hydrateTemplate(templateId.value);
     }
+    
+    // 3. Proactive Hydration for fallback master (to ensure previews never show blank)
+    const firstTemplate = templateStore.templates[0];
+    if (firstTemplate) {
+        await hydrateTemplate(firstTemplate.id);
+    }
+});
+
+// Watch for template selection changes
+watch(templateId, (newId) => {
+    if (newId) hydrateTemplate(newId);
 });
 
 // Helpers to get elements for a section in user mode
