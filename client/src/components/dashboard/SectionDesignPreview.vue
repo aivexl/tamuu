@@ -77,15 +77,18 @@ const elements = computed(() => {
 
 const backgroundStyle = computed(() => {
     const design = sectionDesign.value;
-    const theme = invitationStore.invitation.theme;
+    const themeValue = invitationStore.invitation.theme;
     
     // Fallback logic: Primary color for opening, background color for others
-    const fallbackColor = props.sectionType === 'opening' ? theme.colors.primary : theme.colors.background;
+    const fallbackColor = props.sectionType === 'opening' ? themeValue.colors.primary : themeValue.colors.background;
     
     return {
-        backgroundColor: design?.backgroundColor || fallbackColor || '#f8fafc'
+        backgroundColor: design?.backgroundColor || fallbackColor || '#ffffff',
+        backgroundImage: !design?.backgroundUrl ? `linear-gradient(135deg, ${themeValue.colors.background} 0%, ${themeValue.colors.secondary}08 100%)` : undefined
     };
 });
+
+const theme = computed(() => invitationStore.invitation.theme);
 </script>
 
 <template>
@@ -142,16 +145,38 @@ const backgroundStyle = computed(() => {
         </div>
     </div>
 
-    <!-- 3. Empty State Fallback -->
+    <!-- 3. Smart Themed Fallback (When no master design exists) -->
     <div 
         v-if="!sectionDesign?.backgroundUrl && elements.length === 0" 
-        class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center opacity-[0.05]"
+        class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center"
     >
-        <LayoutTemplate class="w-16 h-16 mb-2" />
-        <span class="text-[10px] font-black uppercase tracking-tighter">Design Master</span>
+        <!-- Subtle Background Pattern -->
+        <div class="absolute inset-0 opacity-[0.03] pointer-events-none" :style="{ color: theme.colors.primary }">
+             <svg width="100%" height="100%"><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="currentColor"/></pattern><rect width="100%" height="100%" fill="url(#grid)" /></svg>
+        </div>
+
+        <div class="relative z-10 space-y-4">
+            <div class="w-16 h-16 mx-auto bg-white rounded-2xl shadow-sm flex items-center justify-center text-gray-200 border border-gray-50">
+                <LayoutTemplate class="w-8 h-8" />
+            </div>
+            
+            <div class="space-y-1">
+                <span class="block text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Master Design</span>
+                <span class="block text-[8px] font-medium text-gray-300 uppercase tracking-widest italic">(Standard Fallback: {{ sectionType }})</span>
+            </div>
+
+            <!-- Abstract Content Representation -->
+            <div class="w-24 h-1 mx-auto rounded-full bg-gray-100/50"></div>
+            
+            <div class="space-y-2 px-4 max-w-[200px] mx-auto opacity-20">
+                 <div class="h-2 bg-gray-300 rounded-full w-full"></div>
+                 <div class="h-2 bg-gray-300 rounded-full w-3/4 mx-auto"></div>
+                 <div class="h-2 bg-gray-300 rounded-full w-1/2 mx-auto"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Luxury Overlay -->
-    <div class="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-xl pointer-events-none"></div>
+    <div class="absolute inset-0 ring-1 ring-inset ring-black/5 rounded-xl pointer-events-none shadow-[inset_0_0_40px_rgba(0,0,0,0.02)]"></div>
   </div>
 </template>
