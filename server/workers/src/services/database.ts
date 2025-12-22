@@ -155,6 +155,7 @@ export class DatabaseService {
                 particleType: (section.particle_type as any) || 'none',
                 kenBurnsEnabled: section.ken_burns_enabled === 1,
                 zoomConfig: safeParseJSON(section.zoom_config, undefined),
+                pageTransition: safeParseJSON(section.page_transition, undefined),
                 elements: sectionElements.map((el) => this.mapElementToResponse(el)),
             };
         });
@@ -356,6 +357,11 @@ export class DatabaseService {
                 sets.push('zoom_config = ?');
                 values.push(updates.zoomConfig ? JSON.stringify(updates.zoomConfig) : null);
             }
+            if (updates.pageTransition !== undefined) {
+                console.log(`[Database] Updating page_transition for ${sectionType}:`, JSON.stringify(updates.pageTransition));
+                sets.push('page_transition = ?');
+                values.push(updates.pageTransition ? JSON.stringify(updates.pageTransition) : null);
+            }
 
             if (sets.length > 1) {
                 const query = `UPDATE template_sections SET ${sets.join(', ')} WHERE id = ?`;
@@ -376,10 +382,10 @@ export class DatabaseService {
             id, template_id, type, is_visible, background_color, background_url, 
             overlay_opacity, animation, page_title, animation_trigger, 
             open_invitation_config, transition_effect, transition_duration, transition_trigger,
-            particle_type, ken_burns_enabled, zoom_config,
+            particle_type, ken_burns_enabled, zoom_config, page_transition,
             created_at, updated_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `)
                 .bind(
                     id,
@@ -399,6 +405,7 @@ export class DatabaseService {
                     updates.particleType || 'none',
                     updates.kenBurnsEnabled ? 1 : 0,
                     updates.zoomConfig ? JSON.stringify(updates.zoomConfig) : null,
+                    updates.pageTransition ? JSON.stringify(updates.pageTransition) : null,
                     now,
                     now
                 )

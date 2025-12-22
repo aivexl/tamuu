@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS template_sections (
     particle_type TEXT DEFAULT 'none', -- 'none' | 'butterflies' | 'petals' | 'leaves' | 'sparkles'
     ken_burns_enabled INTEGER DEFAULT 0, -- Boolean as INTEGER for cinematic background zoom
     zoom_config TEXT, -- JSON object (ZoomAnimationConfig)
+    page_transition TEXT, -- JSON object for luxury transitions (PageTransitionConfig)
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),
     UNIQUE(template_id, type)

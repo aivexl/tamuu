@@ -72,6 +72,7 @@ export interface DBTemplateSection {
     particle_type: string | null;
     ken_burns_enabled: number; // SQLite boolean
     zoom_config: string | null; // JSON string (ZoomAnimationConfig)
+    page_transition: string | null; // JSON string (PageTransitionConfig)
     created_at: string;
     updated_at: string;
 }
@@ -185,6 +186,7 @@ export interface SectionDesign {
     particleType?: 'none' | 'butterflies' | 'petals' | 'leaves' | 'sparkles';
     kenBurnsEnabled?: boolean;
     zoomConfig?: ZoomAnimationConfig;
+    pageTransition?: PageTransitionConfig;
     elements: TemplateElement[];
 }
 
@@ -409,4 +411,15 @@ export interface LottieConfig {
     autoplay?: boolean;       // Default: true
     speed?: number;           // Playback speed (0.5 - 2), default: 1
     direction?: 'left' | 'right'; // For flipping animation horizontally
+}
+
+export type PageTransitionEffect = 'none' | 'fade' | 'slide-up' | 'slide-down' | 'zoom-reveal' | 'stack-reveal' | 'parallax-reveal' | 'door-reveal';
+
+export interface PageTransitionConfig {
+    enabled: boolean;
+    effect: PageTransitionEffect;
+    trigger: 'scroll' | 'click' | 'open_btn';
+    duration: number; // ms
+    overlayEnabled?: boolean; // For "standby" background effect
+    overlayOpacity?: number;
 }
