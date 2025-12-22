@@ -866,8 +866,8 @@ const getSectionSlotStyle = (index: number): any => {
 
             if (isReveal) {
                 const luxuryEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
-                // LUXURY EASING for fade/door/slide-down; preserve original for slide-up
-                const easing = (effect === 'fade' || effect === 'door-reveal' || effect === 'slide-down') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
+                // LUXURY EASING for fade/door/slide-down/zoom-reveal; preserve original for slide-up
+                const easing = (effect === 'fade' || effect === 'door-reveal' || effect === 'slide-down' || effect === 'zoom-reveal') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
                 firstStyle.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ease-in-out`;
                 
                 if (effect === 'slide-up') firstStyle.transform = 'translateY(-100%)';
@@ -877,7 +877,7 @@ const getSectionSlotStyle = (index: number): any => {
                 }
                 else if (effect === 'fade') firstStyle.opacity = 0;
                 else if (effect === 'zoom-reveal') {
-                    firstStyle.transform = 'scale(1.5)';
+                    firstStyle.transform = 'scale(1.3) translateZ(0)'; // Dramatic cinematic zoom-out
                     firstStyle.opacity = 0;
                 } else if (effect === 'stack-reveal' || effect === 'parallax-reveal') {
                     firstStyle.transform = 'translateY(-100%)';
@@ -903,7 +903,10 @@ const getSectionSlotStyle = (index: number): any => {
 
             // INITIAL STATES vs ANIMATING STATES
             if (!isReveal) {
-                if (effect === 'zoom-reveal') secondStyle.transform = 'scale(0.8)';
+                if (effect === 'zoom-reveal') {
+                    secondStyle.transform = 'scale(0.85) translateZ(0)';
+                    secondStyle.opacity = 0;
+                }
                 else if (effect === 'stack-reveal' || effect === 'parallax-reveal') secondStyle.transform = 'translateY(100px)';
                 else if (effect === 'fade' || effect === 'slide-down') { 
                     secondStyle.opacity = 0;
@@ -911,7 +914,7 @@ const getSectionSlotStyle = (index: number): any => {
                 }
             } else {
                 const luxuryEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
-                const easing = (effect === 'fade' || effect === 'slide-down') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
+                const easing = (effect === 'fade' || effect === 'slide-down' || effect === 'zoom-reveal') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
                 secondStyle.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ease-in-out`;
                 secondStyle.transform = 'scale(1) translateY(0) translateZ(0)';
                 secondStyle.opacity = 1;
