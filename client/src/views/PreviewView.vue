@@ -523,7 +523,7 @@ const getOpenTransitionDuration = () => {
     }
 
     console.log(`[Reveal] Calculated transition wait: ${maxDuration}ms`);
-    return maxDuration + 100; // Add small buffer for UI smoothness
+    return maxDuration + 800; // Luxury Standard: Add deliberate breathing room for "settle" effect
 };
 
 /**
