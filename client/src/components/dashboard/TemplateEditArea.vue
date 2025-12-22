@@ -18,6 +18,7 @@ import type { TemplateElement } from '@/lib/types';
 import Toggle from '@/components/ui/Toggle.vue';
 import Button from '@/components/ui/Button.vue';
 import UserElementEditor from '@/components/dashboard/UserElementEditor.vue';
+import SafeImage from '@/components/ui/SafeImage.vue';
 
 const templateStore = useTemplateStore();
 const invitationStore = useInvitationStore();
@@ -143,24 +144,54 @@ const getEditableElements = (sectionKey: string) => {
                                 v-if="expandedSections.has(section.id)"
                                 class="border-t border-gray-50 bg-gray-50/50"
                             >
-                                <div class="p-5 space-y-5">
+                                <div class="p-5 space-y-6">
+                                    <!-- Visual Preview Area (Per Section) -->
+                                    <div 
+                                        class="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-inner border border-gray-200/50 bg-white group/preview"
+                                        :style="{ backgroundColor: section.data.backgroundColor || '#ffffff' }"
+                                    >
+                                        <!-- Background Image Preview -->
+                                        <SafeImage 
+                                            v-if="section.data.backgroundUrl"
+                                            :src="section.data.backgroundUrl"
+                                            alt="Section background preview"
+                                            class="w-full h-full object-cover transition-transform duration-700 group-hover/preview:scale-110"
+                                        />
+
+                                        <!-- Preview Overlay / Info -->
+                                        <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/5 backdrop-blur-[1px]">
+                                            <div class="bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-sm border border-white/50 flex items-center gap-2 scale-90 md:scale-100">
+                                                <LayoutTemplate class="w-4 h-4 text-teal-600" />
+                                                <span class="text-xs font-bold text-gray-700 tracking-tight">Design Preview</span>
+                                            </div>
+                                            
+                                            <div class="absolute bottom-3 left-3 flex gap-2">
+                                                <div class="px-2 py-1 bg-white/80 backdrop-blur-sm rounded-md text-[10px] font-medium text-gray-500 border border-white/20">
+                                                    BG: {{ section.data.backgroundColor || 'Default' }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <!-- Section Content Context -->
                                     <div class="flex items-center justify-between px-1">
-                                        <span class="text-xs font-semibold text-gray-500 uppercase tracking-widest">
-                                            Content Settings
-                                        </span>
-                                        <div class="flex gap-2">
-                                             <Button variant="ghost" size="icon" @click="invitationStore.duplicateSection(section.id)" class="text-gray-400 hover:text-blue-600">
-                                                <Copy class="w-4 h-4" />
+                                        <div class="flex flex-col">
+                                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
+                                                Content Settings
+                                            </span>
+                                        </div>
+                                        <div class="flex gap-1">
+                                             <Button variant="ghost" size="icon" @click="invitationStore.duplicateSection(section.id)" class="w-8 h-8 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all">
+                                                <Copy class="w-3.5 h-3.5" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" @click="invitationStore.deleteSection(section.id)" class="text-gray-400 hover:text-red-500">
-                                                <Trash2 class="w-4 h-4" />
+                                            <Button variant="ghost" size="icon" @click="invitationStore.deleteSection(section.id)" class="w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                                <Trash2 class="w-3.5 h-3.5" />
                                             </Button>
                                         </div>
                                     </div>
 
                                     <!-- Editable Fields for current template sync -->
-                                    <div v-if="getEditableElements(section.type).length > 0" class="space-y-4">
+                                    <div v-if="getEditableElements(section.type).length > 0" class="space-y-5">
                                         <UserElementEditor
                                             v-for="element in getEditableElements(section.type)"
                                             :key="element.id"
@@ -170,12 +201,12 @@ const getEditableElements = (sectionKey: string) => {
                                         />
                                     </div>
                                     
-                                    <div v-else class="py-12 bg-white rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center text-center px-4">
-                                        <div class="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mb-3">
-                                            <Layers class="w-6 h-6 text-gray-300" />
+                                    <div v-else class="py-10 bg-white/50 rounded-2xl border border-dashed border-gray-200 flex flex-col items-center justify-center text-center px-4">
+                                        <div class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mb-3">
+                                            <Layers class="w-5 h-5 text-gray-300" />
                                         </div>
-                                        <h4 class="text-sm font-medium text-gray-600 mb-1">Tidak ada field yang dapat diedit</h4>
-                                        <p class="text-xs text-gray-400">Section ini didesain secara statis atau diatur oleh admin.</p>
+                                        <h4 class="text-sm font-semibold text-gray-600 mb-1">Halaman ini didesain statis</h4>
+                                        <p class="text-xs text-gray-400 max-w-[200px]">Semua elemen pada halaman ini diatur secara otomatis oleh sistem.</p>
                                     </div>
 
                                     <!-- Quick Preview Section -->
@@ -183,9 +214,9 @@ const getEditableElements = (sectionKey: string) => {
                                         <RouterLink 
                                             :to="`/preview/${templateId}?section=${section.id}`"
                                             target="_blank"
-                                            class="flex items-center justify-center gap-2 py-3 bg-white rounded-xl border border-gray-100 text-sm font-medium text-blue-600 hover:text-blue-700 hover:shadow-sm transition-all"
+                                            class="flex items-center justify-center gap-2 py-3.5 bg-white rounded-2xl border border-gray-100 text-sm font-bold text-teal-600 hover:text-teal-700 hover:border-teal-100 hover:shadow-md hover:shadow-teal-500/5 transition-all group/btn"
                                         >
-                                            <Monitor class="w-4 h-4" />
+                                            <Monitor class="w-4 h-4 transition-transform group-hover/btn:scale-110" />
                                             Preview Halaman Ini
                                         </RouterLink>
                                     </div>
