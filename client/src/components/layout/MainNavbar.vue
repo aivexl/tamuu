@@ -8,7 +8,6 @@ import {
   LayoutDashboard, 
   User, 
   LogOut, 
-  LayoutTemplate,
   Sparkles,
   ChevronRight
 } from 'lucide-vue-next';
@@ -195,6 +194,6 @@ const navLinks = [
 
 <style scoped>
 .router-link-active:not(.group) {
-  @apply text-indigo-600;
+  color: rgb(79 70 229); /* indigo-600 */
 }
 </style>
