@@ -62,12 +62,10 @@ const handleError = () => {
       bottom: fill ? 0 : undefined,
     }"
   >
-    <!-- Placeholder / Loading State -->
     <div
       v-if="isLoading"
-      class="absolute inset-0 bg-slate-200 animate-pulse flex items-center justify-center z-10"
+      class="absolute inset-0 bg-slate-200 animate-pulse z-10"
     >
-      <span class="text-slate-400 text-xs">Loading...</span>
     </div>
 
     <!-- No Image State -->

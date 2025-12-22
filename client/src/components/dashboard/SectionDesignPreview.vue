@@ -33,11 +33,18 @@ const currentTemplate = computed(() => {
 
 const sectionDesign = computed(() => {
     const sections = currentTemplate.value?.sections;
-    if (!sections) return null;
+    if (!sections) {
+        console.warn(`[Preview] No sections found in template for ${props.sectionType}`);
+        return null;
+    }
     
     // Case-insensitive lookup for enterprise-grade robustness
     const targetType = props.sectionType.toLowerCase();
     const match = Object.keys(sections).find(k => k.toLowerCase() === targetType);
+    
+    if (!match) {
+        console.warn(`[Preview] Section '${props.sectionType}' not found in template. Available:`, Object.keys(sections));
+    }
     
     return match ? sections[match] : null;
 });

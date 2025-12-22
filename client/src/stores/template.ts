@@ -89,9 +89,13 @@ export const useTemplateStore = defineStore("template", {
                         // Only preserve LOCAL-ONLY pending changes (temp elements, unsaved positions).
                         Object.keys(template.sections).forEach(sectionType => {
                             const dbSection = template.sections[sectionType];
-                            const localSection = existing.sections[sectionType];
+                            const localSection = existing.sections ? existing.sections[sectionType] : null;
+
                             if (!dbSection) return;
-                            if (!localSection) return; // No local section, use DB as-is
+
+                            // If no local section exists, we just use the DB section as-is.
+                            // The merge logic below is ONLY for merging local pending changes.
+                            if (!localSection) return;
 
                             // SECTION PROPERTIES: DB is source of truth.
                             // We do NOT override DB with local for section-level props anymore.
@@ -129,7 +133,9 @@ export const useTemplateStore = defineStore("template", {
 
                         // Replace the template with DB version (merged elements)
                         const index = this.templates.findIndex(t => t.id === id);
-                        this.templates[index] = template;
+                        if (index !== -1) {
+                            this.templates.splice(index, 1, template);
+                        }
                     } else {
                         this.templates.push(template);
                     }

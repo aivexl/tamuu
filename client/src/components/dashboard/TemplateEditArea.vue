@@ -62,6 +62,7 @@ const handleElementUpdate = (elementId: string, updates: Partial<TemplateElement
 
 // Hydration Engine: Ensures master designs are fully loaded even if bulk fetch was "hollow"
 const hydrateTemplate = async (id: string) => {
+    if (!id) return;
     const template = templateStore.templates.find(t => t.id === id);
     // If template is missing or hollow (no sections), fetch full data
     if (!template || Object.keys(template.sections || {}).length === 0) {
