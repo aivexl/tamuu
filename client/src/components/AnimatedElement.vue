@@ -213,14 +213,23 @@ useIntersectionObserver(
     }
 );
 
-// MANUAL TRIGGER WATCHER
-watch(() => props.forceTrigger, (force) => {
-    if ((props.triggerMode === 'click' || props.triggerMode === 'open_btn') && force) {
-        if (isVisible.value || props.immediate) {
-            tryTriggerAnimation();
+// MANUAL TRIGGER WATCHER - Triggers animation when forceTrigger becomes true
+watch(() => props.forceTrigger, (force, oldForce) => {
+    // Only trigger on positive edge (false -> true)
+    if (force && !oldForce) {
+        // For click/open_btn modes, use existing logic
+        if (props.triggerMode === 'click' || props.triggerMode === 'open_btn') {
+            if (isVisible.value || props.immediate) {
+                tryTriggerAnimation();
+            } else {
+                console.log(`[Animation] ${props.elementId} received open trigger but is not visible. Postponing.`);
+                pendingOpenTrigger.value = true;
+            }
         } else {
-            console.log(`[Animation] ${props.elementId} received open trigger but is not visible. Postponing.`);
-            pendingOpenTrigger.value = true;
+            // For scroll and other modes, trigger immediately when forceTrigger becomes true
+            // This handles Section 2+ elements when transition completes
+            console.log(`[Animation] ${props.elementId} forceTrigger fired for mode: ${props.triggerMode}`);
+            tryTriggerAnimation();
         }
     }
 }, { immediate: true });

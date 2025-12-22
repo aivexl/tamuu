@@ -603,9 +603,13 @@ const handleOpenInvitation = async () => {
                         
                         // LUXURY DELAY: Wait for browser paint to stabilize
                         setTimeout(() => {
-                            // CRITICAL: Clear GSAP inline styles after handoff
-                            gsap.set('.atomic-cover-layer', { clearProps: 'all' });
-                            gsap.set('.atomic-next-layer', { clearProps: 'all' });
+                            // CRITICAL: Clear GSAP inline styles after handoff using refs
+                            if (sectionRefs.value[0]) {
+                                gsap.set(sectionRefs.value[0], { clearProps: 'all' });
+                            }
+                            if (sectionRefs.value[1]) {
+                                gsap.set(sectionRefs.value[1], { clearProps: 'all' });
+                            }
                             
                             isRevealing.value = false;
                             isHandoffActive.value = false;
@@ -625,74 +629,83 @@ const handleOpenInvitation = async () => {
             }, 50); // Small delay to let GSAP's final frame render
         };
 
-        // EXECUTE LUXURY EFFECTS
+        // EXECUTE LUXURY EFFECTS using direct refs (prevents Vue `:style` conflicts)
+        const coverSection = sectionRefs.value[0];
+        const nextSection = sectionRefs.value[1];
+        
+        if (!coverSection) {
+            console.warn('[Transition] No cover section ref found');
+            finishTransition();
+            return;
+        }
+        
+        console.log('[Transition] Animating cover section with ref:', coverSection);
+        
         if (effect === 'none') {
             finishTransition();
         } else if (effect === 'fade') {
-            gsap.to('.atomic-cover-layer', {
+            gsap.to(coverSection, {
                 opacity: 0,
                 duration: duration,
                 ease: 'power2.inOut',
                 onComplete: finishTransition
             });
         } else if (effect === 'slide-up') {
-            gsap.to('.atomic-cover-layer', {
+            gsap.to(coverSection, {
                 y: '-100%',
                 duration: duration,
-                ease: 'expo.inOut',
+                ease: 'power3.out',
                 onComplete: finishTransition
             });
         } else if (effect === 'slide-down') {
-            gsap.to('.atomic-cover-layer', {
+            gsap.to(coverSection, {
                 y: '100%',
                 duration: duration,
-                ease: 'expo.inOut',
+                ease: 'power3.out',
                 onComplete: finishTransition
             });
         } else if (effect === 'zoom-reveal') {
-            // Top layer scales out and fades
-            gsap.to('.atomic-cover-layer', {
+            gsap.to(coverSection, {
                 scale: 1.5,
                 opacity: 0,
                 duration: duration,
                 ease: 'power3.inOut',
                 onComplete: finishTransition
             });
-            // Bottom layer scales in from 0.8
-            gsap.fromTo('.atomic-next-layer', 
-                { scale: 0.8, opacity: 0 },
-                { scale: 1, opacity: 1, duration: duration, ease: 'power2.out' }
-            );
+            if (nextSection) {
+                gsap.fromTo(nextSection, 
+                    { scale: 0.8, opacity: 0 },
+                    { scale: 1, opacity: 1, duration: duration, ease: 'power2.out' }
+                );
+            }
         } else if (effect === 'stack-reveal') {
-            // Section 1 slides up to reveal Section 2 which is already behind
-            gsap.to('.atomic-cover-layer', {
+            gsap.to(coverSection, {
                 y: '-100%',
                 duration: duration,
                 ease: 'power4.inOut',
                 onComplete: finishTransition
             });
-            // Sublte parallax on section 2
-            gsap.fromTo('.atomic-next-layer',
-                { y: 100 },
-                { y: 0, duration: duration, ease: 'power4.out' }
-            );
+            if (nextSection) {
+                gsap.fromTo(nextSection,
+                    { y: 100 },
+                    { y: 0, duration: duration, ease: 'power4.out' }
+                );
+            }
         } else if (effect === 'parallax-reveal') {
-            gsap.to('.atomic-cover-layer', {
+            gsap.to(coverSection, {
                 y: '-100%',
                 duration: duration,
-                ease: 'none',
+                ease: 'power2.inOut',
                 onComplete: finishTransition
             });
-            gsap.fromTo('.atomic-next-layer',
-                { y: '30%' },
-                { y: '0%', duration: duration, ease: 'none' }
-            );
+            if (nextSection) {
+                gsap.fromTo(nextSection,
+                    { y: '30%' },
+                    { y: '0%', duration: duration, ease: 'power2.out' }
+                );
+            }
         } else if (effect === 'door-reveal') {
-            // Split transition using scaleX = 0 on two halves or similar
-            // For now, let's use a simple scaleY: 0 or clip-path if we had it
-            // Better: Slide left and right if we split the container (complex)
-            // Let's use a luxury "Scale toward edges" for now
-            gsap.to('.atomic-cover-layer', {
+            gsap.to(coverSection, {
                 scaleX: 0,
                 opacity: 0,
                 duration: duration,
