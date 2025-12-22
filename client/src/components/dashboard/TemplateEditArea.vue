@@ -9,7 +9,6 @@ import {
     Plus,
     Copy,
     Trash2,
-    Monitor,
     LayoutTemplate
 } from 'lucide-vue-next';
 import { useTemplateStore } from '@/stores/template';
@@ -58,6 +57,9 @@ const handleElementUpdate = (elementId: string, updates: Partial<TemplateElement
 };
 
 onMounted(async () => {
+    if (templateStore.templates.length === 0) {
+        await templateStore.fetchTemplates();
+    }
     if (templateId.value && !currentTemplate.value) {
         await templateStore.fetchTemplate(templateId.value);
     }
@@ -142,42 +144,49 @@ const getEditableElements = (sectionKey: string) => {
                             <!-- Expandable Content -->
                             <div 
                                 v-if="expandedSections.has(section.id)"
-                                class="border-t border-gray-50 bg-gray-50/50"
+                                class="border-t border-gray-50 bg-gray-50/10"
                             >
                                 <div class="p-5 space-y-6">
                                     <!-- Visual Preview Area (Per Section) -->
                                     <div 
-                                        class="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-inner border border-gray-200/50 bg-white"
-                                        :style="{ backgroundColor: currentTemplate?.sections[section.type]?.backgroundColor || '#ffffff' }"
+                                        class="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-sm border border-gray-100 bg-white group/preview"
+                                        :style="{ 
+                                            backgroundColor: currentTemplate?.sections[section.type]?.backgroundColor || 
+                                                           (section.type === 'opening' ? invitationStore.invitation.theme.colors.primary : invitationStore.invitation.theme.colors.background) || 
+                                                           '#f8fafc' 
+                                        }"
                                     >
-                                        <!-- Background Image Preview -->
+                                        <!-- Background Image Preview (From Master Template) -->
                                         <SafeImage 
                                             v-if="currentTemplate?.sections[section.type]?.backgroundUrl"
-                                            :src="currentTemplate.sections[section.type].backgroundUrl!"
-                                            alt="Section background preview"
-                                            class="w-full h-full object-cover"
+                                            :src="currentTemplate?.sections?.[section.type]?.backgroundUrl || ''"
+                                            alt="Section design preview"
+                                            class="w-full h-full object-cover transition-transform duration-500 group-hover/preview:scale-105"
                                         />
 
-                                        <!-- Centered Section Type/Title for clarity if no BG -->
-                                        <div v-if="!currentTemplate?.sections[section.type]?.backgroundUrl" class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <span class="text-3xl font-black text-gray-100 uppercase tracking-tighter opacity-50">
-                                                {{ section.title || section.type }}
-                                            </span>
+                                        <!-- If no background, show a really subtle pattern or large icon -->
+                                        <div v-else class="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
+                                            <LayoutTemplate class="w-32 h-32" />
                                         </div>
-                                    </div>
 
-                                    <!-- Section Content Context (Only Actions if no editable fields) -->
-                                    <div class="flex items-center justify-between px-1">
-                                        <div class="flex flex-col">
-                                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
-                                                Section Settings
-                                            </span>
-                                        </div>
-                                        <div class="flex gap-1">
-                                             <Button variant="ghost" size="icon" @click="invitationStore.duplicateSection(section.id)" class="w-8 h-8 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all">
+                                        <!-- Floating Action Menu (Small & Minimal) -->
+                                        <div class="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover/preview:opacity-100 transition-all duration-300 transform translate-y-1 group-hover/preview:translate-y-0">
+                                             <Button 
+                                                variant="secondary" 
+                                                size="icon" 
+                                                @click.stop="invitationStore.duplicateSection(section.id)" 
+                                                class="w-8 h-8 bg-white/90 backdrop-blur-md border border-gray-100 shadow-sm hover:bg-teal-500 hover:text-white rounded-lg transition-all"
+                                                title="Duplikat"
+                                            >
                                                 <Copy class="w-3.5 h-3.5" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" @click="invitationStore.deleteSection(section.id)" class="w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                                            <Button 
+                                                variant="secondary" 
+                                                size="icon" 
+                                                @click.stop="invitationStore.deleteSection(section.id)" 
+                                                class="w-8 h-8 bg-white/90 backdrop-blur-md border border-gray-100 shadow-sm hover:bg-red-500 hover:text-white rounded-lg transition-all"
+                                                title="Hapus"
+                                            >
                                                 <Trash2 class="w-3.5 h-3.5" />
                                             </Button>
                                         </div>
@@ -185,6 +194,13 @@ const getEditableElements = (sectionKey: string) => {
 
                                     <!-- Editable Fields -->
                                     <div v-if="getEditableElements(section.type).length > 0" class="space-y-5">
+                                        <!-- Minimal Divider -->
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-px flex-1 bg-gray-100"></div>
+                                            <span class="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Pengaturan Konten</span>
+                                            <div class="h-px flex-1 bg-gray-100"></div>
+                                        </div>
+
                                         <UserElementEditor
                                             v-for="element in getEditableElements(section.type)"
                                             :key="element.id"
@@ -192,18 +208,6 @@ const getEditableElements = (sectionKey: string) => {
                                             :model-value="overrides[element.id] || {}"
                                             @update="(updates) => handleElementUpdate(element.id, updates)"
                                         />
-                                    </div>
-
-                                    <!-- Quick Preview Section -->
-                                    <div class="pt-2">
-                                        <RouterLink 
-                                            :to="`/preview/${templateId}?section=${section.id}`"
-                                            target="_blank"
-                                            class="flex items-center justify-center gap-2 py-3.5 bg-white rounded-2xl border border-gray-100 text-sm font-bold text-teal-600 hover:text-teal-700 hover:border-teal-100 hover:shadow-md hover:shadow-teal-500/5 transition-all group/btn"
-                                        >
-                                            <Monitor class="w-4 h-4 transition-transform group-hover/btn:scale-110" />
-                                            Lihat Halaman Penuh
-                                        </RouterLink>
                                     </div>
                                 </div>
                             </div>
