@@ -64,6 +64,7 @@ const filteredSections = computed((): (any)[] => {
 const isOpened = ref(false); // Track if "Open" button was clicked
 const isRevealing = ref(false); // Track if middle-of-reveal animation is active
 const isHandoffActive = ref(false); // New: Track the split-second handoff between modes
+const isTransitionComplete = ref(false); // Track when GSAP animation is fully complete
 const shutterVisible = ref(false);
 const openBtnTriggered = ref(false);
 const flowMode = ref(false); // Binary mode: Reveal (Atomic) vs Scroll (Flow)
@@ -566,53 +567,62 @@ const handleOpenInvitation = async () => {
         console.log(`[Transition] Effect: ${effect}, Duration: ${duration}s`);
         
         const finishTransition = () => {
-            // CTO-LEVEL HANDOFF: Keep layers overlapping briefly for sub-pixel alignment
-            isHandoffActive.value = true;
-            flowMode.value = true;
-            
-            nextTick(() => {
-                if (scrollContainer.value) {
-                    if (lenis) lenis.stop();
-                    
-                    const scrollOffset = coverHeightComputed.value * scaleFactor.value;
-                    scrollContainer.value.scrollTop = scrollOffset;
-                    
-                    // Force a re-layout check
-                    const handleScroll = () => {
-                        if (!scrollContainer.value) return;
-                        const containerRect = scrollContainer.value.getBoundingClientRect();
-                        const containerTop = containerRect.top;
-                        const containerBottom = containerRect.bottom;
+            // ENTERPRISE-GRADE: Delay mode switch to let GSAP animation fully settle
+            // This prevents Vue's reactive styles from overriding GSAP's final frame
+            setTimeout(() => {
+                isHandoffActive.value = true;
+                flowMode.value = true;
+                
+                nextTick(() => {
+                    if (scrollContainer.value) {
+                        if (lenis) lenis.stop();
                         
-                        sectionRefs.value.forEach((sectionEl, index) => {
-                            if (!sectionEl) return;
-                            const rect = sectionEl.getBoundingClientRect();
-                            const isVisible = Math.min(rect.bottom, containerBottom) - Math.max(rect.top, containerTop) >= rect.height * 0.1;
+                        const scrollOffset = coverHeightComputed.value * scaleFactor.value;
+                        scrollContainer.value.scrollTop = scrollOffset;
+                        
+                        // Force a re-layout check
+                        const handleScroll = () => {
+                            if (!scrollContainer.value) return;
+                            const containerRect = scrollContainer.value.getBoundingClientRect();
+                            const containerTop = containerRect.top;
+                            const containerBottom = containerRect.bottom;
                             
-                            if (isVisible && !visibleSections.value.includes(index)) {
-                                visibleSections.value.push(index);
+                            sectionRefs.value.forEach((sectionEl, index) => {
+                                if (!sectionEl) return;
+                                const rect = sectionEl.getBoundingClientRect();
+                                const isVisible = Math.min(rect.bottom, containerBottom) - Math.max(rect.top, containerTop) >= rect.height * 0.1;
+                                
+                                if (isVisible && !visibleSections.value.includes(index)) {
+                                    visibleSections.value.push(index);
+                                }
+                            });
+                        };
+                        
+                        scrollContainer.value.addEventListener('scroll', handleScroll);
+                        setTimeout(handleScroll, 100);
+                        
+                        // LUXURY DELAY: Wait for browser paint to stabilize
+                        setTimeout(() => {
+                            // CRITICAL: Clear GSAP inline styles after handoff
+                            gsap.set('.atomic-cover-layer', { clearProps: 'all' });
+                            gsap.set('.atomic-next-layer', { clearProps: 'all' });
+                            
+                            isRevealing.value = false;
+                            isHandoffActive.value = false;
+                            isTransitionComplete.value = true;
+                            
+                            if (lenis) {
+                                lenis.resize();
+                                lenis.start();
                             }
-                        });
-                    };
-                    
-                    scrollContainer.value.addEventListener('scroll', handleScroll);
-                    setTimeout(handleScroll, 100);
-                    
-                    // LUXURY DELAY: Wait 150ms for browser paint to stabilize at New scroll position
-                    setTimeout(() => {
+                        }, 300);
+                    } else {
                         isRevealing.value = false;
                         isHandoffActive.value = false;
-                        
-                        if (lenis) {
-                            lenis.resize();
-                            lenis.start();
-                        }
-                    }, 150);
-                } else {
-                    isRevealing.value = false;
-                    isHandoffActive.value = false;
-                }
-            });
+                        isTransitionComplete.value = true;
+                    }
+                });
+            }, 50); // Small delay to let GSAP's final frame render
         };
 
         // EXECUTE LUXURY EFFECTS
@@ -1066,7 +1076,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :style="getElementStyle(el, index)"
                                         :immediate="index === 0"
                                         :trigger-mode="el.animationTrigger || 'scroll'"
-                                        :force-trigger="index === 0 ? (el.animationTrigger === 'open_btn' ? isOpened : true) : (flowMode && isOpened)"
+                                        :force-trigger="index === 0 ? (el.animationTrigger === 'open_btn' ? isOpened : true) : isTransitionComplete"
                                         :element-id="el.id"
                                         :image-url="el.imageUrl"
                                         :motion-path-config="el.motionPathConfig"
