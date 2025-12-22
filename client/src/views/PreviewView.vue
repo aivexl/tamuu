@@ -880,7 +880,8 @@ const getSectionSlotStyle = (index: number): any => {
                     firstStyle.transform = 'scale(1.3) translateZ(0)'; // Dramatic cinematic zoom-out
                     firstStyle.opacity = 0;
                 } else if (effect === 'stack-reveal') {
-                    firstStyle.transform = 'translateY(-100%) scale(0.9) translateZ(0)';
+                    // MORE PRONOUNCED PARALLAX: Cover moves faster and further
+                    firstStyle.transform = 'translateY(-120%) scale(0.85) translateZ(0)';
                     firstStyle.opacity = 0;
                 } else if (effect === 'parallax-reveal') {
                     firstStyle.transform = 'translateY(-100%)';
@@ -910,7 +911,8 @@ const getSectionSlotStyle = (index: number): any => {
                     secondStyle.opacity = 0;
                 }
                 else if (effect === 'stack-reveal') {
-                    secondStyle.transform = 'translateY(100%) scale(0.9) translateZ(0)';
+                    // MORE PRONOUNCED PARALLAX: Content starts further and scales more
+                    secondStyle.transform = 'translateY(80%) scale(0.85) translateZ(0)';
                     secondStyle.opacity = 0;
                 }
                 else if (effect === 'parallax-reveal') secondStyle.transform = 'translateY(100px)';
