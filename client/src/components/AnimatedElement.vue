@@ -73,6 +73,11 @@ const elementRef = ref<HTMLElement | null>(null);
 // Track animation state - Check global cache first
 const shouldAnimate = ref(props.elementId ? (globalAnimatedState.get(props.elementId) || false) : false);
 
+// Track if an open_btn trigger is pending because the element wasn't visible
+const pendingOpenTrigger = ref(false);
+
+const isVisible = ref(false);
+
 const tryTriggerAnimation = () => {
     if (!shouldAnimate.value) {
         requestAnimationFrame(() => {
@@ -173,10 +178,18 @@ useIntersectionObserver(
         if (!entry) return;
         
         const { isIntersecting, boundingClientRect, rootBounds } = entry;
+        isVisible.value = isIntersecting;
         
-        if (isIntersecting && props.triggerMode === 'scroll') {
-            // Element entered viewport (from any direction)
-            tryTriggerAnimation();
+        if (isIntersecting) {
+            if (props.triggerMode === 'scroll') {
+                // Element entered viewport (from any direction)
+                tryTriggerAnimation();
+            } else if (pendingOpenTrigger.value) {
+                // Was waiting for visibility to trigger open_btn animation
+                console.log(`[Animation] ${props.elementId} became visible, firing pending open trigger`);
+                pendingOpenTrigger.value = false;
+                tryTriggerAnimation();
+            }
         } else if (rootBounds && props.triggerMode === 'scroll' && !props.immediate) {
             // Only reset if NOT immediate - immediate elements should always stay visible
             /**
@@ -203,7 +216,12 @@ useIntersectionObserver(
 // MANUAL TRIGGER WATCHER
 watch(() => props.forceTrigger, (force) => {
     if ((props.triggerMode === 'click' || props.triggerMode === 'open_btn') && force) {
-        tryTriggerAnimation();
+        if (isVisible.value || props.immediate) {
+            tryTriggerAnimation();
+        } else {
+            console.log(`[Animation] ${props.elementId} received open trigger but is not visible. Postponing.`);
+            pendingOpenTrigger.value = true;
+        }
     }
 }, { immediate: true });
 

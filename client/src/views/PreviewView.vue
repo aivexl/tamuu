@@ -470,6 +470,51 @@ onUnmounted(() => {
 });
 
 /**
+ * Calculate the total duration of animations in the Cover section 
+ * that are triggered by the "Open" button.
+ */
+const getOpenTransitionDuration = () => {
+    const section = filteredSections.value[0];
+    if (!section) return 400;
+
+    let maxDuration = 400; // Standard minimum breathing room
+
+    // 1. Check elements with 'open_btn' trigger
+    (section.elements || []).forEach((el: any) => {
+        if (el.animationTrigger === 'open_btn') {
+            const delay = Number(el.animationDelay) || 0;
+            let duration = Number(el.animationDuration) || 800;
+            
+            // Elements might have their own zoom config which can take longer
+            if (el.zoomConfig?.enabled) {
+                const zoomDur = Number(el.zoomConfig.duration) || 2000;
+                if (zoomDur > duration) duration = zoomDur;
+            }
+
+            const total = delay + duration;
+            if (total > maxDuration) maxDuration = total;
+        }
+    });
+
+    // 2. Check Zoom Animation if triggered by 'open_btn'
+    if (section.zoomConfig?.enabled && section.zoomConfig.trigger === 'open_btn') {
+        let zoomTotal = 0;
+        const points = section.zoomConfig.points || [];
+        if (points.length > 0) {
+            zoomTotal = points.reduce((acc: number, p: any) => 
+                acc + (Number(p.duration) || Number(section.zoomConfig.duration) || 3000), 0
+            );
+        } else {
+            zoomTotal = Number(section.zoomConfig.duration) || 3000;
+        }
+        if (zoomTotal > maxDuration) maxDuration = zoomTotal;
+    }
+
+    console.log(`[Reveal] Calculated transition wait: ${maxDuration}ms`);
+    return maxDuration + 100; // Add small buffer for UI smoothness
+};
+
+/**
  * SIMPLE REVEAL - No animations, just switch to Flow Mode
  */
 const handleOpenInvitation = async () => {
@@ -484,7 +529,9 @@ const handleOpenInvitation = async () => {
         visibleSections.value.push(1);
     } 
     
-    // Step 2: Brief elegant delay (let the button click/S1 anims breathe)
+    // Step 2: Dynamic delay based on Cover section animations
+    const waitDuration = getOpenTransitionDuration();
+    
     setTimeout(() => {
         flowMode.value = true;
         isRevealing.value = false;
@@ -535,7 +582,7 @@ const handleOpenInvitation = async () => {
                 }, 50);
             }
         });
-    }, 400); // Quick transition for a "Direct" feel
+    }, waitDuration); 
 };
 
 // Dimensions & Scaling
