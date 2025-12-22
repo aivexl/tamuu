@@ -82,10 +82,11 @@ onMounted(async () => {
         await hydrateTemplate(templateId.value);
     }
     
-    // 3. Proactive Hydration for fallback master (to ensure previews never show blank)
-    const firstTemplate = templateStore.templates[0];
-    if (firstTemplate) {
-        await hydrateTemplate(firstTemplate.id);
+    // 3. Proactive "Deep Discovery" Hydration: Try to hydrate first 3 masters 
+    // to ensure fallback designs (like Quotes/Couple) are likely available for discovery.
+    const masters = templateStore.templates.slice(0, 3);
+    for (const master of masters) {
+        await hydrateTemplate(master.id);
     }
 });
 

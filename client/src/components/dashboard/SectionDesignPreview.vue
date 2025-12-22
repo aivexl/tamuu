@@ -32,21 +32,33 @@ const currentTemplate = computed(() => {
 });
 
 const sectionDesign = computed(() => {
-    const sections = currentTemplate.value?.sections;
-    if (!sections) {
-        console.warn(`[Preview] No sections found in template for ${props.sectionType}`);
-        return null;
+    // 1. Primary Lookup (Linked Template)
+    const primarySections = currentTemplate.value?.sections;
+    if (primarySections) {
+        const targetType = props.sectionType.toLowerCase();
+        const match = Object.keys(primarySections).find(k => k.toLowerCase() === targetType);
+        if (match) return primarySections[match];
     }
     
-    // Case-insensitive lookup for enterprise-grade robustness
+    // 2. Global "Deep Discovery": Scan all loaded templates for this section type
+    // This handles cases where a master template is specialized and missing certain sections.
     const targetType = props.sectionType.toLowerCase();
-    const match = Object.keys(sections).find(k => k.toLowerCase() === targetType);
-    
-    if (!match) {
-        console.warn(`[Preview] Section '${props.sectionType}' not found in template. Available:`, Object.keys(sections));
+    for (const temp of templateStore.templates) {
+        const sections = temp.sections;
+        if (!sections) continue;
+        
+        const match = Object.keys(sections).find(k => k.toLowerCase() === targetType);
+        if (match) {
+             const design = sections[match];
+             if (design && (design.elements || []).length > 0) {
+                 console.log(`[Deep Discovery] Found section '${props.sectionType}' in alternate template: ${temp.id}`);
+                 return design;
+             }
+        }
     }
-    
-    return match ? sections[match] : null;
+
+    console.warn(`[Preview] Section '${props.sectionType}' not found in ANY loaded template.`);
+    return null;
 });
 
 /**
