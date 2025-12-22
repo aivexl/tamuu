@@ -566,7 +566,11 @@ const handleOpenInvitation = async () => {
     // Use GSAP for precision timing
     gsap.delayedCall(animWait / 1000, () => {
         const effect = transition.enabled ? transition.effect : 'none';
-        const duration = (transition.duration || 1000) / 1000;
+        // LUXURY STANDARD: Minimum 1.2 seconds for any visible transition
+        const rawDuration = transition.duration || 1000;
+        const duration = Math.max(1.2, rawDuration / 1000);
+        
+        console.log(`[Transition] Effect: ${effect}, Duration: ${duration}s, Raw: ${rawDuration}ms`);
         
         const finishTransition = () => {
             // CTO-LEVEL HANDOFF: Buffer the state change to prevent layout snapshots
@@ -684,12 +688,12 @@ const handleOpenInvitation = async () => {
             gsap.to('.atomic-cover-layer', {
                 y: '-100%',
                 duration: duration,
-                ease: 'none',
+                ease: 'power2.inOut',
                 onComplete: finishTransition
             });
             gsap.fromTo('.atomic-next-layer',
                 { y: '30%' },
-                { y: '0%', duration: duration, ease: 'none' }
+                { y: '0%', duration: duration, ease: 'power2.out' }
             );
         } else if (effect === 'door-reveal') {
             // Split transition using scaleX = 0 on two halves or similar
