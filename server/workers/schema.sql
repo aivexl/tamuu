@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone TEXT,
     avatar_url TEXT,
     plan TEXT DEFAULT 'free' CHECK (plan IN ('free', 'basic', 'premium', 'priority')),
+    role TEXT DEFAULT 'user' CHECK (role IN ('admin', 'user')),
     plan_expires_at TEXT,
     is_verified INTEGER DEFAULT 0,
     verification_token TEXT,

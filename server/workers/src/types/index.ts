@@ -30,6 +30,7 @@ export interface DBUser {
     phone: string | null;
     avatar_url: string | null;
     plan: 'free' | 'basic' | 'premium' | 'priority';
+    role: 'admin' | 'user';
     plan_expires_at: string | null;
     is_verified: number; // SQLite boolean
     verification_token: string | null;
@@ -140,6 +141,7 @@ export interface UserResponse {
     phone: string | null;
     avatarUrl: string | null;
     plan: 'free' | 'basic' | 'premium' | 'priority';
+    role: 'admin' | 'user';
     planExpiresAt: string | null;
     isVerified: boolean;
     createdAt: string;
@@ -149,6 +151,7 @@ export interface UserResponse {
 export interface AuthTokenPayload {
     userId: string;
     email: string;
+    role: 'admin' | 'user';
     exp: number;
 }
 

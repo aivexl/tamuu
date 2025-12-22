@@ -25,6 +25,8 @@ export const useAuthStore = defineStore('auth', {
     getters: {
         isAuthenticated: (state) => !!state.user,
         isVerified: (state) => state.user?.isVerified ?? false,
+        isAdmin: (state) => state.user?.role === 'admin',
+        isUser: (state) => state.user?.role === 'user',
         userPlan: (state) => state.user?.plan ?? 'free',
         userName: (state) => state.user?.name || state.user?.email?.split('@')[0] || 'User',
     },

@@ -579,6 +579,7 @@ export interface UserResponse {
     phone: string | null;
     avatarUrl: string | null;
     plan: 'free' | 'basic' | 'premium' | 'priority';
+    role: 'admin' | 'user';
     planExpiresAt: string | null;
     isVerified: boolean;
     createdAt: string;

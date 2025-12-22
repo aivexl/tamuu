@@ -155,13 +155,30 @@ app.get('/api/debug/columns', async (c) => {
 // ============================================
 
 // Mount routers
+app.route('/api/auth', authRouter);
+
+// Protected routes (require login)
+import { authMiddleware, roleMiddleware } from './middleware/auth';
+
+app.use('/api/templates/*', authMiddleware);
+app.use('/api/sections/*', authMiddleware);
+app.use('/api/elements/*', authMiddleware);
+app.use('/api/batch-update/*', authMiddleware);
+
+// Strict RBAC: Admin only for modifications
+app.on(['POST', 'PUT', 'DELETE', 'PATCH'], '/api/templates/*', roleMiddleware(['admin']));
+app.on(['POST', 'PUT', 'DELETE', 'PATCH'], '/api/sections/*', roleMiddleware(['admin']));
+app.on(['POST', 'PUT', 'DELETE', 'PATCH'], '/api/elements/*', roleMiddleware(['admin']));
+app.use('/api/batch-update/*', roleMiddleware(['admin']));
+
 app.route('/api/templates', templatesRouter);
 app.route('/api/sections', sectionsRouter);
 app.route('/api/elements', elementsRouter);
+app.route('/api/batch-update', batchRouter);
+
+// RSVP and Upload are more flexible
 app.route('/api/rsvp', rsvpRouter);
 app.route('/api/upload', uploadRouter);
-app.route('/api/auth', authRouter);
-app.route('/api/batch-update', batchRouter);
 
 
 // ============================================

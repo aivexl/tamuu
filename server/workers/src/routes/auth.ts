@@ -122,6 +122,7 @@ function mapUserToResponse(user: DBUser): UserResponse {
         phone: user.phone,
         avatarUrl: user.avatar_url,
         plan: user.plan,
+        role: user.role,
         planExpiresAt: user.plan_expires_at,
         isVerified: user.is_verified === 1,
         createdAt: user.created_at,
@@ -189,7 +190,11 @@ authRouter.post('/register', async (c) => {
     }
 
     // Create JWT token
-    const token = await createJWT({ userId: user.id, email: user.email });
+    const token = await createJWT({
+        userId: user.id,
+        email: user.email,
+        role: user.role
+    });
 
     // Set cookie
     setCookie(c, 'auth_token', token, {
@@ -233,7 +238,11 @@ authRouter.post('/login', async (c) => {
     }
 
     // Create JWT token
-    const token = await createJWT({ userId: user.id, email: user.email });
+    const token = await createJWT({
+        userId: user.id,
+        email: user.email,
+        role: user.role
+    });
 
     // Set cookie
     setCookie(c, 'auth_token', token, {
