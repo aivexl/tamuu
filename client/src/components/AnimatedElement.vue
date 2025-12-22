@@ -159,7 +159,7 @@ watch(() => props.motionPathConfig, (newVal) => {
 
 // INITIAL TRIGGER (Immediate)
 onMounted(() => {
-    if (props.immediate) {
+    if (props.immediate || shouldAnimate.value) {
         tryTriggerAnimation();
     }
 });
