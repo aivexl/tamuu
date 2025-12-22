@@ -892,9 +892,8 @@ const getSectionSlotStyle = (index: number): any => {
                     firstStyle.opacity = 0;
                     firstStyle.transformOrigin = 'left center';
                 } else if (effect === 'split-door') {
-                    // SPLIT DOOR: True split - halves slide OUTWARD from center
-                    firstStyle.animation = `split-door-outward ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`;
-                    firstStyle.transformOrigin = 'center center';
+                    // SPLIT DOOR: True split with pseudo-elements - set CSS var for duration
+                    firstStyle['--split-duration'] = `${duration}ms`;
                 } else if (effect === 'pinch-close') {
                     // PINCH CLOSE: Halves squeeze INWARD to center
                     firstStyle.animation = `pinch-close ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`;
@@ -1087,7 +1086,8 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                         class="page-section"
                         :class="{ 
                             'atomic-cover-layer': index === 0, 
-                            'atomic-next-layer': index === 1 
+                            'atomic-next-layer': index === 1,
+                            'split-door-container': index === 0 && transitionStage === 'REVEALING' && filteredSections[0]?.pageTransition?.effect === 'split-door'
                         }"
                         :style="getSectionSlotStyle(index)"
                         @click="handleSectionClick(index, section)"
@@ -1327,18 +1327,60 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
     }
 }
 
-/* SPLIT DOOR TRANSITION - True split, halves slide OUTWARD */
-@keyframes split-door-outward {
+/* SPLIT DOOR TRANSITION - True split with pseudo-elements */
+@keyframes split-left {
     0% {
-        transform: scaleX(1);
+        transform: translateX(0);
     }
     100% {
-        transform: scaleX(2);
-        opacity: 0;
+        transform: translateX(-100%);
     }
 }
 
-.split-door-animate, .pinch-close-animate {
+@keyframes split-right {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Split door container - hides original content, shows pseudo halves */
+.split-door-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.split-door-container > * {
+    visibility: hidden; /* Hide actual content */
+}
+
+.split-door-container::before,
+.split-door-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    background: inherit;
+    background-size: 200% 100%;
+    will-change: transform;
+}
+
+.split-door-container::before {
+    left: 0;
+    background-position: left center;
+    animation: split-left var(--split-duration, 1000ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.split-door-container::after {
+    right: 0;
+    background-position: right center;
+    animation: split-right var(--split-duration, 1000ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.pinch-close-animate {
     will-change: transform;
 }
 </style>
