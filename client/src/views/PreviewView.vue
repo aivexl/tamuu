@@ -44,8 +44,8 @@ const filteredSections = computed((): (any)[] => {
         // Standardize zIndex sorting: Ascending (last drawn = topmost)
         const sortedElements = [...(section.elements || [])].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
 
-        if (index === 0 && isOpened.value) {
-            // Remove button elements from Section 1 after "Open" is clicked
+        if (index === 0 && isTransitionComplete.value) {
+            // Remove button elements from Section 1 AFTER transition is 100% DONE
             return {
                 ...section,
                 elements: sortedElements.filter((el: any) => 
@@ -95,29 +95,24 @@ const clickedSections = ref<number[]>([]);
 
 // Helper: Determine if zoom animation should be active based on trigger
 const shouldZoom = (section: any, index: number): boolean => {
-    const config = section?.zoomConfig;
-    if (!config || !config.enabled) {
-        return false;
+    const config = section.zoomConfig;
+    if (!config || !config.enabled) return false;
+
+    // SECTION 0 (COVER): Zoom is active if opened or scrolled into view
+    if (index === 0) {
+        if (config.trigger === 'open_btn') return isOpened.value;
+        if (config.trigger === 'scroll') return visibleSections.value.includes(0);
+        return isOpened.value; // Default for cover
     }
 
-    const trigger = config.trigger || 'scroll';
-    let active = false;
-
-    switch (trigger) {
-        case 'scroll':
-            active = visibleSections.value.includes(index);
-            break;
-        case 'click':
-            active = clickedSections.value.includes(index);
-            break;
-        case 'open_btn':
-            active = isOpened.value;
-            break;
-        default:
-            active = visibleSections.value.includes(index);
-    }
+    // SECTION 1+ (CONTENT): Zoom only activates when the section is being revealed or is done
+    // This creates the "living feel" where background starts moving as it slides up
+    const isRevealingOrDone = ['REVEALING', 'HANDOFF', 'DONE'].includes(transitionStage.value);
     
-    return active;
+    if (config.trigger === 'open_btn') return isRevealingOrDone;
+    if (config.trigger === 'scroll') return isRevealingOrDone && visibleSections.value.includes(index);
+    
+    return isRevealingOrDone;
 };
 
 // Handler for click-triggered zoom on sections
@@ -172,36 +167,48 @@ const getZoomClass = (section: any, index: number): Record<string, boolean> => {
 // This is the key function for multi-point smooth transitions
 const getZoomStyle = (section: any, sectionIndex: number): Record<string, string> => {
     const zoomConfig = section.zoomConfig;
+    if (!zoomConfig || !zoomConfig.enabled) return {};
     
-    // Base style
-    const style: Record<string, string> = {
-        transformOrigin: 'center center'
-    };
-    
-    // If zoom is not active for this section, return identity transform
-    if (!shouldZoom(section, sectionIndex)) {
-        style.transform = 'scale(1) translate(0%, 0%)';
+    const points = zoomConfig.points || [];
+    const isZoomActive = shouldZoom(section, sectionIndex);
+
+    // Case A: Multi-point engine (Direct transform)
+    if (points.length > 1) {
+        const style: Record<string, string> = {
+            transformOrigin: 'center center',
+            willChange: 'transform'
+        };
+        
+        if (!isZoomActive) {
+            style.transform = 'scale(1) translate(0%, 0%)';
+            return style;
+        }
+        
+        const transform = getZoomTransform(section, sectionIndex);
+        style.transform = `scale(${transform.scale}) translate(${transform.translateX}%, ${transform.translateY}%)`;
+        
+        const transitionDuration = zoomConfig.transitionDuration || 1000;
+        style.transition = `transform ${transitionDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+        
         return style;
     }
     
-    // Get transform values
-    const transform = getZoomTransform(section, sectionIndex);
-    const points = zoomConfig?.points || [];
+    // Case B: Legacy single point (CSS Variables for keyframes)
+    if (!isZoomActive) return {};
+
+    const scale = zoomConfig.scale || 1.3;
+    const target = zoomConfig.targetRegion || { x: 50, y: 50, width: 50, height: 50 };
     
-    // Apply direct transform (this is what enables smooth transitions!)
-    style.transform = `scale(${transform.scale}) translate(${transform.translateX}%, ${transform.translateY}%)`;
+    // Calculate translate for centering
+    const translateX = 50 - target.x;
+    const translateY = 50 - target.y;
     
-    // Apply transition for multi-point animation
-    if (points.length > 1) {
-        const transitionDuration = zoomConfig?.transitionDuration || 1000;
-        // Use cubic-bezier for ultra-smooth, premium feel
-        style.transition = `transform ${transitionDuration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
-    } else {
-        // Single point: no transition needed, animation handled by CSS keyframes
-        style.transition = 'none';
-    }
-    
-    return style;
+    return {
+        '--zoom-scale': scale.toString(),
+        '--zoom-translate-x': `${translateX}%`,
+        '--zoom-translate-y': `${translateY}%`,
+        '--zoom-duration': `${zoomConfig.duration || 3000}ms`
+    };
 };
 
 // Helper: Calculate zoom transform (scale + translate) from box dimensions
@@ -288,78 +295,105 @@ const currentZoomPointIndex = ref<Record<number, number>>({});
 // Active interval timers per section
 const zoomAnimationTimers = ref<Record<number, number>>({});
 
-// Start sequential zoom animation for a section when it becomes visible
+// Start sequential zoom animation for a section (Returns Promise for cinematic synchronization)
 const startZoomAnimation = (sectionIndex: number, section: any) => {
-    const zoomConfig = section.zoomConfig;
-    if (!zoomConfig?.enabled) return;
-    
-    // Check trigger: don't start engine until trigger condition is met
-    if (zoomConfig.trigger === 'click' && !clickedSections.value.includes(sectionIndex)) return;
-    if (zoomConfig.trigger === 'open_btn' && !isOpened.value) return;
-    if (zoomConfig.trigger === 'scroll' && !visibleSections.value.includes(sectionIndex)) return;
-
-    const points = zoomConfig.points || [];
-    if (points.length <= 1) {
-        // Single point or legacy - no cycling needed
-        currentZoomPointIndex.value[sectionIndex] = 0;
-        return;
-    }
-    
-    // START ENHANCEMENT: Clear existing timers and start from Normal state (-1)
-    if (zoomAnimationTimers.value[sectionIndex]) {
-        clearTimeout(zoomAnimationTimers.value[sectionIndex]);
-    }
-
-    // Set to Normal state first
-    currentZoomPointIndex.value[sectionIndex] = -1;
-    let currentIndex = 0;
-    const loop = !!zoomConfig.loop;
-
-    const runNext = () => {
-        if (currentIndex < 0 || currentIndex >= points.length) {
-            delete zoomAnimationTimers.value[sectionIndex];
+    return new Promise<void>((resolve) => {
+        const zoomConfig = section.zoomConfig;
+        if (!zoomConfig?.enabled) {
+            resolve();
+            return;
+        }
+        
+        // Check trigger
+        if (zoomConfig.trigger === 'click' && !clickedSections.value.includes(sectionIndex)) {
+            resolve();
+            return;
+        }
+        if (zoomConfig.trigger === 'open_btn' && !isOpened.value) {
+            resolve();
+            return;
+        }
+        if (zoomConfig.trigger === 'scroll' && !visibleSections.value.includes(sectionIndex)) {
+            resolve();
             return;
         }
 
-        const currentPoint = points[currentIndex];
-        const stayDuration = currentPoint?.duration || zoomConfig.duration || 3000;
-        const transitionDuration = zoomConfig.transitionDuration || 1000;
-        const totalPointTime = stayDuration + transitionDuration;
+        const points = zoomConfig.points || [];
+        
+        // Case A: Single point or legacy
+        if (points.length <= 1) {
+            currentZoomPointIndex.value[sectionIndex] = 0;
+            // Resolve after a small buffer to let the transition start
+            setTimeout(resolve, 100);
+            return;
+        }
+        
+        // Case B: Multi-point engine
+        if (zoomAnimationTimers.value[sectionIndex]) {
+            clearTimeout(zoomAnimationTimers.value[sectionIndex]);
+        }
 
-        console.log(`[Zoom] Section ${sectionIndex} at point ${currentIndex} of ${points.length}, staying for ${stayDuration}ms + ${transitionDuration}ms transition`);
+        currentZoomPointIndex.value[sectionIndex] = -1;
+        let currentIndex = 0;
+        const loop = !!zoomConfig.loop;
 
-        zoomAnimationTimers.value[sectionIndex] = setTimeout(() => {
-            const nextIdx = currentIndex + 1;
-            
-            if (nextIdx >= points.length) {
-                if (loop) {
-                    currentIndex = 0;
-                    currentZoomPointIndex.value[sectionIndex] = currentIndex;
-                    console.log(`[Zoom] Section ${sectionIndex}: looping back to point 0`);
-                    runNext();
-                } else if (zoomConfig.behavior === 'reset') {
-                    currentIndex = -1;
-                    currentZoomPointIndex.value[sectionIndex] = currentIndex;
-                    console.log(`[Zoom] Section ${sectionIndex}: returning to normal`);
-                    delete zoomAnimationTimers.value[sectionIndex];
-                } else {
-                    delete zoomAnimationTimers.value[sectionIndex];
-                    console.log(`[Zoom] Section ${sectionIndex}: animation complete (stay mode)`);
-                }
-            } else {
-                currentIndex = nextIdx;
-                currentZoomPointIndex.value[sectionIndex] = currentIndex;
-                console.log(`[Zoom] Section ${sectionIndex}: moved to point ${currentIndex}`);
-                runNext();
+        const runNext = () => {
+            if (currentIndex < 0 || currentIndex >= points.length) {
+                delete zoomAnimationTimers.value[sectionIndex];
+                resolve();
+                return;
             }
-        }, totalPointTime) as any;
-    };
 
-    // Store the init timer as well to prevent overlapping starts
-    zoomAnimationTimers.value[sectionIndex] = setTimeout(() => {
-        currentZoomPointIndex.value[sectionIndex] = 0;
-        runNext();
-    }, 50) as any;
+            const currentPoint = points[currentIndex];
+            const stayDuration = Number(currentPoint?.duration || zoomConfig.duration || 3000);
+            const transitionDuration = Number(zoomConfig.transitionDuration || 1000);
+            
+            // Wait for both the transition to reach this point AND the requested stay duration
+            const totalPointTime = stayDuration + transitionDuration;
+
+            console.log(`[Zoom] Section ${sectionIndex} AT POINT ${currentIndex}, waiting ${totalPointTime}ms`);
+
+            zoomAnimationTimers.value[sectionIndex] = setTimeout(() => {
+                const nextIdx = currentIndex + 1;
+                
+                if (nextIdx >= points.length) {
+                    if (loop) {
+                        currentIndex = 0;
+                        currentZoomPointIndex.value[sectionIndex] = currentIndex;
+                        runNext();
+                    } else if (zoomConfig.behavior === 'reset') {
+                        // CRITICAL FOR SECTION 1: Return to normal (Index -1)
+                        currentIndex = -1;
+                        currentZoomPointIndex.value[sectionIndex] = currentIndex;
+                        console.log(`[Zoom] Section ${sectionIndex}: Final RESET to normal. Resolving in ${transitionDuration + 200}ms`);
+                        
+                        // We must wait for the final reset transition to finish before the slide-up reveal
+                        setTimeout(() => {
+                            delete zoomAnimationTimers.value[sectionIndex];
+                            resolve();
+                        }, transitionDuration + 200);
+                    } else {
+                        delete zoomAnimationTimers.value[sectionIndex];
+                        console.log(`[Zoom] Section ${sectionIndex}: SEQUENCE COMPLETE (stay mode). Resolving.`);
+                        resolve();
+                    }
+                } else {
+                    currentIndex = nextIdx;
+                    currentZoomPointIndex.value[sectionIndex] = currentIndex;
+                    runNext();
+                }
+            }, totalPointTime) as any;
+        };
+
+        // ENHANCED RESET: Always ensure we start clean from scale 1 (Index -1)
+        currentZoomPointIndex.value[sectionIndex] = -1;
+        
+        // Initial 100ms startup to ensure -1 state is rendered by browser
+        zoomAnimationTimers.value[sectionIndex] = setTimeout(() => {
+            currentZoomPointIndex.value[sectionIndex] = 0;
+            runNext();
+        }, 100) as any;
+    });
 };
 
 
@@ -383,6 +417,25 @@ const handleMouseMove = (event: MouseEvent) => {
     // Normalize to -0.5 to 0.5 range
     mousePosition.x = (event.clientX / windowWidth.value) - 0.5;
     mousePosition.y = (event.clientY / windowHeight.value) - 0.5;
+};
+
+// 1. Core Scroll Handler (Shared)
+const handleScroll = () => {
+    if (!scrollContainer.value) return;
+    const containerRect = scrollContainer.value.getBoundingClientRect();
+    const containerTop = containerRect.top;
+    const containerBottom = containerRect.bottom;
+    
+    sectionRefs.value.forEach((sectionEl, index) => {
+        if (!sectionEl) return;
+        const rect = sectionEl.getBoundingClientRect();
+        // 10% visibility threshold
+        const isVisible = Math.min(rect.bottom, containerBottom) - Math.max(rect.top, containerTop) >= rect.height * 0.1;
+        
+        if (isVisible && !visibleSections.value.includes(index)) {
+            visibleSections.value.push(index);
+        }
+    });
 };
 
 onMounted(async () => {
@@ -424,10 +477,12 @@ onMounted(async () => {
     }, { immediate: true });
 
     // Watch for isOpened (other logic unchanged)
-    watch(isOpened, (opened) => {
-        if (opened) {
+    // Watch for transition reveal to trigger Section 1+ animations (Zoom, etc.)
+    // We start them on REVEALING so they are already moving when the user sees them
+    watch(() => transitionStage.value === 'REVEALING', (revealing) => {
+        if (revealing) {
             filteredSections.value.forEach((section, index) => {
-                if (section.zoomConfig?.enabled && section.zoomConfig.trigger === 'open_btn') {
+                if (index > 0 && section.zoomConfig?.enabled && (section.zoomConfig.trigger === 'open_btn' || section.zoomConfig.trigger === 'scroll')) {
                     startZoomAnimation(index, section);
                 }
             });
@@ -447,6 +502,10 @@ onMounted(async () => {
         // Lock scroll initially
         lenis.stop();
 
+        if (scrollContainer.value) {
+            scrollContainer.value.addEventListener('scroll', handleScroll);
+        }
+        
         const scrollLoop = (time: number) => {
             lenis?.raf(time);
             requestAnimationFrame(scrollLoop);
@@ -466,6 +525,9 @@ onUnmounted(() => {
     window.removeEventListener('resize', updateDimensions);
     window.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    if (scrollContainer.value) {
+        scrollContainer.value.removeEventListener('scroll', handleScroll);
+    }
     
     // Clean up all zoom animation timers
     Object.keys(zoomAnimationTimers.value).forEach(key => {
@@ -475,67 +537,8 @@ onUnmounted(() => {
 });
 
 /**
- * Calculate the total duration of animations in the Cover section 
- * that are triggered by the "Open" button.
- */
-const getOpenTransitionDuration = () => {
-    const section = filteredSections.value[0];
-    if (!section) return 400;
-
-    let maxDuration = 400; // Standard minimum breathing room
-
-    // 1. Check elements with 'open_btn' trigger
-    (section.elements || []).forEach((el: any) => {
-        if (el.animationTrigger === 'open_btn') {
-            const delay = Number(el.animationDelay) || 0;
-            let duration = Number(el.animationDuration) || 800;
-            
-            // Elements might have their own zoom config which can take longer
-            if (el.zoomConfig?.enabled) {
-                const zoomDur = Number(el.zoomConfig.duration) || 2000;
-                if (zoomDur > duration) duration = zoomDur;
-            }
-
-            const total = delay + duration;
-            if (total > maxDuration) maxDuration = total;
-        }
-    });
-
-    // 2. Check Zoom Animation if triggered by 'open_btn'
-    if (section.zoomConfig?.enabled && section.zoomConfig.trigger === 'open_btn') {
-        let zoomTotal = 0;
-        const points = section.zoomConfig.points || [];
-        const transitionDuration = Number(section.zoomConfig.transitionDuration) || 1000;
-        const defaultStayDuration = Number(section.zoomConfig.duration) || 3000;
-
-        if (points.length > 0) {
-            // Formula: SUM(transition + stay) for each point
-            zoomTotal = points.reduce((acc: number, p: any) => 
-                acc + (Number(p.duration) || defaultStayDuration) + transitionDuration, 0
-            );
-        } else {
-            // Single zoom: transition to target + stay
-            zoomTotal = transitionDuration + defaultStayDuration;
-        }
-
-        // IMPORTANT: If behavior is 'reset', we must wait for the final transition back to normal (-1)
-        if (section.zoomConfig.behavior === 'reset') {
-            zoomTotal += transitionDuration;
-            console.log(`[Reveal] Adding ${transitionDuration}ms for zoom reset transition`);
-        }
-        
-        if (zoomTotal > maxDuration) maxDuration = zoomTotal;
-    }
-
-    console.log(`[Reveal] Calculated transition wait: ${maxDuration}ms`);
-    return maxDuration + 800; // Luxury Standard: Add deliberate breathing room for "settle" effect
-};
-
-/**
- * SIMPLE REVEAL - No animations, just switch to Flow Mode
- */
-/**
  * REFINED TRANSITION - Support for Enterprise Grade Luxury Effects
+ * Wait for Section 1 (Cover) animations before revealing Section 2 (Content)
  */
 const handleOpenInvitation = async () => {
     if (openBtnTriggered.value) return;
@@ -545,7 +548,15 @@ const handleOpenInvitation = async () => {
     transitionStage.value = 'ZOOMING';
     isOpened.value = true; 
     
-    // Add Section 1 to visibleSections so it renders ready for transition
+    // Get Section 0 and start its cinematic zoom sequence
+    const section0 = filteredSections.value[0];
+    if (section0) {
+        console.log('[Transition] Awaiting Section 0 Cinematic Sequence...');
+        await startZoomAnimation(0, section0);
+        console.log('[Transition] Section 0 Sequence COMPLETE. Starting Reveal.');
+    }
+
+    // Prepare Section 1 for rendering so it's ready for transition
     if (!visibleSections.value.includes(1)) {
         visibleSections.value.push(1);
     } 
@@ -557,77 +568,46 @@ const handleOpenInvitation = async () => {
         trigger: 'open_btn'
     };
 
-    // Calculate dynamic wait time for zoom animations
-    const animWait = getOpenTransitionDuration();
+    // Step 2: Reveal Phase Preparation
+    const effect = transition.enabled ? transition.effect : 'none';
+    const rawDuration = transition.duration || 1000;
+    const duration = Math.max(1.5, rawDuration / 1000);
     
-    // Use GSAP for precision timing
-    gsap.delayedCall(animWait / 1000, () => {
-        // Step 2: Start Reveal Phase
-        transitionStage.value = 'REVEALING';
+    console.log(`[Transition] Effect: ${effect}, Duration: ${duration}s`);
         
-        const effect = transition.enabled ? transition.effect : 'none';
-        const rawDuration = transition.duration || 1000;
-        const duration = Math.max(1.5, rawDuration / 1000);
-        
-        console.log(`[Transition] Effect: ${effect}, Duration: ${duration}s`);
-        
-        const finishTransition = () => {
+    const finishTransition = () => {
             // ENTERPRISE-GRADE: Delay mode switch to let GSAP animation fully settle
             setTimeout(() => {
                 // Step 3: Handoff Phase (Snap scroll, keep z-index)
                 transitionStage.value = 'HANDOFF';
                 
-                nextTick(() => {
+                // CRITICAL: We use requestAnimationFrame to ensure the 'HANDOFF' state 
+                // (which preserves z-index) is rendered by the browser BEFORE we snap the scroll.
+                requestAnimationFrame(() => {
                     if (scrollContainer.value) {
                         if (lenis) lenis.stop();
                         
+                        // MATHEMATICAL CORRECTION:
                         const scrollOffset = coverHeightComputed.value * scaleFactor.value;
                         
-                        // CRITICAL ATOMIC SWAP:
-                        // 1. Apply Scroll Snap (moves content UP by CoverHeight)
-                        // 2. Clear GSAP Transform (moves content DOWN by CoverHeight)
-                        // Net result: Visual position stays exactly the same, but now we are native scrolling.
+                        // SNAP!
                         scrollContainer.value.scrollTop = scrollOffset;
                         
-                        if (sectionRefs.value[0]) {
-                            gsap.set(sectionRefs.value[0], { clearProps: 'all' });
-                        }
-                        if (sectionRefs.value[1]) {
-                            gsap.set(sectionRefs.value[1], { clearProps: 'all' });
-                        }
-                        
-                        // Force a re-layout check
-                        const handleScroll = () => {
-                            if (!scrollContainer.value) return;
-                            const containerRect = scrollContainer.value.getBoundingClientRect();
-                            const containerTop = containerRect.top;
-                            const containerBottom = containerRect.bottom;
-                            
-                            sectionRefs.value.forEach((sectionEl, index) => {
-                                if (!sectionEl) return;
-                                const rect = sectionEl.getBoundingClientRect();
-                                const isVisible = Math.min(rect.bottom, containerBottom) - Math.max(rect.top, containerTop) >= rect.height * 0.1;
-                                
-                                if (isVisible && !visibleSections.value.includes(index)) {
-                                    visibleSections.value.push(index);
-                                }
-                            });
-                        };
-                        
-                        // Execute immediate scroll check
+                        // Execute immediate scroll check to activate Section 1
                         handleScroll();
                         
-                        // Step 4: Done Phase (Release z-index, trigger next animations)
-                        // Transition is 100% complete. Activate Section 1 (index 1).
+                        // ENTERPRISE HANDOFF: 
+                        // We wait a bit in HANDOFF mode before moving to DONE
+                        // This ensures the browser has fully processed the scroll snap
+                        // and layout reconciliation before we release the z-index.
                         setTimeout(() => {
                             if (lenis) {
                                 lenis.resize();
                                 lenis.start();
                             }
-                            
                             transitionStage.value = 'DONE';
                             activeSectionIndex.value = 1;
-                        }, 100);
+                        }, 250); // Increased buffer for stability
                     } else {
                         transitionStage.value = 'DONE';
                     }
@@ -635,29 +615,23 @@ const handleOpenInvitation = async () => {
             }, 50); // Small delay to let GSAP's final frame render
         };
 
-        // EXECUTE LUXURY EFFECTS using direct refs (prevents Vue `:style` conflicts)
         const coverSection = sectionRefs.value[0];
         const nextSection = sectionRefs.value[1];
         
-        if (!coverSection) {
-            console.warn('[Transition] No cover section ref found');
-            finishTransition();
-            return;
-        }
-        
-        console.log('[Transition] Animating cover section with ref:', coverSection);
+        console.log(`[Transition] Executing Luxury Reveal: ${effect}, Sections:`, !!coverSection, !!nextSection);
         
         if (effect === 'none') {
             finishTransition();
             return;
         }
 
-        // Trigger the "REVEALING" state which applies CSS transitions
+        // Step 2: Start Reveal Phase
+        // This triggers the CSS transitions defined in getSectionSlotStyle
         transitionStage.value = 'REVEALING';
-
-        const totalDurationMs = duration * 1000;
+        
+        // Step 3: Wait for animation + buffer, then handoff
+        const totalDurationMs = (duration * 1000) + 100;
         setTimeout(finishTransition, totalDurationMs);
-    }); 
 };
 
 // Dimensions & Scaling
@@ -833,22 +807,22 @@ const viewportBackgroundStyle = computed(() => {
 });
 
 
-const toggleFullscreen = () => {
+function toggleFullscreen() {
     if (!mainViewport.value) return;
     if (!document.fullscreenElement) {
         mainViewport.value.requestFullscreen().catch(e => console.error(e));
     } else {
         document.exitFullscreen().catch(e => console.error(e));
     }
-};
+}
 
-const handleFullscreenChange = () => { 
+function handleFullscreenChange() { 
     isFullscreen.value = !!document.fullscreenElement; 
     nextTick(() => {
         updateDimensions();
         if (lenis) lenis.resize();
     });
-};
+}
 /**
  * SLOT-BASED ARCHITECTURE: Section Positioning
  * - In Atomic Mode: Sections 0 and 1 are at top:0 with z-index stacking
@@ -878,7 +852,8 @@ const getSectionSlotStyle = (index: number): any => {
     const transitionConfig = filteredSections.value[0]?.pageTransition;
     const effect = transitionConfig?.effect || 'none';
     const duration = transitionConfig?.duration || 1000;
-    const isReveal = transitionStage.value === 'REVEALING';
+    // CRITICAL: Keep isReveal active during HANDOFF to prevent transform jump
+    const isReveal = transitionStage.value === 'REVEALING' || transitionStage.value === 'HANDOFF';
 
     if (!flowMode.value) {
         // === ATOMIC MODE (Before transition) ===
@@ -959,18 +934,34 @@ const getSectionSlotStyle = (index: number): any => {
         // Section 1 from appearing on top while GSAP animation is still visible
         const zIndex = (isFirst && isHandoffActive.value) ? 20 : 1;
         
-        return {
+        const flowStyle: any = {
             ...base,
             top: `${calculatedTop}px`,
             zIndex: zIndex,
             opacity: 1,
             display: 'block',
-            // HARDWARE-ACCELERATED CLIPPING:
-            // Prevents elements from "leaking" outside the 375px mobile canvas during slide-up
             clipPath: 'inset(0)',
             ['-webkit-clip-path' as any]: 'inset(0)',
             willChange: 'transform, opacity, scroll-position'
         };
+
+        // CRITICAL HANDOFF LOCK: 
+        // Maintain the transition's final state during the frame-swap to HANDOFF
+        if (isHandoffActive.value) {
+            flowStyle.transition = 'none';
+            if (isFirst) {
+                if (effect === 'slide-up') flowStyle.transform = 'translateY(-100%)';
+                else if (effect === 'slide-down') flowStyle.transform = 'translateY(100%)';
+                else if (effect === 'fade') flowStyle.opacity = 0;
+                else if (effect === 'zoom-reveal') { flowStyle.transform = 'scale(1.5)'; flowStyle.opacity = 0; }
+                else if (effect === 'stack-reveal' || effect === 'parallax-reveal') { flowStyle.transform = 'translateY(-100%)'; flowStyle.opacity = effect === 'stack-reveal' ? 0 : 1; }
+            } else if (isSecond) {
+                flowStyle.transform = 'scale(1) translateY(0)';
+                flowStyle.opacity = 1;
+            }
+        }
+
+        return flowStyle;
     }
 };
 
@@ -979,10 +970,11 @@ const checkSectionActive = (index: number) => {
     // Section 0 (Cover) is active if the door isn't open yet OR we are in Atomic mode
     if (index === 0) return !isTransitionComplete.value;
     
-    // Normal sections are active only if the transition is DONE and the index matches 
-    // or we are scrolling through them in flow mode.
-    // For simplicity: If transition is DONE, all sections are now governed by scroll-activation.
-    return isTransitionComplete.value;
+    // CONTENT SECTIONS (index 1+) 
+    // They become "Active" as soon as the transition starts (REVEALING)
+    // This allows their animations (Slide down flowers, Zoom) to start playing
+    // while the cover is sliding up, creating a living, layered feel.
+    return ['REVEALING', 'HANDOFF', 'DONE'].includes(transitionStage.value);
 };
 
 const goBack = () => router.push(`/editor/${templateId.value}`);
@@ -1063,7 +1055,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                             <div 
                                 v-if="section.backgroundUrl" 
                                 class="absolute inset-0 bg-cover bg-center" 
-                                :class="{ 'animate-ken-burns': section.kenBurnsEnabled && !section.zoomConfig?.enabled }" 
+                                :class="{ 'animate-ken-burns': section.kenBurnsEnabled && !section.zoomConfig?.enabled && checkSectionActive(index) }" 
                                 :style="{ backgroundImage: `url(${getProxiedImageUrl(section.backgroundUrl)})` }" 
                             />
                             
@@ -1193,7 +1185,12 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 <style scoped>
 .scroll-container::-webkit-scrollbar { width: 0; height: 0; }
 .scroll-container { scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch; }
-.page-section { backface-visibility: hidden; transform: translateZ(0); }
+.page-section { 
+    backface-visibility: hidden; 
+    transform: translate3d(0, 0, 0); 
+    -webkit-backface-visibility: hidden;
+    -webkit-transform: translate3d(0, 0, 0);
+}
 .will-change-transform { will-change: transform; }
 </style>
 

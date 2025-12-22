@@ -184,8 +184,12 @@ useIntersectionObserver(
         
         if (isIntersecting) {
             if (props.triggerMode === 'scroll') {
-                // Element entered viewport (from any direction)
-                tryTriggerAnimation();
+                // Element entered viewport. ONLY trigger if the section is active.
+                if (props.isSectionActive) {
+                    tryTriggerAnimation();
+                } else {
+                    console.log(`[Animation] ${props.elementId} visible but section not active. Waiting for activation.`);
+                }
             } else if (pendingOpenTrigger.value) {
                 // Was waiting for visibility to trigger open_btn animation
                 console.log(`[Animation] ${props.elementId} became visible, firing pending open trigger`);
@@ -253,7 +257,17 @@ watch(() => props.forceTrigger, (force, oldForce) => {
 // When a section becomes active, check if we have a pending scroll/force trigger
 watch(() => props.isSectionActive, (active) => {
     if (active && props.forceTrigger) {
-        // If we are already visible or immediate, fire!
+        // Fallback: If observer hasn't marked us visible yet, do a manual check
+        // This is critical for Section 2 (Content) which slides into view.
+        if (!isVisible.value && elementRef.value) {
+            const rect = elementRef.value.getBoundingClientRect();
+            const isInViewport = rect.top < window.innerHeight && rect.bottom > 0;
+            if (isInViewport) {
+                console.log(`[Animation] ${props.elementId} manual visibility check passed on activation.`);
+                isVisible.value = true;
+            }
+        }
+
         if (isVisible.value || props.immediate) {
             console.log(`[Animation] ${props.elementId} activated and visible. Triggering.`);
             tryTriggerAnimation();

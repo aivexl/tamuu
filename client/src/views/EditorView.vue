@@ -10,7 +10,7 @@ import ParticleOverlay from '@/components/effects/ParticleOverlay.vue';
 import AddElementPanel from '@/components/editor/AddElementPanel.vue';
 import Button from '@/components/ui/Button.vue';
 import * as CloudflareAPI from '@/services/cloudflare-api';
-import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, Maximize, Check, Upload, Play } from 'lucide-vue-next';
+import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, Maximize, Check, Upload, Play, User } from 'lucide-vue-next';
 
 const route = useRoute();
 const router = useRouter();

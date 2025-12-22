@@ -13,7 +13,7 @@ import {
     MessageCircle, MessageSquare, Hexagon,
     AlignLeft, AlignCenter, AlignRight, AlignStartVertical, AlignCenterVertical, AlignEndVertical,
     Trash2, ChevronsUp, ArrowUp, ArrowDown, ChevronsDown,
-    FlipHorizontal2, FlipVertical2, Plus, Clock
+    FlipHorizontal2, FlipVertical2, Plus, Clock, GripVertical, Copy
 } from 'lucide-vue-next';
 import ElementPermissionToggles from './ElementPermissionToggles.vue';
 import { useToast } from '@/composables/use-toast';
