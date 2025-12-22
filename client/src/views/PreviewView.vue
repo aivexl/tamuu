@@ -581,7 +581,19 @@ const handleOpenInvitation = async () => {
                         if (lenis) lenis.stop();
                         
                         const scrollOffset = coverHeightComputed.value * scaleFactor.value;
+                        
+                        // CRITICAL ATOMIC SWAP:
+                        // 1. Apply Scroll Snap (moves content UP by CoverHeight)
+                        // 2. Clear GSAP Transform (moves content DOWN by CoverHeight)
+                        // Net result: Visual position stays exactly the same, but now we are native scrolling.
                         scrollContainer.value.scrollTop = scrollOffset;
+                        
+                        if (sectionRefs.value[0]) {
+                            gsap.set(sectionRefs.value[0], { clearProps: 'all' });
+                        }
+                        if (sectionRefs.value[1]) {
+                            gsap.set(sectionRefs.value[1], { clearProps: 'all' });
+                        }
                         
                         // Force a re-layout check
                         const handleScroll = () => {
@@ -604,25 +616,16 @@ const handleOpenInvitation = async () => {
                         // Execute immediate scroll check
                         handleScroll();
                         
-                        // LUXURY DELAY: Wait for browser paint to stabilize after scroll snap
+                        // Step 4: Done Phase (Release z-index, trigger next animations)
+                        // Wait briefly to strictly separate "Transition" from "Content Animation"
                         setTimeout(() => {
-                            // CRITICAL: Clear GSAP inline styles after handoff using refs
-                            if (sectionRefs.value[0]) {
-                                gsap.set(sectionRefs.value[0], { clearProps: 'all' });
-                            }
-                            if (sectionRefs.value[1]) {
-                                gsap.set(sectionRefs.value[1], { clearProps: 'all' });
-                            }
-                            
                             if (lenis) {
                                 lenis.resize();
                                 lenis.start();
                             }
                             
-                            // Step 4: Done Phase (Release z-index, trigger next animations)
                             transitionStage.value = 'DONE';
-                            
-                        }, 300);
+                        }, 100);
                     } else {
                         transitionStage.value = 'DONE';
                     }
