@@ -31,13 +31,17 @@ async function request<T>(
     const { maxRetries = 3, baseDelayMs = 100, ...fetchOptions } = options;
     let lastError: Error | null = null;
 
+    // Get token from localStorage for Authorization header
+    const token = localStorage.getItem('tamuu_auth_token');
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 ...fetchOptions,
-                credentials: 'include', // Support cross-origin cookies
+                credentials: 'include',
                 headers: {
                     "Content-Type": "application/json",
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
                     ...fetchOptions.headers,
                 },
             });

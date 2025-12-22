@@ -1,12 +1,30 @@
 /**
  * Auth API Service
  * Client SDK for authentication endpoints
+ * Uses localStorage for token persistence (cross-origin compatible)
  */
 
 import type { UserResponse } from '@/lib/types';
 
 // Hardcoded to ensure production uses correct worker
 const API_BASE_URL = 'https://tamuu-api.shafania57.workers.dev';
+const TOKEN_KEY = 'tamuu_auth_token';
+
+// ============================================
+// TOKEN MANAGEMENT
+// ============================================
+
+export function getToken(): string | null {
+    return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string): void {
+    localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearToken(): void {
+    localStorage.removeItem(TOKEN_KEY);
+}
 
 // ============================================
 // HTTP CLIENT
@@ -16,11 +34,14 @@ async function request<T>(
     endpoint: string,
     options: RequestInit = {}
 ): Promise<T> {
+    const token = getToken();
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
-        credentials: 'include', // Include cookies for auth
+        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
             ...options.headers,
         },
     });
@@ -66,23 +87,40 @@ export interface ProfileUpdateRequest {
 // ============================================
 
 export async function register(data: RegisterRequest): Promise<AuthResponse> {
-    return request<AuthResponse>('/api/auth/register', {
+    const response = await request<AuthResponse>('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify(data),
     });
+    // Save token to localStorage for session persistence
+    if (response.token) {
+        setToken(response.token);
+    }
+    return response;
 }
 
 export async function login(data: LoginRequest): Promise<AuthResponse> {
-    return request<AuthResponse>('/api/auth/login', {
+    const response = await request<AuthResponse>('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify(data),
     });
+    // Save token to localStorage for session persistence
+    if (response.token) {
+        setToken(response.token);
+    }
+    return response;
 }
 
 export async function logout(): Promise<{ success: boolean }> {
-    return request<{ success: boolean }>('/api/auth/logout', {
-        method: 'POST',
-    });
+    // Clear token from localStorage
+    clearToken();
+    try {
+        return await request<{ success: boolean }>('/api/auth/logout', {
+            method: 'POST',
+        });
+    } catch {
+        // Even if server logout fails, client is logged out
+        return { success: true };
+    }
 }
 
 export async function getCurrentUser(): Promise<{ user: UserResponse }> {
