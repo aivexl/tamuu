@@ -60,14 +60,19 @@ const filteredSections = computed((): (any)[] => {
     });
 });
 
-// State
+// State Machine for robust transition logic
+type TransitionStage = 'IDLE' | 'ZOOMING' | 'REVEALING' | 'HANDOFF' | 'DONE';
+const transitionStage = ref<TransitionStage>('IDLE');
+
 const isOpened = ref(false); // Track if "Open" button was clicked
-const isRevealing = ref(false); // Track if middle-of-reveal animation is active
-const isHandoffActive = ref(false); // New: Track the split-second handoff between modes
-const isTransitionComplete = ref(false); // Track when GSAP animation is fully complete
 const shutterVisible = ref(false);
 const openBtnTriggered = ref(false);
-const flowMode = ref(false); // Binary mode: Reveal (Atomic) vs Scroll (Flow)
+
+// Computed helpers for backward compatibility and template logic
+const isRevealing = computed(() => transitionStage.value === 'REVEALING');
+const isHandoffActive = computed(() => transitionStage.value === 'HANDOFF');
+const flowMode = computed(() => ['HANDOFF', 'DONE'].includes(transitionStage.value));
+const isTransitionComplete = computed(() => transitionStage.value === 'DONE');
 
 const windowWidth = ref(0);
 const windowHeight = ref(0);
@@ -535,15 +540,15 @@ const handleOpenInvitation = async () => {
     if (openBtnTriggered.value) return;
     openBtnTriggered.value = true;
     
-    // Step 1: Trigger any elements in Section 1 set to 'Open' animation
+    // Step 1: Start Zoom Phase
+    transitionStage.value = 'ZOOMING';
     isOpened.value = true; 
     
-    // Step 1.5: Add Section 1 to visibleSections to trigger its scroll-based zoom
+    // Add Section 1 to visibleSections so it renders ready for transition
     if (!visibleSections.value.includes(1)) {
         visibleSections.value.push(1);
     } 
     
-    // Get transition config from Section 1
     const transition = filteredSections.value[0]?.pageTransition || {
         enabled: false,
         effect: 'none',
@@ -551,16 +556,15 @@ const handleOpenInvitation = async () => {
         trigger: 'open_btn'
     };
 
-    // Step 2: Dynamic delay based on Cover section animations (minimum breathing room)
+    // Calculate dynamic wait time for zoom animations
     const animWait = getOpenTransitionDuration();
     
-    // Start the transition orchestration
-    isRevealing.value = true;
-
     // Use GSAP for precision timing
     gsap.delayedCall(animWait / 1000, () => {
+        // Step 2: Start Reveal Phase
+        transitionStage.value = 'REVEALING';
+        
         const effect = transition.enabled ? transition.effect : 'none';
-        // LUXURY STANDARD: Minimum 1.5 seconds for smooth, premium feel
         const rawDuration = transition.duration || 1000;
         const duration = Math.max(1.5, rawDuration / 1000);
         
@@ -568,10 +572,9 @@ const handleOpenInvitation = async () => {
         
         const finishTransition = () => {
             // ENTERPRISE-GRADE: Delay mode switch to let GSAP animation fully settle
-            // This prevents Vue's reactive styles from overriding GSAP's final frame
             setTimeout(() => {
-                isHandoffActive.value = true;
-                flowMode.value = true;
+                // Step 3: Handoff Phase (Snap scroll, keep z-index)
+                transitionStage.value = 'HANDOFF';
                 
                 nextTick(() => {
                     if (scrollContainer.value) {
@@ -598,10 +601,10 @@ const handleOpenInvitation = async () => {
                             });
                         };
                         
-                        scrollContainer.value.addEventListener('scroll', handleScroll);
-                        setTimeout(handleScroll, 100);
+                        // Execute immediate scroll check
+                        handleScroll();
                         
-                        // LUXURY DELAY: Wait for browser paint to stabilize
+                        // LUXURY DELAY: Wait for browser paint to stabilize after scroll snap
                         setTimeout(() => {
                             // CRITICAL: Clear GSAP inline styles after handoff using refs
                             if (sectionRefs.value[0]) {
@@ -611,19 +614,17 @@ const handleOpenInvitation = async () => {
                                 gsap.set(sectionRefs.value[1], { clearProps: 'all' });
                             }
                             
-                            isRevealing.value = false;
-                            isHandoffActive.value = false;
-                            isTransitionComplete.value = true;
-                            
                             if (lenis) {
                                 lenis.resize();
                                 lenis.start();
                             }
+                            
+                            // Step 4: Done Phase (Release z-index, trigger next animations)
+                            transitionStage.value = 'DONE';
+                            
                         }, 300);
                     } else {
-                        isRevealing.value = false;
-                        isHandoffActive.value = false;
-                        isTransitionComplete.value = true;
+                        transitionStage.value = 'DONE';
                     }
                 });
             }, 50); // Small delay to let GSAP's final frame render
