@@ -18,6 +18,7 @@ import { rsvpRouter } from './routes/rsvp';
 import { uploadRouter } from './routes/upload';
 import { authRouter } from './routes/auth';
 import { batchRouter } from './routes/batch';
+import { webhookRouter } from './routes/webhook';
 
 
 // Create Hono app with environment type
@@ -179,6 +180,9 @@ app.route('/api/batch-update', batchRouter);
 // RSVP and Upload are more flexible
 app.route('/api/rsvp', rsvpRouter);
 app.route('/api/upload', uploadRouter);
+
+// Webhook routes (public, called by payment gateways)
+app.route('/api/webhook', webhookRouter);
 
 
 // ============================================

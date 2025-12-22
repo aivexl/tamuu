@@ -10,6 +10,7 @@
         "db:migrate:local": "wrangler d1 execute tamuu --local --file=./schema.sql"
     },
     "dependencies": {
+        "@supabase/supabase-js": "^2.89.0",
         "hono": "^4.6.0"
     },
     "devDependencies": {

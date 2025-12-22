@@ -16,6 +16,10 @@ export interface Env {
     // Environment variables
     ENVIRONMENT: string;
     R2_PUBLIC_URL: string;
+
+    // Supabase (for webhook plan updates)
+    SUPABASE_URL?: string;
+    SUPABASE_SERVICE_KEY?: string;
 }
 
 // ============================================
