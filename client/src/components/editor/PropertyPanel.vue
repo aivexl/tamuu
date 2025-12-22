@@ -542,14 +542,15 @@ const updateSelectedPointX = (x: number) => {
     const idx = currentSection.value.zoomConfig.selectedPointIndex || 0;
     const points = [...currentSection.value.zoomConfig.points];
     
-    if (idx >= 0 && idx < points.length) {
+    if (idx >= 0 && idx < points.length && points[idx]) {
+        const currentPoint = points[idx];
         points[idx] = {
-            ...points[idx],
-            targetRegion: { ...(points[idx].targetRegion || { x: 50, y: 50, width: 50, height: 50 }), x }
+            ...currentPoint,
+            targetRegion: { ...(currentPoint.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), x }
         } as ZoomPoint;
         handleSectionUpdate({ 
             zoomConfig: { 
-                ...currentSection.value.zoomConfig, 
+                ...currentSection.value!.zoomConfig!, 
                 points 
             } 
         });
@@ -563,14 +564,15 @@ const updateSelectedPointY = (y: number) => {
     const idx = currentSection.value.zoomConfig.selectedPointIndex || 0;
     const points = [...currentSection.value.zoomConfig.points];
     
-    if (idx >= 0 && idx < points.length) {
+    if (idx >= 0 && idx < points.length && points[idx]) {
+        const currentPoint = points[idx];
         points[idx] = {
-            ...points[idx],
-            targetRegion: { ...(points[idx].targetRegion || { x: 50, y: 50, width: 50, height: 50 }), y }
+            ...currentPoint,
+            targetRegion: { ...(currentPoint.targetRegion || { x: 50, y: 50, width: 50, height: 50 }), y }
         } as ZoomPoint;
         handleSectionUpdate({ 
             zoomConfig: { 
-                ...currentSection.value.zoomConfig, 
+                ...currentSection.value!.zoomConfig!, 
                 points 
             } 
         });
