@@ -147,37 +147,30 @@ const getEditableElements = (sectionKey: string) => {
                                 <div class="p-5 space-y-6">
                                     <!-- Visual Preview Area (Per Section) -->
                                     <div 
-                                        class="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-inner border border-gray-200/50 bg-white group/preview"
-                                        :style="{ backgroundColor: section.data.backgroundColor || '#ffffff' }"
+                                        class="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-inner border border-gray-200/50 bg-white"
+                                        :style="{ backgroundColor: currentTemplate?.sections[section.type]?.backgroundColor || '#ffffff' }"
                                     >
                                         <!-- Background Image Preview -->
                                         <SafeImage 
-                                            v-if="section.data.backgroundUrl"
-                                            :src="section.data.backgroundUrl"
+                                            v-if="currentTemplate?.sections[section.type]?.backgroundUrl"
+                                            :src="currentTemplate.sections[section.type].backgroundUrl!"
                                             alt="Section background preview"
-                                            class="w-full h-full object-cover transition-transform duration-700 group-hover/preview:scale-110"
+                                            class="w-full h-full object-cover"
                                         />
 
-                                        <!-- Preview Overlay / Info -->
-                                        <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/5 backdrop-blur-[1px]">
-                                            <div class="bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-sm border border-white/50 flex items-center gap-2 scale-90 md:scale-100">
-                                                <LayoutTemplate class="w-4 h-4 text-teal-600" />
-                                                <span class="text-xs font-bold text-gray-700 tracking-tight">Design Preview</span>
-                                            </div>
-                                            
-                                            <div class="absolute bottom-3 left-3 flex gap-2">
-                                                <div class="px-2 py-1 bg-white/80 backdrop-blur-sm rounded-md text-[10px] font-medium text-gray-500 border border-white/20">
-                                                    BG: {{ section.data.backgroundColor || 'Default' }}
-                                                </div>
-                                            </div>
+                                        <!-- Centered Section Type/Title for clarity if no BG -->
+                                        <div v-if="!currentTemplate?.sections[section.type]?.backgroundUrl" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <span class="text-3xl font-black text-gray-100 uppercase tracking-tighter opacity-50">
+                                                {{ section.title || section.type }}
+                                            </span>
                                         </div>
                                     </div>
 
-                                    <!-- Section Content Context -->
+                                    <!-- Section Content Context (Only Actions if no editable fields) -->
                                     <div class="flex items-center justify-between px-1">
                                         <div class="flex flex-col">
                                             <span class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
-                                                Content Settings
+                                                Section Settings
                                             </span>
                                         </div>
                                         <div class="flex gap-1">
@@ -190,7 +183,7 @@ const getEditableElements = (sectionKey: string) => {
                                         </div>
                                     </div>
 
-                                    <!-- Editable Fields for current template sync -->
+                                    <!-- Editable Fields -->
                                     <div v-if="getEditableElements(section.type).length > 0" class="space-y-5">
                                         <UserElementEditor
                                             v-for="element in getEditableElements(section.type)"
@@ -199,14 +192,6 @@ const getEditableElements = (sectionKey: string) => {
                                             :model-value="overrides[element.id] || {}"
                                             @update="(updates) => handleElementUpdate(element.id, updates)"
                                         />
-                                    </div>
-                                    
-                                    <div v-else class="py-10 bg-white/50 rounded-2xl border border-dashed border-gray-200 flex flex-col items-center justify-center text-center px-4">
-                                        <div class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mb-3">
-                                            <Layers class="w-5 h-5 text-gray-300" />
-                                        </div>
-                                        <h4 class="text-sm font-semibold text-gray-600 mb-1">Halaman ini didesain statis</h4>
-                                        <p class="text-xs text-gray-400 max-w-[200px]">Semua elemen pada halaman ini diatur secara otomatis oleh sistem.</p>
                                     </div>
 
                                     <!-- Quick Preview Section -->
@@ -217,7 +202,7 @@ const getEditableElements = (sectionKey: string) => {
                                             class="flex items-center justify-center gap-2 py-3.5 bg-white rounded-2xl border border-gray-100 text-sm font-bold text-teal-600 hover:text-teal-700 hover:border-teal-100 hover:shadow-md hover:shadow-teal-500/5 transition-all group/btn"
                                         >
                                             <Monitor class="w-4 h-4 transition-transform group-hover/btn:scale-110" />
-                                            Preview Halaman Ini
+                                            Lihat Halaman Penuh
                                         </RouterLink>
                                     </div>
                                 </div>
