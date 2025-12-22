@@ -599,6 +599,10 @@ const handleOpenInvitation = async () => {
                             isRevealing.value = false;
                             isHandoffActive.value = false;
                             
+                            // CRITICAL: Clear GSAP transforms after handoff is fully complete
+                            gsap.set('.atomic-cover-layer', { clearProps: 'all' });
+                            gsap.set('.atomic-next-layer', { clearProps: 'all' });
+                            
                             if (lenis) {
                                 lenis.resize();
                                 lenis.start();
@@ -963,8 +967,8 @@ const getSectionWrapperStyle = (index: number) => {
             top: `${top}px`,
             zIndex: 1,
             display: 'block',
-            opacity: 1,
-            transform: 'none' // Reset any GSAP transforms
+            opacity: 1
+            // CRITICAL: Do NOT set transform here - let GSAP control it until clearProps is called
         };
 
         return style;
