@@ -64,6 +64,7 @@ const filteredSections = computed((): (any)[] => {
 const isOpened = ref(false); // Track if "Open" button was clicked
 const isRevealing = ref(false); // Track if middle-of-reveal animation is active
 const isHandoffActive = ref(false); // New: Track the split-second handoff between modes
+const handoffOpacity = ref(1); // CTO Level: Granular control over handoff visibility
 const shutterVisible = ref(false);
 const openBtnTriggered = ref(false);
 const flowMode = ref(false); // Binary mode: Reveal (Atomic) vs Scroll (Flow)
@@ -562,18 +563,40 @@ const handleOpenInvitation = async () => {
         const duration = (transition.duration || 1000) / 1000;
         
         const finishTransition = () => {
-            // CTO-LEVEL HANDOFF: Keep layers overlapping briefly for sub-pixel alignment
+            // CTO-LEVEL HANDOFF: Buffer the state change to prevent layout snapshots
             isHandoffActive.value = true;
+            handoffOpacity.value = 1;
             flowMode.value = true;
             
             nextTick(() => {
                 if (scrollContainer.value) {
-                    if (lenis) lenis.stop();
+                    if (lenis) {
+                        lenis.stop();
+                        const scrollOffset = coverHeightComputed.value * scaleFactor.value;
+                        lenis.scrollTo(scrollOffset, { immediate: true });
+                        scrollContainer.value.scrollTop = scrollOffset;
+                    } else {
+                        const scrollOffset = coverHeightComputed.value * scaleFactor.value;
+                        scrollContainer.value.scrollTop = scrollOffset;
+                    }
                     
-                    const scrollOffset = coverHeightComputed.value * scaleFactor.value;
-                    scrollContainer.value.scrollTop = scrollOffset;
-                    
-                    // Force a re-layout check
+                    // LUXURY CROSS-FADE: Animate the overlay out smoothly
+                    gsap.to(handoffOpacity, {
+                        value: 0,
+                        duration: 0.4,
+                        ease: "power2.out",
+                        onComplete: () => {
+                            isRevealing.value = false;
+                            isHandoffActive.value = false;
+                            
+                            if (lenis) {
+                                lenis.resize();
+                                lenis.start();
+                            }
+                        }
+                    });
+
+                    // Force a re-layout check for visibility triggers
                     const handleScroll = () => {
                         if (!scrollContainer.value) return;
                         const containerRect = scrollContainer.value.getBoundingClientRect();
@@ -593,17 +616,6 @@ const handleOpenInvitation = async () => {
                     
                     scrollContainer.value.addEventListener('scroll', handleScroll);
                     setTimeout(handleScroll, 100);
-                    
-                    // LUXURY DELAY: Wait 150ms for browser paint to stabilize at New scroll position
-                    setTimeout(() => {
-                        isRevealing.value = false;
-                        isHandoffActive.value = false;
-                        
-                        if (lenis) {
-                            lenis.resize();
-                            lenis.start();
-                        }
-                    }, 150);
                 } else {
                     isRevealing.value = false;
                     isHandoffActive.value = false;
@@ -907,7 +919,8 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                     class="invitation-parent relative" 
                     :style="{ 
                         width: `${CANVAS_WIDTH}px`, 
-                        height: flowMode ? 'auto' : `${coverHeightComputed}px`,
+                        // CTO LEVEL: Lock height during handoff to prevent sub-pixel layout shifts
+                        height: (flowMode && !isHandoffActive) ? 'auto' : `${coverHeightComputed}px`,
                         transform: `scale(${scaleFactor})`, 
                         transformOrigin: isPortrait ? 'top left' : 'top center',
                         marginLeft: isPortrait ? '0' : 'auto',
@@ -928,7 +941,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                     THE UNIFIED ATOMIC CONTAINER
                     Refined for Luxury Transitions (Zero-Error Architecture)
                 -->
-                <div class="relative w-full overflow-hidden" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? 'auto' : `${coverHeightComputed}px` }">
+                <div class="relative w-full overflow-hidden" :style="{ width: `${CANVAS_WIDTH}px`, height: (flowMode && !isHandoffActive) ? 'auto' : `${coverHeightComputed}px` }">
                     
                     <!-- NATURAL FLOW MODE (Active after Reveal) -->
                     <div v-if="flowMode" class="flex flex-col w-full relative h-auto">
@@ -990,7 +1003,15 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                     </div>
 
                     <!-- ATOMIC REVEAL ENGINE (Mid-Transition Physics) -->
-                    <div v-if="!flowMode || isHandoffActive" class="absolute inset-0 w-full h-full bg-slate-100" :class="{ 'pointer-events-none': flowMode }">
+                    <div v-if="!flowMode || isHandoffActive" 
+                         class="absolute inset-0 w-full h-full bg-slate-100 transform-gpu" 
+                         :class="{ 'pointer-events-none': flowMode }"
+                         :style="{ 
+                             opacity: handoffOpacity,
+                             willChange: 'opacity, transform',
+                             zIndex: isHandoffActive ? 100 : 1
+                         }"
+                    >
                         <!-- BOTTOM LAYER: Standby Section -->
                         <div v-if="filteredSections[1]" class="absolute inset-0 z-[1] atomic-next-layer overflow-hidden" :style="{ backgroundColor: filteredSections[1].backgroundColor || '#dddddd', opacity: (filteredSections[0]?.pageTransition?.overlayEnabled || isRevealing) ? 1 : 0 }">
                             <div class="absolute inset-0 w-full h-full" :class="getZoomClass(filteredSections[1], 1)" :style="getZoomStyle(filteredSections[1], 1)">
