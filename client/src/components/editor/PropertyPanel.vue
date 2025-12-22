@@ -43,6 +43,11 @@ const selectedElement = computed(() => {
 const element = computed(() => selectedElement.value?.element);
 const currentSection = computed(() => props.activeSection);
 
+// Type-safe element accessor for template usage (only used within v-if="element" blocks)
+// This provides proper TypeScript narrowing for nested template expressions
+const safeElement = computed(() => element.value!);
+const safeSection = computed(() => currentSection.value!);
+
 const elementAnimation = computed({
     get: () => element.value?.animation || 'none',
     set: (val: any) => handleUpdate({ animation: val })
@@ -961,12 +966,12 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                     <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
                     Properties
                 </h3>
-                <span class="text-indigo-600 font-mono text-[9px] bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">#{{ element.id.slice(0, 8) }}</span>
+                <span class="text-indigo-600 font-mono text-[9px] bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">#{{ safeElement.id.slice(0, 8) }}</span>
             </div>
             <!-- User Permissions -->
             <ElementPermissionToggles
                 v-if="store.activeTemplateId && activeSectionType"
-                :element="element"
+                :element="safeElement"
                 :template-id="store.activeTemplateId"
                 :section-type="activeSectionType"
                 class="!mb-6"
@@ -1006,8 +1011,8 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-extrabold text-slate-300">X</span>
                                 <input 
                                     type="number" 
-                                    :value="Math.round(element.position.x)" 
-                                    @input="(e: any) => handleUpdate({ position: { ...element.position, x: Number(e.target.value) } })"
+                                    :value="Math.round(safeElement.position.x)" 
+                                    @input="(e: any) => handleUpdate({ position: { ...safeElement.position, x: Number(e.target.value) } })"
                                     class="w-full pl-5 pr-1.5 py-1.5 text-xs font-mono bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
                                 />
                             </div>
@@ -1015,8 +1020,8 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-extrabold text-slate-300">Y</span>
                                 <input 
                                     type="number" 
-                                    :value="Math.round(element.position.y)" 
-                                    @input="(e: any) => handleUpdate({ position: { ...element.position, y: Number(e.target.value) } })"
+                                    :value="Math.round(safeElement.position.y)" 
+                                    @input="(e: any) => handleUpdate({ position: { ...safeElement.position, y: Number(e.target.value) } })"
                                     class="w-full pl-5 pr-1.5 py-1.5 text-xs font-mono bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
                                 />
                             </div>
@@ -1031,8 +1036,8 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-extrabold text-slate-300">W</span>
                                 <input 
                                     type="number" 
-                                    :value="Math.round(element.size.width)" 
-                                    @input="(e: any) => handleUpdate({ size: { ...element.size, width: Number(e.target.value) } })"
+                                    :value="Math.round(safeElement.size.width)" 
+                                    @input="(e: any) => handleUpdate({ size: { ...safeElement.size, width: Number(e.target.value) } })"
                                     class="w-full pl-5 pr-1.5 py-1.5 text-xs font-mono bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
                                 />
                             </div>
@@ -1040,8 +1045,8 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-extrabold text-slate-300">H</span>
                                 <input 
                                     type="number" 
-                                    :value="Math.round(element.size.height)" 
-                                    @input="(e: any) => handleUpdate({ size: { ...element.size, height: Number(e.target.value) } })"
+                                    :value="Math.round(safeElement.size.height)" 
+                                    @input="(e: any) => handleUpdate({ size: { ...safeElement.size, height: Number(e.target.value) } })"
                                     class="w-full pl-5 pr-1.5 py-1.5 text-xs font-mono bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
                                 />
                             </div>
@@ -1413,7 +1418,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 :key="shape"
                                 class="group flex flex-col items-center justify-center p-2 rounded-xl border transition-all hover:bg-slate-50 active:scale-95"
                                 :class="element.shapeConfig?.shapeType === shape ? 'border-indigo-500 bg-indigo-50/50 text-indigo-600 shadow-sm' : 'border-slate-100 text-slate-400 bg-white'"
-                                @click="handleUpdate({ shapeConfig: { ...element.shapeConfig!, shapeType: shape as any } })"
+                                @click="handleUpdate({ shapeConfig: { ...safeElement.shapeConfig!, shapeType: shape as any } })"
                                 :title="shape"
                             >
                                 <component :is="getShapeIcon(shape)" class="w-4 h-4 transition-transform group-hover:scale-110" :class="shape === 'triangle' ? '-rotate-90' : ''" />
@@ -1433,7 +1438,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <input 
                                     type="checkbox" 
                                     :checked="element.shapeConfig?.fill !== null"
-                                    @change="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, fill: e.target.checked ? '#6366f1' : null } })"
+                                    @change="(e: any) => handleUpdate({ shapeConfig: { ...safeElement.shapeConfig!, fill: e.target.checked ? '#6366f1' : null } })"
                                     class="sr-only peer"
                                 />
                                 <div class="w-6 h-3 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-2 after:w-2 after:transition-all peer-checked:bg-indigo-500"></div>
@@ -1444,7 +1449,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 type="color" 
                                 class="absolute inset-0 w-full h-full rounded-lg border-2 border-white shadow-sm ring-1 ring-slate-200 cursor-pointer p-0 opacity-0 z-10"
                                 :value="element.shapeConfig?.fill || '#6366f1'"
-                                @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, fill: e.target.value } })"
+                                @input="(e: any) => handleUpdate({ shapeConfig: { ...safeElement.shapeConfig!, fill: e.target.value } })"
                             />
                             <div class="w-full h-full rounded-lg border border-slate-200 p-0.5" :style="{ backgroundColor: element.shapeConfig?.fill || '#6366f1' }">
                                 <div class="w-full h-full rounded-[6px] border border-black/5 flex items-center justify-center">
@@ -1465,7 +1470,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <input 
                                     type="checkbox" 
                                     :checked="element.shapeConfig?.stroke !== null"
-                                    @change="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, stroke: e.target.checked ? '#474554' : null } })"
+                                    @change="(e: any) => handleUpdate({ shapeConfig: { ...safeElement.shapeConfig!, stroke: e.target.checked ? '#474554' : null } })"
                                     class="sr-only peer"
                                 />
                                 <div class="w-6 h-3 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-2 after:w-2 after:transition-all peer-checked:bg-slate-600"></div>
@@ -1476,7 +1481,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 type="color" 
                                 class="absolute inset-0 w-full h-full rounded-lg border-2 border-white shadow-sm ring-1 ring-slate-200 cursor-pointer p-0 opacity-0 z-10"
                                 :value="element.shapeConfig?.stroke || '#474554'"
-                                @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, stroke: e.target.value } })"
+                                @input="(e: any) => handleUpdate({ shapeConfig: { ...safeElement.shapeConfig!, stroke: e.target.value } })"
                             />
                             <div class="w-full h-full rounded-lg border border-slate-200 p-0.5" :style="{ backgroundColor: element.shapeConfig?.stroke || '#474554' }">
                                  <div class="w-full h-full rounded-[6px] border border-black/5 flex items-center justify-center">
@@ -1502,7 +1507,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                             min="1" 
                             max="20" 
                             :value="element.shapeConfig?.strokeWidth || 2"
-                            @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, strokeWidth: Number(e.target.value) } })"
+                            @input="(e: any) => handleUpdate({ shapeConfig: { ...safeElement.shapeConfig!, strokeWidth: Number(e.target.value) } })"
                             class="w-full h-1 bg-slate-100 accent-indigo-500 rounded-full appearance-none cursor-pointer"
                         />
                     </div>
@@ -1517,7 +1522,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                             min="0" 
                             max="50" 
                             :value="element.shapeConfig?.cornerRadius || 0"
-                            @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, cornerRadius: Number(e.target.value) } })"
+                            @input="(e: any) => handleUpdate({ shapeConfig: { ...safeElement.shapeConfig!, cornerRadius: Number(e.target.value) } })"
                             class="w-full h-1 bg-slate-100 accent-indigo-500 rounded-full appearance-none cursor-pointer"
                         />
                     </div>
@@ -1532,7 +1537,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                             min="3" 
                             max="12" 
                             :value="element.shapeConfig?.points || 5"
-                            @input="(e: any) => handleUpdate({ shapeConfig: { ...element.shapeConfig!, points: Number(e.target.value) } })"
+                            @input="(e: any) => handleUpdate({ shapeConfig: { ...safeElement.shapeConfig!, points: Number(e.target.value) } })"
                             class="w-full h-1 bg-slate-100 accent-indigo-500 rounded-full appearance-none cursor-pointer"
                         />
                     </div>
@@ -1553,29 +1558,29 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 </div>
                 <div>
                     <span class="text-xs text-slate-400">Font</span>
-                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.textStyle?.fontFamily || 'Inter'" @change="(e: any) => handleUpdate({ textStyle: { ...element.textStyle!, fontFamily: e.target.value } })">
+                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.textStyle?.fontFamily || 'Inter'" @change="(e: any) => handleUpdate({ textStyle: { ...safeElement.textStyle!, fontFamily: e.target.value } })">
                         <option v-for="font in fontFamilies" :key="font" :value="font" :style="{ fontFamily: font }">{{ font }}</option>
                     </select>
                 </div>
                 <div>
                     <span class="text-xs text-slate-400">Size</span>
-                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.textStyle?.fontSize || 18" @change="(e: any) => handleUpdate({ textStyle: { ...element.textStyle!, fontSize: Number(e.target.value) } })">
+                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.textStyle?.fontSize || 18" @change="(e: any) => handleUpdate({ textStyle: { ...safeElement.textStyle!, fontSize: Number(e.target.value) } })">
                         <option v-for="size in fontSizes" :key="size" :value="size">{{ size }}px</option>
                     </select>
                 </div>
                 <div class="flex gap-1">
-                    <Button variant="outline" size="sm" :class="{ 'bg-slate-800 text-white': element.textStyle?.fontWeight === 'bold' }" @click="handleUpdate({ textStyle: { ...element.textStyle!, fontWeight: element.textStyle?.fontWeight === 'bold' ? 'normal' : 'bold' } })" class="flex-1 font-bold">B</Button>
-                    <Button variant="outline" size="sm" :class="{ 'bg-slate-800 text-white': element.textStyle?.fontStyle === 'italic' }" @click="handleUpdate({ textStyle: { ...element.textStyle!, fontStyle: element.textStyle?.fontStyle === 'italic' ? 'normal' : 'italic' } })" class="flex-1 italic">I</Button>
-                    <Button variant="outline" size="sm" :class="{ 'bg-slate-800 text-white': element.textStyle?.textDecoration === 'underline' }" @click="handleUpdate({ textStyle: { ...element.textStyle!, textDecoration: element.textStyle?.textDecoration === 'underline' ? 'none' : 'underline' } })" class="flex-1 underline">U</Button>
-                    <Button variant="outline" size="sm" :class="{ 'bg-slate-800 text-white': element.textStyle?.textAlign === 'left' }" @click="handleUpdate({ textStyle: { ...element.textStyle!, textAlign: 'left' } })" class="flex-1"><AlignLeft class="w-4 h-4" /></Button>
-                    <Button variant="outline" size="sm" :class="{ 'bg-slate-800 text-white': element.textStyle?.textAlign === 'center' }" @click="handleUpdate({ textStyle: { ...element.textStyle!, textAlign: 'center' } })" class="flex-1"><AlignCenter class="w-4 h-4" /></Button>
-                    <Button variant="outline" size="sm" :class="{ 'bg-slate-800 text-white': element.textStyle?.textAlign === 'right' }" @click="handleUpdate({ textStyle: { ...element.textStyle!, textAlign: 'right' } })" class="flex-1"><AlignRight class="w-4 h-4" /></Button>
+                    <Button variant="outline" size="sm" :class="{ 'bg-slate-800 text-white': element.textStyle?.fontWeight === 'bold' }" @click="handleUpdate({ textStyle: { ...safeElement.textStyle!, fontWeight: element.textStyle?.fontWeight === 'bold' ? 'normal' : 'bold' } })" class="flex-1 font-bold">B</Button>
+                    <Button variant="outline" size="sm" :class="{ 'bg-slate-800 text-white': element.textStyle?.fontStyle === 'italic' }" @click="handleUpdate({ textStyle: { ...safeElement.textStyle!, fontStyle: element.textStyle?.fontStyle === 'italic' ? 'normal' : 'italic' } })" class="flex-1 italic">I</Button>
+                    <Button variant="outline" size="sm" :class="{ 'bg-slate-800 text-white': element.textStyle?.textDecoration === 'underline' }" @click="handleUpdate({ textStyle: { ...safeElement.textStyle!, textDecoration: element.textStyle?.textDecoration === 'underline' ? 'none' : 'underline' } })" class="flex-1 underline">U</Button>
+                    <Button variant="outline" size="sm" :class="{ 'bg-slate-800 text-white': element.textStyle?.textAlign === 'left' }" @click="handleUpdate({ textStyle: { ...safeElement.textStyle!, textAlign: 'left' } })" class="flex-1"><AlignLeft class="w-4 h-4" /></Button>
+                    <Button variant="outline" size="sm" :class="{ 'bg-slate-800 text-white': element.textStyle?.textAlign === 'center' }" @click="handleUpdate({ textStyle: { ...safeElement.textStyle!, textAlign: 'center' } })" class="flex-1"><AlignCenter class="w-4 h-4" /></Button>
+                    <Button variant="outline" size="sm" :class="{ 'bg-slate-800 text-white': element.textStyle?.textAlign === 'right' }" @click="handleUpdate({ textStyle: { ...safeElement.textStyle!, textAlign: 'right' } })" class="flex-1"><AlignRight class="w-4 h-4" /></Button>
                 </div>
                 <div>
                     <span class="text-xs text-slate-400">Color</span>
                     <div class="flex gap-2">
-                        <input type="color" :value="element.textStyle?.color || '#000000'" @input="(e: any) => handleUpdate({ textStyle: { ...element.textStyle!, color: e.target.value } })" class="w-10 h-10 p-1 rounded border cursor-pointer" />
-                        <Input :model-value="element.textStyle?.color || '#000000'" @update:model-value="val => handleUpdate({ textStyle: { ...element.textStyle!, color: val } })" class="flex-1" />
+                        <input type="color" :value="element.textStyle?.color || '#000000'" @input="(e: any) => handleUpdate({ textStyle: { ...safeElement.textStyle!, color: e.target.value } })" class="w-10 h-10 p-1 rounded border cursor-pointer" />
+                        <Input :model-value="element.textStyle?.color || '#000000'" @update:model-value="val => handleUpdate({ textStyle: { ...safeElement.textStyle!, color: val } })" class="flex-1" />
                     </div>
                 </div>
             </div>
@@ -1772,7 +1777,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                     <select 
                         class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" 
                         :value="element.flyingBirdConfig?.direction || 'left'"
-                        @change="(e: any) => handleUpdate({ flyingBirdConfig: { ...element.flyingBirdConfig!, direction: e.target.value } })"
+                        @change="(e: any) => handleUpdate({ flyingBirdConfig: { ...safeElement.flyingBirdConfig!, direction: e.target.value } })"
                     >
                         <option value="left">← Fly Left</option>
                         <option value="right">→ Fly Right</option>
@@ -1786,12 +1791,12 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                         <input 
                             type="color" 
                             :value="element.flyingBirdConfig?.birdColor || '#1a1a1a'" 
-                            @input="(e: any) => handleUpdate({ flyingBirdConfig: { ...element.flyingBirdConfig!, birdColor: e.target.value } })"
+                            @input="(e: any) => handleUpdate({ flyingBirdConfig: { ...safeElement.flyingBirdConfig!, birdColor: e.target.value } })"
                             class="w-10 h-10 p-1 rounded border cursor-pointer" 
                         />
                         <Input 
                             :model-value="element.flyingBirdConfig?.birdColor || '#1a1a1a'" 
-                            @update:model-value="val => handleUpdate({ flyingBirdConfig: { ...element.flyingBirdConfig!, birdColor: val } })" 
+                            @update:model-value="val => handleUpdate({ flyingBirdConfig: { ...safeElement.flyingBirdConfig!, birdColor: val } })" 
                             class="flex-1" 
                         />
                     </div>
@@ -1803,7 +1808,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                     <select 
                         class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" 
                         :value="element.flyingBirdConfig?.flapSpeed || 0.3"
-                        @change="(e: any) => handleUpdate({ flyingBirdConfig: { ...element.flyingBirdConfig!, flapSpeed: Number(e.target.value) } })"
+                        @change="(e: any) => handleUpdate({ flyingBirdConfig: { ...safeElement.flyingBirdConfig!, flapSpeed: Number(e.target.value) } })"
                     >
                         <option value="0.15">Fast (0.15s)</option>
                         <option value="0.3">Normal (0.3s)</option>
@@ -1818,13 +1823,13 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 <Label class="text-xs font-semibold text-slate-500 uppercase">Guest Wishes Settings</Label>
                 <div>
                      <span class="text-xs text-slate-400">Style</span>
-                     <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.guestWishesConfig?.style || 'classic'" @change="(e: any) => handleUpdate({ guestWishesConfig: { ...element.guestWishesConfig!, style: e.target.value } })">
+                     <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.guestWishesConfig?.style || 'classic'" @change="(e: any) => handleUpdate({ guestWishesConfig: { ...safeElement.guestWishesConfig!, style: e.target.value } })">
                         <option v-for="style in styleOptions" :key="style" :value="style" class="capitalize">{{ style }}</option>
                      </select>
                 </div>
                 <div>
                     <span class="text-xs text-slate-400">Layout</span>
-                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.guestWishesConfig?.layout || 'list'" @change="(e: any) => handleUpdate({ guestWishesConfig: { ...element.guestWishesConfig!, layout: e.target.value } })">
+                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.guestWishesConfig?.layout || 'list'" @change="(e: any) => handleUpdate({ guestWishesConfig: { ...safeElement.guestWishesConfig!, layout: e.target.value } })">
                         <option value="list">List</option>
                         <option value="grid">Grid</option>
                         <option value="masonry">Masonry</option>
@@ -1832,23 +1837,23 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 </div>
                 <div>
                     <span class="text-xs text-slate-400">Max Display Count</span>
-                    <Input type="number" :model-value="element.guestWishesConfig?.maxDisplayCount || 20" @update:model-value="val => handleUpdate({ guestWishesConfig: { ...element.guestWishesConfig!, maxDisplayCount: Number(val) } })" />
+                    <Input type="number" :model-value="element.guestWishesConfig?.maxDisplayCount || 20" @update:model-value="val => handleUpdate({ guestWishesConfig: { ...safeElement.guestWishesConfig!, maxDisplayCount: Number(val) } })" />
                 </div>
                 <label class="flex items-center gap-2 text-sm">
-                    <input type="checkbox" :checked="element.guestWishesConfig?.showTimestamp !== false" @change="(e: any) => handleUpdate({ guestWishesConfig: { ...element.guestWishesConfig!, showTimestamp: e.target.checked } })" class="rounded" /> Show Timestamp
+                    <input type="checkbox" :checked="element.guestWishesConfig?.showTimestamp !== false" @change="(e: any) => handleUpdate({ guestWishesConfig: { ...safeElement.guestWishesConfig!, showTimestamp: e.target.checked } })" class="rounded" /> Show Timestamp
                 </label>
                 <div>
                     <span class="text-xs text-slate-400">Card Background</span>
                     <div class="flex gap-2">
-                        <input type="color" :value="element.guestWishesConfig?.cardBackgroundColor || '#ffffff'" @input="(e: any) => handleUpdate({ guestWishesConfig: { ...element.guestWishesConfig!, cardBackgroundColor: e.target.value } })" class="w-10 h-10 p-1 rounded border cursor-pointer" />
-                        <Input :model-value="element.guestWishesConfig?.cardBackgroundColor || '#ffffff'" @update:model-value="val => handleUpdate({ guestWishesConfig: { ...element.guestWishesConfig!, cardBackgroundColor: val } })" class="flex-1" />
+                        <input type="color" :value="element.guestWishesConfig?.cardBackgroundColor || '#ffffff'" @input="(e: any) => handleUpdate({ guestWishesConfig: { ...safeElement.guestWishesConfig!, cardBackgroundColor: e.target.value } })" class="w-10 h-10 p-1 rounded border cursor-pointer" />
+                        <Input :model-value="element.guestWishesConfig?.cardBackgroundColor || '#ffffff'" @update:model-value="val => handleUpdate({ guestWishesConfig: { ...safeElement.guestWishesConfig!, cardBackgroundColor: val } })" class="flex-1" />
                     </div>
                 </div>
                 <div>
                     <span class="text-xs text-slate-400">Text Color</span>
                     <div class="flex gap-2">
-                        <input type="color" :value="element.guestWishesConfig?.textColor || '#000000'" @input="(e: any) => handleUpdate({ guestWishesConfig: { ...element.guestWishesConfig!, textColor: e.target.value } })" class="w-10 h-10 p-1 rounded border cursor-pointer" />
-                        <Input :model-value="element.guestWishesConfig?.textColor || '#000000'" @update:model-value="val => handleUpdate({ guestWishesConfig: { ...element.guestWishesConfig!, textColor: val } })" class="flex-1" />
+                        <input type="color" :value="element.guestWishesConfig?.textColor || '#000000'" @input="(e: any) => handleUpdate({ guestWishesConfig: { ...safeElement.guestWishesConfig!, textColor: e.target.value } })" class="w-10 h-10 p-1 rounded border cursor-pointer" />
+                        <Input :model-value="element.guestWishesConfig?.textColor || '#000000'" @update:model-value="val => handleUpdate({ guestWishesConfig: { ...safeElement.guestWishesConfig!, textColor: val } })" class="flex-1" />
                     </div>
                 </div>
             </div>
@@ -1858,21 +1863,21 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 <Label class="text-xs font-semibold text-slate-500 uppercase">Open Invitation Settings</Label>
                 <div>
                     <span class="text-xs text-slate-400">Button Text</span>
-                    <Input :model-value="element.openInvitationConfig?.buttonText || 'Buka Undangan'" @update:model-value="val => handleUpdate({ openInvitationConfig: { ...element.openInvitationConfig!, buttonText: val } })" />
+                    <Input :model-value="element.openInvitationConfig?.buttonText || 'Buka Undangan'" @update:model-value="val => handleUpdate({ openInvitationConfig: { ...safeElement.openInvitationConfig!, buttonText: val } })" />
                 </div>
                 <div>
                     <span class="text-xs text-slate-400">Sub Text (optional)</span>
-                    <Input :model-value="element.openInvitationConfig?.subText || ''" @update:model-value="val => handleUpdate({ openInvitationConfig: { ...element.openInvitationConfig!, subText: val } })" placeholder="e.g., Ketuk untuk membuka" />
+                    <Input :model-value="element.openInvitationConfig?.subText || ''" @update:model-value="val => handleUpdate({ openInvitationConfig: { ...safeElement.openInvitationConfig!, subText: val } })" placeholder="e.g., Ketuk untuk membuka" />
                 </div>
                 <div>
                     <span class="text-xs text-slate-400">Style</span>
-                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.openInvitationConfig?.buttonStyle || 'elegant'" @change="(e: any) => handleUpdate({ openInvitationConfig: { ...element.openInvitationConfig!, buttonStyle: e.target.value } })">
+                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.openInvitationConfig?.buttonStyle || 'elegant'" @change="(e: any) => handleUpdate({ openInvitationConfig: { ...safeElement.openInvitationConfig!, buttonStyle: e.target.value } })">
                         <option v-for="style in styleOptions" :key="style" :value="style" class="capitalize">{{ style }}</option>
                     </select>
                 </div>
                 <div>
                     <span class="text-xs text-slate-400">Shape</span>
-                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.openInvitationConfig?.buttonShape || 'pill'" @change="(e: any) => handleUpdate({ openInvitationConfig: { ...element.openInvitationConfig!, buttonShape: e.target.value } })">
+                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.openInvitationConfig?.buttonShape || 'pill'" @change="(e: any) => handleUpdate({ openInvitationConfig: { ...safeElement.openInvitationConfig!, buttonShape: e.target.value } })">
                         <option value="pill">Pill</option>
                         <option value="rounded">Rounded</option>
                         <option value="rectangle">Rectangle</option>
@@ -1881,36 +1886,36 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 </div>
                 <div>
                     <span class="text-xs text-slate-400">Font Family</span>
-                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.openInvitationConfig?.fontFamily || 'Inter'" @change="(e: any) => handleUpdate({ openInvitationConfig: { ...element.openInvitationConfig!, fontFamily: e.target.value } })">
+                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.openInvitationConfig?.fontFamily || 'Inter'" @change="(e: any) => handleUpdate({ openInvitationConfig: { ...safeElement.openInvitationConfig!, fontFamily: e.target.value } })">
                         <option v-for="font in fontFamilies" :key="font" :value="font" :style="{ fontFamily: font }">{{ font }}</option>
                     </select>
                 </div>
                 <div>
                     <span class="text-xs text-slate-400">Font Size</span>
-                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.openInvitationConfig?.fontSize || 16" @change="(e: any) => handleUpdate({ openInvitationConfig: { ...element.openInvitationConfig!, fontSize: Number(e.target.value) } })">
+                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.openInvitationConfig?.fontSize || 16" @change="(e: any) => handleUpdate({ openInvitationConfig: { ...safeElement.openInvitationConfig!, fontSize: Number(e.target.value) } })">
                         <option v-for="size in fontSizes" :key="size" :value="size">{{ size }}px</option>
                     </select>
                 </div>
                 <div>
                     <span class="text-xs text-slate-400">Button Color</span>
                     <div class="flex gap-2">
-                        <input type="color" :value="element.openInvitationConfig?.buttonColor || '#722f37'" @input="(e: any) => handleUpdate({ openInvitationConfig: { ...element.openInvitationConfig!, buttonColor: e.target.value } })" class="w-10 h-10 p-1 rounded border cursor-pointer" />
-                        <Input :model-value="element.openInvitationConfig?.buttonColor || '#722f37'" @update:model-value="val => handleUpdate({ openInvitationConfig: { ...element.openInvitationConfig!, buttonColor: val } })" class="flex-1" />
+                        <input type="color" :value="element.openInvitationConfig?.buttonColor || '#722f37'" @input="(e: any) => handleUpdate({ openInvitationConfig: { ...safeElement.openInvitationConfig!, buttonColor: e.target.value } })" class="w-10 h-10 p-1 rounded border cursor-pointer" />
+                        <Input :model-value="element.openInvitationConfig?.buttonColor || '#722f37'" @update:model-value="val => handleUpdate({ openInvitationConfig: { ...safeElement.openInvitationConfig!, buttonColor: val } })" class="flex-1" />
                     </div>
                 </div>
                 <div>
                     <span class="text-xs text-slate-400">Text Color</span>
                     <div class="flex gap-2">
-                        <input type="color" :value="element.openInvitationConfig?.textColor || '#ffffff'" @input="(e: any) => handleUpdate({ openInvitationConfig: { ...element.openInvitationConfig!, textColor: e.target.value } })" class="w-10 h-10 p-1 rounded border cursor-pointer" />
-                        <Input :model-value="element.openInvitationConfig?.textColor || '#ffffff'" @update:model-value="val => handleUpdate({ openInvitationConfig: { ...element.openInvitationConfig!, textColor: val } })" class="flex-1" />
+                        <input type="color" :value="element.openInvitationConfig?.textColor || '#ffffff'" @input="(e: any) => handleUpdate({ openInvitationConfig: { ...safeElement.openInvitationConfig!, textColor: e.target.value } })" class="w-10 h-10 p-1 rounded border cursor-pointer" />
+                        <Input :model-value="element.openInvitationConfig?.textColor || '#ffffff'" @update:model-value="val => handleUpdate({ openInvitationConfig: { ...safeElement.openInvitationConfig!, textColor: val } })" class="flex-1" />
                     </div>
                 </div>
                 <label class="flex items-center gap-2 text-sm">
-                    <input type="checkbox" :checked="element.openInvitationConfig?.showIcon !== false" @change="(e: any) => handleUpdate({ openInvitationConfig: { ...element.openInvitationConfig!, showIcon: e.target.checked } })" class="rounded" /> Show Icon
+                    <input type="checkbox" :checked="element.openInvitationConfig?.showIcon !== false" @change="(e: any) => handleUpdate({ openInvitationConfig: { ...safeElement.openInvitationConfig!, showIcon: e.target.checked } })" class="rounded" /> Show Icon
                 </label>
                 <div v-if="element.openInvitationConfig?.showIcon !== false">
                     <span class="text-xs text-slate-400">Icon</span>
-                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.openInvitationConfig?.iconName || 'mail-open'" @change="(e: any) => handleUpdate({ openInvitationConfig: { ...element.openInvitationConfig!, iconName: e.target.value } })">
+                    <select class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white" :value="element.openInvitationConfig?.iconName || 'mail-open'" @change="(e: any) => handleUpdate({ openInvitationConfig: { ...safeElement.openInvitationConfig!, iconName: e.target.value } })">
                         <option value="mail-open">Mail Open</option>
                         <option value="heart">Heart</option>
                         <option value="sparkles">Sparkles</option>
@@ -2115,7 +2120,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                             <input 
                                 type="checkbox" 
                                 :checked="currentSection.zoomConfig?.enabled || false" 
-                                @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection.zoomConfig || DEFAULT_ZOOM_CONFIG), enabled: e.target.checked } })"
+                                @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(safeSection.zoomConfig || DEFAULT_ZOOM_CONFIG), enabled: e.target.checked } })"
                                 class="sr-only peer"
                             >
                             <div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
@@ -2129,7 +2134,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <select 
                                     class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
                                     :value="currentSection.zoomConfig?.direction || 'in'"
-                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), direction: e.target.value } })"
+                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(safeSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), direction: e.target.value } })"
                                 >
                                     <option value="in">Zoom In</option>
                                     <option value="out">Zoom Out</option>
@@ -2140,7 +2145,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <select 
                                     class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
                                     :value="currentSection.zoomConfig?.trigger || 'scroll'"
-                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), trigger: e.target.value } })"
+                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(safeSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), trigger: e.target.value } })"
                                 >
                                     <option value="scroll">On Scroll</option>
                                     <option value="click">On Click</option>
@@ -2154,7 +2159,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <select 
                                     class="w-full rounded-md border border-slate-200 p-1.5 text-xs bg-white mt-1"
                                     :value="currentSection.zoomConfig?.behavior || 'reset'"
-                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), behavior: e.target.value } })"
+                                    @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(safeSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), behavior: e.target.value } })"
                                 >
                                     <option value="reset">Return to Normal</option>
                                     <option value="stay">Stay Zoomed</option>
@@ -2173,7 +2178,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 max="2.5" 
                                 step="0.1" 
                                 :value="currentSection?.zoomConfig?.scale || 1.3"
-                                @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), scale: Number(e.target.value) } })"
+                                @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(safeSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), scale: Number(e.target.value) } })"
                                 class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                             />
                         </div>
@@ -2189,7 +2194,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 max="10000" 
                                 step="500" 
                                 :value="currentSection?.zoomConfig?.duration || 3000"
-                                @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), duration: Number(e.target.value) } })"
+                                @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(safeSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), duration: Number(e.target.value) } })"
                                 class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                             />
                         </div>
@@ -2297,7 +2302,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                         max="5000" 
                                         step="250" 
                                         :value="currentSection?.zoomConfig?.transitionDuration || 1000"
-                                        @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), transitionDuration: Number(e.target.value) } })"
+                                        @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(safeSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), transitionDuration: Number(e.target.value) } })"
                                         class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                                     />
                                 </div>
@@ -2307,7 +2312,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                         <input 
                                             type="checkbox" 
                                             :checked="currentSection?.zoomConfig?.loop || false"
-                                            @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(currentSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), loop: e.target.checked } })"
+                                            @change="(e: any) => handleSectionUpdate({ zoomConfig: { ...(safeSection?.zoomConfig || DEFAULT_ZOOM_CONFIG), loop: e.target.checked } })"
                                             class="sr-only peer"
                                         >
                                         <div class="w-7 h-4 bg-slate-200 peer-focus:ring-1 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>

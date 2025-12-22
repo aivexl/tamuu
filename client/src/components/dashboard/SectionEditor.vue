@@ -57,9 +57,9 @@ const renderTextFields = computed(() => {
         <div
           class="border-2 border-dashed border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
         >
-          <div v-if="section.data.image" class="relative w-full aspect-video mb-4">
+          <div v-if="(section.data as any).image" class="relative w-full aspect-video mb-4">
             <img
-              :src="section.data.image as string"
+              :src="(section.data as any).image as string"
               alt="Location"
               class="object-cover rounded-md w-full h-full"
             />
@@ -83,7 +83,7 @@ const renderTextFields = computed(() => {
             <div class="mt-4 flex gap-2">
               <Input
                 placeholder="Or paste image URL..."
-                :model-value="(section.data.image as string) || ''"
+                :model-value="((section.data as any).image as string) || ''"
                 @update:model-value="(val) => handleTextChange('image', val)"
               />
             </div>

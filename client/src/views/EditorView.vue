@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useTemplateStore } from '@/stores/template';
 import { PREDEFINED_SECTION_TYPES, type SectionDesign } from '@/lib/types';
 import { DEFAULT_ZOOM_CONFIG } from '@/lib/constants';
@@ -10,10 +10,9 @@ import ParticleOverlay from '@/components/effects/ParticleOverlay.vue';
 import AddElementPanel from '@/components/editor/AddElementPanel.vue';
 import Button from '@/components/ui/Button.vue';
 import * as CloudflareAPI from '@/services/cloudflare-api';
-import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, Maximize, Check, Upload, Play, User } from 'lucide-vue-next';
+import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, Check, Upload, User } from 'lucide-vue-next';
 
 const route = useRoute();
-const router = useRouter();
 const store = useTemplateStore();
 
 const templateId = computed(() => route.params.id as string);
@@ -309,11 +308,12 @@ const handleSectionZoomUpdate = async (sectionKey: string, updates: any) => {
         const points = [...(currentZoom.points || [])];
         const idx = updates.pointIndex;
         
-        if (idx >= 0 && idx < points.length) {
+        const point = points[idx];
+        if (idx >= 0 && idx < points.length && point) {
             points[idx] = {
-                ...points[idx],
+                ...point,
                 targetRegion: {
-                    ...points[idx].targetRegion,
+                    ...point.targetRegion,
                     ...updates.targetRegion
                 }
             };

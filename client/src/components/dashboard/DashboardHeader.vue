@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Button from "@/components/ui/Button.vue";
-import { Settings, LogOut } from "lucide-vue-next";
+import { Settings } from "lucide-vue-next";
 </script>
 
 <template>

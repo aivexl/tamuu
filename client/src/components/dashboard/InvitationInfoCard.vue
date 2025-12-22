@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 import Card from "@/components/ui/Card.vue";
 import Button from "@/components/ui/Button.vue";
-import { Calendar, Clock, Image as ImageIcon, Upload } from "lucide-vue-next";
+import { Calendar, Clock, Upload } from "lucide-vue-next";
 import { useInvitationStore } from "@/stores/invitation";
 import { formatDate } from "date-fns";
 import { id } from "date-fns/locale";

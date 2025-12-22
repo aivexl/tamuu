@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from "vue";
+import { onUnmounted, watch } from "vue";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-vue-next";
 

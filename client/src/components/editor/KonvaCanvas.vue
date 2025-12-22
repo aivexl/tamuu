@@ -555,7 +555,7 @@ const zoomTargetConfigs = computed(() => {
         }];
     }
     
-    return points.map((point, idx) => {
+    return points.map((point: { targetRegion?: { x: number; y: number; width: number; height: number } }, idx: number) => {
         const tr = point.targetRegion || { x: 50, y: 50, width: 50, height: 50 };
         const w = Math.max(20, (tr.width / 100) * CANVAS_WIDTH);
         const h = Math.max(20, (tr.height / 100) * CANVAS_HEIGHT);
@@ -583,14 +583,7 @@ const zoomTargetConfigs = computed(() => {
     });
 });
 
-// Keep legacy single config for backward compat (used in transformer watcher)
-const zoomTargetConfig = computed(() => {
-    const configs = zoomTargetConfigs.value;
-    if (configs.length === 0) return null;
-    // Return the selected one for transformer
-    const selected = configs.find(c => c.isSelected);
-    return selected || configs[0];
-});
+// Legacy single config removed - using zoomTargetConfigs array
 
 const handleZoomTargetDragEnd = (e: any, pointIndex: number) => {
     const node = e.target;

@@ -199,16 +199,15 @@ const variants = {
 
 const motionConfig = computed(() => {
     const v = variants[props.animation] || variants.none;
+    const visibleVariant = v.visible as Record<string, unknown>;
+    const existingTransition = ('transition' in visibleVariant ? visibleVariant.transition : {}) as Record<string, unknown>;
     return {
         initial: v.initial,
         visible: {
-            ...v.visible,
+            ...visibleVariant,
             transition: {
-                ...v.visible.transition,
-                delay: props.delay * 1000 // Convert seconds to ms if delay is in seconds, Framer Motion uses seconds, Motion uses ms normally? Wait, Framer uses seconds (0.8). VueUse motion uses ms? No, it usually mimics. Let's assume ms if numbers are large, or seconds if small.
-                // Framer Motion: delay is seconds.
-                // VueUse Motion: delay is ms usually.
-                // I multiplied by 1000 in the code above (duration 800 etc). So I should multiply delay too.
+                ...existingTransition,
+                delay: props.delay * 1000 // VueUse Motion uses ms
             }
         }
     };

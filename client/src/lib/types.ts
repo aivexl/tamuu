@@ -338,7 +338,7 @@ export interface ZoomAnimationConfig {
     };
 }
 
-export type ElementStyle = 'classic' | 'minimal' | 'modern' | 'elegant' | 'rustic' | 'romantic' | 'bold' | 'vintage' | 'boho' | 'luxury' | 'dark' | 'glass' | 'outline' | 'geometric' | 'floral' | 'pastel' | 'monochrome' | 'neon' | 'brutalist' | 'cloud';
+export type ElementStyle = 'classic' | 'minimal' | 'modern' | 'elegant' | 'rustic' | 'romantic' | 'bold' | 'vintage' | 'boho' | 'luxury' | 'dark' | 'glass' | 'outline' | 'geometric' | 'floral' | 'pastel' | 'monochrome' | 'neon' | 'brutalist' | 'cloud' | 'gradient' | 'playful' | 'sticker';
 
 export interface RSVPFormConfig {
     style: ElementStyle;

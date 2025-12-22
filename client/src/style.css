@@ -39,11 +39,13 @@
   /* Suppress browser extension attributes that cause hydration warnings */
   *[bis_skin_checked] {
     /* Hide these cosmetic attributes from browser extensions */
+    content: normal;
   }
 
   /* Global hydration warning suppression */
   .hydration-safe {
     /* Additional safety for hydration-sensitive elements */
+    content: normal;
   }
 }
 

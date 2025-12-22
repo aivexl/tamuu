@@ -47,7 +47,7 @@ const handleCreateTemplate = async () => {
   }
 };
 
-const handleDelete = async (id: string) => {
+const handleDelete = async (_id: string) => {
     if (confirm("Are you sure you want to delete this template?")) {
         // Implement delete action in store
         // await store.deleteTemplate(id); // TODO: Add this to store
