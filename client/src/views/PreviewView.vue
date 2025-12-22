@@ -559,7 +559,11 @@ const handleOpenInvitation = async () => {
     // Use GSAP for precision timing
     gsap.delayedCall(animWait / 1000, () => {
         const effect = transition.enabled ? transition.effect : 'none';
-        const duration = (transition.duration || 1000) / 1000;
+        // LUXURY STANDARD: Minimum 1.5 seconds for smooth, premium feel
+        const rawDuration = transition.duration || 1000;
+        const duration = Math.max(1.5, rawDuration / 1000);
+        
+        console.log(`[Transition] Effect: ${effect}, Duration: ${duration}s`);
         
         const finishTransition = () => {
             // CTO-LEVEL HANDOFF: Keep layers overlapping briefly for sub-pixel alignment
@@ -1062,7 +1066,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :style="getElementStyle(el, index)"
                                         :immediate="index === 0"
                                         :trigger-mode="el.animationTrigger || 'scroll'"
-                                        :force-trigger="el.animationTrigger === 'open_btn' ? isOpened : true"
+                                        :force-trigger="index === 0 ? (el.animationTrigger === 'open_btn' ? isOpened : true) : (flowMode && isOpened)"
                                         :element-id="el.id"
                                         :image-url="el.imageUrl"
                                         :motion-path-config="el.motionPathConfig"
