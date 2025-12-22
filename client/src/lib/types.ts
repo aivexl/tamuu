@@ -470,6 +470,17 @@ export interface MotionPathConfig {
 
 export type ParticleType = 'none' | 'butterflies' | 'petals' | 'leaves' | 'sparkles';
 
+export type PageTransitionEffect = 'none' | 'fade' | 'slide-up' | 'slide-down' | 'zoom-reveal' | 'stack-reveal' | 'parallax-reveal' | 'door-reveal';
+
+export interface PageTransitionConfig {
+    enabled: boolean;
+    effect: PageTransitionEffect;
+    trigger: 'scroll' | 'click' | 'open_btn';
+    duration: number; // ms
+    overlayEnabled?: boolean; // For "standby" background effect
+    overlayOpacity?: number;
+}
+
 export interface SectionDesign {
     id?: string;
     backgroundUrl?: string;
@@ -484,6 +495,11 @@ export interface SectionDesign {
     isVisible?: boolean;
     openInvitationConfig?: OpenInvitationConfig;
     animationTrigger?: 'scroll' | 'click' | 'open_btn';
+
+    // Page Transitions
+    pageTransition?: PageTransitionConfig;
+
+    // Legacy Transition Fields (can be removed later)
     transitionEffect?: string;
     transitionDuration?: number;
     transitionTrigger?: 'scroll' | 'click' | 'open_btn';

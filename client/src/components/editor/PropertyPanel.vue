@@ -593,6 +593,47 @@ const updateZoomPointDuration = (idx: number, duration: number) => {
     }
 };
 
+// ============================================
+// PAGE TRANSITION MANAGEMENT
+// ============================================
+const pageTransitionEnabled = computed({
+    get: () => currentSection.value?.pageTransition?.enabled || false,
+    set: (enabled: boolean) => updatePageTransition({ enabled })
+});
+
+const pageTransitionEffect = computed({
+    get: () => currentSection.value?.pageTransition?.effect || 'none',
+    set: (effect: any) => updatePageTransition({ effect })
+});
+
+const pageTransitionTrigger = computed({
+    get: () => currentSection.value?.pageTransition?.trigger || 'scroll',
+    set: (trigger: any) => updatePageTransition({ trigger })
+});
+
+const pageTransitionDuration = computed({
+    get: () => currentSection.value?.pageTransition?.duration || 1000,
+    set: (duration: number) => updatePageTransition({ duration })
+});
+
+const pageTransitionOverlay = computed({
+    get: () => currentSection.value?.pageTransition?.overlayEnabled || false,
+    set: (overlayEnabled: boolean) => updatePageTransition({ overlayEnabled })
+});
+
+const updatePageTransition = (updates: Partial<any>) => {
+    if (!currentSection.value) return;
+    const current = currentSection.value.pageTransition || {
+        enabled: false,
+        effect: 'none',
+        trigger: 'scroll',
+        duration: 1000
+    };
+    handleSectionUpdate({
+        pageTransition: { ...current, ...updates }
+    }, { skipRefetch: true });
+};
+
 
 const extendedSocialIcons = [
     'instagram', 'facebook', 'twitter', 'youtube', 'linkedin', 'tiktok', 'whatsapp', 'telegram', 
@@ -2278,76 +2319,88 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                 </div>
                 
             </div>
-            <div class="space-y-3 pt-3 border-t">
-                <Label class="text-xs font-semibold text-slate-500 uppercase">Page Transition</Label>
-                <div>
-                    <span class="text-xs text-slate-400">Transition Effect</span>
-                    <select 
-                        class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white"
-                        :value="currentSection.transitionEffect || 'none'"
-                        @change="(e: any) => handleSectionUpdate({ transitionEffect: e.target.value })"
-                    >
-                        <option value="none">None</option>
-                        <optgroup label="Basic">
-                            <option value="fade">Fade</option>
-                            <option value="slide-up">Slide Up</option>
-                            <option value="slide-down">Slide Down</option>
-                            <option value="slide-left">Slide Left</option>
-                            <option value="slide-right">Slide Right</option>
-                        </optgroup>
-                        <optgroup label="Zoom & Rotate">
-                            <option value="zoom-in">Zoom In</option>
-                            <option value="zoom-out">Zoom Out</option>
-                            <option value="rotate">Rotate</option>
-                            <option value="flip-x">Flip X</option>
-                            <option value="flip-y">Flip Y</option>
-                        </optgroup>
-                        <optgroup label="Filter Effects">
-                            <option value="blur">Blur</option>
-                            <option value="grayscale">Grayscale</option>
-                            <option value="sepia">Sepia</option>
-                        </optgroup>
-                        <optgroup label="Premium (Libraries)">
-                            <option value="split-screen">Split Screen (GSAP)</option>
-                            <option value="curtain-reveal">Curtain Reveal (GSAP)</option>
-                            <option value="reveal">Soft Reveal (GSAP)</option>
-                            <option value="cube">3D Cube (GSAP)</option>
-                            <option value="cards">Stack Cards (Anime)</option>
-                            <option value="smooth-reveal">Smooth Scroll (Lenis)</option>
-                            <option value="split-transition">Split-X (Anime)</option>
-                            <option value="slide-split">Slide Split (Motion)</option>
-                        </optgroup>
-                    </select>
-                </div>
-                <div>
-                    <span class="text-xs text-slate-400">Transition Trigger</span>
-                    <select 
-                        class="w-full rounded-md border border-slate-200 p-2 text-sm bg-white"
-                        :value="currentSection.transitionTrigger || 'scroll'"
-                        @change="(e: any) => handleSectionUpdate({ transitionTrigger: e.target.value })"
-                    >
-                        <option value="scroll">On Scroll (Default)</option>
-                        <option value="click">Click Page</option>
-                        <option value="open_btn">Click Open Button</option>
-                    </select>
-                    <p class="text-xs text-slate-400 mt-1" v-if="currentSection.transitionTrigger === 'open_btn'">
-                        This transition will play when the "Open Invitation" button is clicked.
-                    </p>
-                </div>
-                <div>
-                    <div class="flex justify-between">
-                        <span class="text-xs text-slate-400">Duration</span>
-                        <span class="text-xs text-slate-500">{{ currentSection.transitionDuration || 1000 }}ms</span>
+            <!-- PAGE TRANSITION SETTINGS -->
+            <div class="space-y-3 pt-3 border-t border-slate-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <Label class="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+                            <span class="text-sm">🎭</span> Page Transition
+                        </Label>
+                        <p class="text-[9px] text-slate-400 mt-0.5">Professional reveal effects</p>
                     </div>
-                    <input 
-                        type="range" 
-                        min="500" 
-                        max="3000" 
-                        step="100" 
-                        :value="currentSection.transitionDuration || 1000"
-                        @input="(e: any) => handleSectionUpdate({ transitionDuration: Number(e.target.value) })"
-                        class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                    />
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            v-model="pageTransitionEnabled"
+                            class="sr-only peer"
+                        >
+                        <div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+                    </label>
+                </div>
+
+                <div v-if="pageTransitionEnabled" class="space-y-3 pl-2 border-l-2 border-teal-100 mt-2">
+                    <div>
+                        <span class="text-[10px] text-slate-400">Effect Style</span>
+                        <select 
+                            v-model="pageTransitionEffect"
+                            class="w-full rounded-md border border-slate-200 p-2 text-xs bg-white mt-1"
+                        >
+                            <option value="none">None</option>
+                            <optgroup label="Essential">
+                                <option value="fade">Classic Fade</option>
+                                <option value="slide-up">Slide Up</option>
+                                <option value="slide-down">Slide Down</option>
+                            </optgroup>
+                            <optgroup label="Luxury (Standby Mode)">
+                                <option value="zoom-reveal">Zoom Reveal</option>
+                                <option value="stack-reveal">Stack Layer Reveal</option>
+                                <option value="parallax-reveal">Parallax Move</option>
+                                <option value="door-reveal">Door Open</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] text-slate-400">Section Standby</span>
+                            <p class="text-[8px] text-slate-400">Render next section behind</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                v-model="pageTransitionOverlay"
+                                class="sr-only peer"
+                            >
+                            <div class="w-7 h-4 bg-slate-200 peer-focus:ring-1 peer-focus:ring-teal-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-teal-500"></div>
+                        </label>
+                    </div>
+
+                    <div>
+                        <span class="text-[10px] text-slate-400">Trigger Mode</span>
+                        <select 
+                            v-model="pageTransitionTrigger"
+                            class="w-full rounded-md border border-slate-200 p-2 text-xs bg-white mt-1"
+                        >
+                            <option value="scroll">On Scroll (Natural)</option>
+                            <option value="click">On Click (Intentional)</option>
+                            <option value="open_btn">Open Button (Opening Only)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center text-[10px] mb-1">
+                            <span class="text-slate-400">Anim Duration</span>
+                            <span class="font-medium text-slate-600">{{ pageTransitionDuration }}ms</span>
+                        </div>
+                        <input 
+                            type="range" 
+                            min="400" 
+                            max="3000" 
+                            step="100" 
+                            v-model.number="pageTransitionDuration"
+                            class="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                        />
+                    </div>
                 </div>
             </div>
             
