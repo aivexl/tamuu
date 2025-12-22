@@ -61,11 +61,12 @@ const filteredSections = computed((): (any)[] => {
 });
 
 // State
-const isOpened = ref(false); 
-const isRevealing = ref(false); // Mid-transition state
+const isOpened = ref(false); // Track if "Open" button was clicked
+const isRevealing = ref(false); // Track if middle-of-reveal animation is active
+const isHandoffActive = ref(false); // New: Track the split-second handoff between modes
 const shutterVisible = ref(false);
 const openBtnTriggered = ref(false);
-const flowMode = ref(false); 
+const flowMode = ref(false); // Binary mode: Reveal (Atomic) vs Scroll (Flow)
 
 const windowWidth = ref(0);
 const windowHeight = ref(0);
@@ -561,8 +562,9 @@ const handleOpenInvitation = async () => {
         const duration = (transition.duration || 1000) / 1000;
         
         const finishTransition = () => {
+            // CTO-LEVEL HANDOFF: Keep layers overlapping briefly for sub-pixel alignment
+            isHandoffActive.value = true;
             flowMode.value = true;
-            isRevealing.value = false;
             
             nextTick(() => {
                 if (scrollContainer.value) {
@@ -571,6 +573,7 @@ const handleOpenInvitation = async () => {
                     const scrollOffset = coverHeightComputed.value * scaleFactor.value;
                     scrollContainer.value.scrollTop = scrollOffset;
                     
+                    // Force a re-layout check
                     const handleScroll = () => {
                         if (!scrollContainer.value) return;
                         const containerRect = scrollContainer.value.getBoundingClientRect();
@@ -591,12 +594,19 @@ const handleOpenInvitation = async () => {
                     scrollContainer.value.addEventListener('scroll', handleScroll);
                     setTimeout(handleScroll, 100);
                     
+                    // LUXURY DELAY: Wait 150ms for browser paint to stabilize at New scroll position
                     setTimeout(() => {
+                        isRevealing.value = false;
+                        isHandoffActive.value = false;
+                        
                         if (lenis) {
                             lenis.resize();
                             lenis.start();
                         }
-                    }, 50);
+                    }, 150);
+                } else {
+                    isRevealing.value = false;
+                    isHandoffActive.value = false;
                 }
             });
         };
@@ -980,7 +990,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                     </div>
 
                     <!-- ATOMIC REVEAL ENGINE (Mid-Transition Physics) -->
-                    <div v-if="!flowMode" class="absolute inset-0 w-full h-full bg-slate-100">
+                    <div v-if="!flowMode || isHandoffActive" class="absolute inset-0 w-full h-full bg-slate-100" :class="{ 'pointer-events-none': flowMode }">
                         <!-- BOTTOM LAYER: Standby Section -->
                         <div v-if="filteredSections[1]" class="absolute inset-0 z-[1] atomic-next-layer overflow-hidden" :style="{ backgroundColor: filteredSections[1].backgroundColor || '#dddddd', opacity: (filteredSections[0]?.pageTransition?.overlayEnabled || isRevealing) ? 1 : 0 }">
                             <div class="absolute inset-0 w-full h-full" :class="getZoomClass(filteredSections[1], 1)" :style="getZoomStyle(filteredSections[1], 1)">

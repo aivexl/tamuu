@@ -20,9 +20,9 @@ const activeSection = computed(() => {
     return t?.sections[props.sectionKey] || null;
 });
 
-const transitionEffect = ref(activeSection.value?.transitionEffect || 'none');
-const transitionTrigger = ref(activeSection.value?.transitionTrigger || 'scroll');
-const transitionDuration = ref(activeSection.value?.transitionDuration || 1000);
+const transitionEffect = ref(activeSection.value?.pageTransition?.effect || activeSection.value?.transitionEffect || 'none');
+const transitionTrigger = ref(activeSection.value?.pageTransition?.trigger || activeSection.value?.transitionTrigger || 'scroll');
+const transitionDuration = ref(activeSection.value?.pageTransition?.duration || activeSection.value?.transitionDuration || 1000);
 
 const EFFECTS = [
     { value: 'none', label: 'None' },
@@ -50,10 +50,15 @@ const EFFECTS = [
 
 const save = async () => {
     if (store.activeTemplateId) {
+        // CTO-LEVEL SYNC: Use the professional pageTransition object
         await store.updateSection(store.activeTemplateId, props.sectionKey, {
-            transitionEffect: transitionEffect.value,
-            transitionTrigger: transitionTrigger.value as any,
-            transitionDuration: parseInt(String(transitionDuration.value))
+            pageTransition: {
+                enabled: transitionEffect.value !== 'none',
+                effect: transitionEffect.value as any,
+                trigger: transitionTrigger.value as any,
+                duration: parseInt(String(transitionDuration.value)),
+                overlayEnabled: true // Default for luxury feel
+            }
         });
     }
     emit('update:modelValue', false);

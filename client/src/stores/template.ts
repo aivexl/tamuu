@@ -360,6 +360,7 @@ export const useTemplateStore = defineStore("template", {
                         particleType: section.particleType,
                         kenBurnsEnabled: section.kenBurnsEnabled,
                         openInvitationConfig: section.openInvitationConfig,
+                        pageTransition: section.pageTransition,
                     }
                 });
             }
@@ -1004,9 +1005,13 @@ export const useTemplateStore = defineStore("template", {
                         animation: 'none',
                         animationTrigger: 'scroll',
                         backgroundColor: '#ffffff',
-                        transitionEffect: 'none',
-                        transitionDuration: 1000,
-                        transitionTrigger: 'scroll',
+                        pageTransition: {
+                            enabled: false,
+                            effect: 'none',
+                            trigger: 'scroll',
+                            duration: 1000,
+                            overlayEnabled: true
+                        },
                         title: s.title,
                         order: s.order
                     };
