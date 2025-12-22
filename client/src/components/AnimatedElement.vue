@@ -215,8 +215,9 @@ useIntersectionObserver(
 
 // MANUAL TRIGGER WATCHER - Triggers animation when forceTrigger becomes true
 watch(() => props.forceTrigger, (force, oldForce) => {
-    // Only trigger on positive edge (false -> true)
-    if (force && !oldForce) {
+    // CRITICAL: Only trigger on positive edge (false -> true)
+    // Guard against initial mount where oldForce is undefined
+    if (force && oldForce === false) {
         // For click/open_btn modes, use existing logic
         if (props.triggerMode === 'click' || props.triggerMode === 'open_btn') {
             if (isVisible.value || props.immediate) {
@@ -232,7 +233,7 @@ watch(() => props.forceTrigger, (force, oldForce) => {
             tryTriggerAnimation();
         }
     }
-}, { immediate: true });
+}, { immediate: false }); // Don't run on mount - wait for actual changes
 
 // --- ZOOM ANIMATION LOGIC ---
 const isZoomActive = ref(false);

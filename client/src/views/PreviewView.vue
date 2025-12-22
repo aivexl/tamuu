@@ -976,10 +976,14 @@ const getSectionSlotStyle = (index: number): any => {
             calculatedTop = currentCoverHeight + (index - 1) * CANVAS_HEIGHT;
         }
         
+        // CRITICAL: Keep Section 0's high z-index during handoff to prevent
+        // Section 1 from appearing on top while GSAP animation is still visible
+        const zIndex = (isFirst && isHandoffActive.value) ? 20 : 1;
+        
         return {
             ...base,
             top: `${calculatedTop}px`,
-            zIndex: 1,
+            zIndex: zIndex,
             opacity: 1,
             display: 'block'
         };
