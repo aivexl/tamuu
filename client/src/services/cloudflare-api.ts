@@ -35,6 +35,7 @@ async function request<T>(
         try {
             const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 ...fetchOptions,
+                credentials: 'include', // Support cross-origin cookies
                 headers: {
                     "Content-Type": "application/json",
                     ...fetchOptions.headers,

@@ -26,7 +26,14 @@ const handleLogin = async () => {
     
     try {
         await authStore.login(email.value, password.value);
-        router.push('/my/dashboard');
+        
+        // Handle redirect
+        const redirectPath = router.currentRoute.value.query.redirect as string;
+        if (redirectPath) {
+            router.push(redirectPath);
+        } else {
+            router.push('/my/dashboard');
+        }
     } catch (error: any) {
         errorMessage.value = error.message || 'Login failed. Please try again.';
     } finally {

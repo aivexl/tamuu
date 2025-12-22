@@ -80,13 +80,13 @@ const navLinks = [
         <!-- Auth Actions -->
         <div v-if="!authStore.isAuthenticated" class="flex items-center gap-4">
           <RouterLink 
-            to="/login"
+            :to="{ name: 'login', query: { redirect: $route.fullPath } }"
             class="text-sm font-bold text-slate-700 hover:text-indigo-600 transition-colors px-4 py-2"
           >
             Masuk
           </RouterLink>
           <RouterLink 
-            to="/register"
+            :to="{ name: 'register', query: { redirect: $route.fullPath } }"
             class="group relative inline-flex items-center gap-2 bg-slate-900 px-6 py-2.5 rounded-xl text-sm font-bold text-white shadow-xl shadow-slate-200 hover:bg-indigo-600 hover:shadow-indigo-100 transition-all duration-300"
           >
             Buat Undangan
