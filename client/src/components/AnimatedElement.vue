@@ -33,6 +33,7 @@ interface Props {
   elementContent?: string;
   parallaxFactor?: number; // -1 to 1, for mouse-tracking 3D depth
   zoomConfig?: import("@/lib/types").ZoomAnimationConfig;
+  isSectionActive?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -52,6 +53,7 @@ const props = withDefaults(defineProps<Props>(), {
   elementContent: '',
   parallaxFactor: 0,
   zoomConfig: undefined,
+  isSectionActive: true, // Default to true for backward compatibility
 });
 
 import { Copy, Check } from 'lucide-vue-next';
@@ -218,6 +220,14 @@ watch(() => props.forceTrigger, (force, oldForce) => {
     // CRITICAL: Only trigger on positive edge (false -> true)
     // Guard against initial mount where oldForce is undefined
     if (force && oldForce === false) {
+        // PERMISSIVE TRIGGER Rule:
+        // Only fire if the parent card/section is activated.
+        // If not activated, do nothing - the Section Activation watcher will handle it.
+        if (!props.isSectionActive) {
+            console.log(`[Animation] ${props.elementId} trigger deferred: Parent section not active.`);
+            return;
+        }
+
         // For click/open_btn modes, use existing logic
         if (props.triggerMode === 'click' || props.triggerMode === 'open_btn') {
             if (isVisible.value || props.immediate) {
@@ -227,13 +237,29 @@ watch(() => props.forceTrigger, (force, oldForce) => {
                 pendingOpenTrigger.value = true;
             }
         } else {
-            // For scroll and other modes, trigger immediately when forceTrigger becomes true
-            // This handles Section 2+ elements when transition completes
-            console.log(`[Animation] ${props.elementId} forceTrigger fired for mode: ${props.triggerMode}`);
-            tryTriggerAnimation();
+            // For scroll mode: ONLY trigger if visible!
+            // Card is active, so we are allowed to animate, but only if on screen.
+            if (isVisible.value) {
+                console.log(`[Animation] ${props.elementId} forceTrigger fired & visible. Animating.`);
+                tryTriggerAnimation();
+            } else {
+                console.log(`[Animation] ${props.elementId} forceTrigger fired but NOT visible. Waiting for scroll.`);
+            }
         }
     }
 }, { immediate: false }); // Don't run on mount - wait for actual changes
+
+// SECTION ACTIVATION WATCHER
+// When a section becomes active, check if we have a pending scroll/force trigger
+watch(() => props.isSectionActive, (active) => {
+    if (active && props.forceTrigger) {
+        // If we are already visible or immediate, fire!
+        if (isVisible.value || props.immediate) {
+            console.log(`[Animation] ${props.elementId} activated and visible. Triggering.`);
+            tryTriggerAnimation();
+        }
+    }
+});
 
 // --- ZOOM ANIMATION LOGIC ---
 const isZoomActive = ref(false);

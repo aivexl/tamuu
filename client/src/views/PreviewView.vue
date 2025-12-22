@@ -69,7 +69,8 @@ const shutterVisible = ref(false);
 const openBtnTriggered = ref(false);
 
 // Computed helpers for backward compatibility and template logic
-const isRevealing = computed(() => transitionStage.value === 'REVEALING');
+// Lifecycle activation index: Controls when elements inside a card are allowed to wake up
+const activeSectionIndex = ref(0);
 const isHandoffActive = computed(() => transitionStage.value === 'HANDOFF');
 const flowMode = computed(() => ['HANDOFF', 'DONE'].includes(transitionStage.value));
 const isTransitionComplete = computed(() => transitionStage.value === 'DONE');
@@ -617,7 +618,7 @@ const handleOpenInvitation = async () => {
                         handleScroll();
                         
                         // Step 4: Done Phase (Release z-index, trigger next animations)
-                        // Wait briefly to strictly separate "Transition" from "Content Animation"
+                        // Transition is 100% complete. Activate Section 1 (index 1).
                         setTimeout(() => {
                             if (lenis) {
                                 lenis.resize();
@@ -625,6 +626,7 @@ const handleOpenInvitation = async () => {
                             }
                             
                             transitionStage.value = 'DONE';
+                            activeSectionIndex.value = 1;
                         }, 100);
                     } else {
                         transitionStage.value = 'DONE';
@@ -989,9 +991,25 @@ const getSectionSlotStyle = (index: number): any => {
             top: `${calculatedTop}px`,
             zIndex: zIndex,
             opacity: 1,
-            display: 'block'
+            display: 'block',
+            // HARDWARE-ACCELERATED CLIPPING:
+            // Prevents elements from "leaking" outside the 375px mobile canvas during slide-up
+            clipPath: 'inset(0)',
+            ['-webkit-clip-path' as any]: 'inset(0)',
+            willChange: 'transform, opacity, scroll-position'
         };
     }
+};
+
+// Provide activation status to all children (AnimatedElement.vue)
+const checkSectionActive = (index: number) => {
+    // Section 0 (Cover) is active if the door isn't open yet OR we are in Atomic mode
+    if (index === 0) return !isTransitionComplete.value;
+    
+    // Normal sections are active only if the transition is DONE and the index matches 
+    // or we are scrolling through them in flow mode.
+    // For simplicity: If transition is DONE, all sections are now governed by scroll-activation.
+    return isTransitionComplete.value;
 };
 
 const goBack = () => router.push(`/editor/${templateId.value}`);
@@ -1102,6 +1120,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                                         :image-url="el.imageUrl"
                                         :motion-path-config="el.motionPathConfig"
                                         :parallax-factor="el.parallaxFactor"
+                                        :is-section-active="checkSectionActive(index)"
                                     >
                                         <!-- Image/GIF -->
                                         <img 
