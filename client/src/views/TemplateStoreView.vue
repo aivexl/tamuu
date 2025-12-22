@@ -3,9 +3,11 @@ import { onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTemplateStore } from '@/stores/template';
 import { useInvitationStore } from '@/stores/invitation';
-import { ArrowLeft, Eye, Check, Loader2 } from 'lucide-vue-next';
+import { LayoutTemplate, Eye, Check, Loader2 } from 'lucide-vue-next';
 import Button from '@/components/ui/Button.vue';
 import SafeImage from '@/components/ui/SafeImage.vue';
+import MainNavbar from '@/components/layout/MainNavbar.vue';
+import MainFooter from '@/components/layout/MainFooter.vue';
 
 const router = useRouter();
 const templateStore = useTemplateStore();
@@ -29,28 +31,26 @@ const previewTemplate = (templateId: string) => {
     window.open(`/preview/${templateId}`, '_blank');
 };
 
-const goBack = () => {
-    router.push('/dashboard');
-};
 </script>
 
 <template>
-    <div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-teal-50">
+    <div class="min-h-screen bg-slate-50">
+        <MainNavbar />
+
+        <!-- Spacer for sticky navbar -->
+        <div class="pt-24"></div>
+
         <!-- Header -->
-        <header class="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-10">
-            <div class="max-w-6xl mx-auto px-4 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <button 
-                            @click="goBack"
-                            class="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                        >
-                            <ArrowLeft class="w-5 h-5 text-gray-600" />
-                        </button>
-                        <div>
-                            <h1 class="text-xl font-bold text-gray-900">Pilih Template</h1>
-                            <p class="text-sm text-gray-500">Pilih desain untuk undangan Anda</p>
+        <header class="py-12 bg-white border-b border-slate-100">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div class="space-y-2">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 rounded-full">
+                            <LayoutTemplate class="w-3.5 h-3.5 text-indigo-600" />
+                            <span class="text-[10px] font-black uppercase tracking-widest text-indigo-700">Explorasi Desain</span>
                         </div>
+                        <h1 class="text-4xl font-black text-slate-900 tracking-tight">Koleksi Template Premium</h1>
+                        <p class="text-slate-500 font-medium max-w-xl text-sm">Pilih desain mahakarya kami untuk momen spesial Anda. Setiap template dikurasi oleh desainer kelas dunia.</p>
                     </div>
                 </div>
             </div>
@@ -129,5 +129,6 @@ const goBack = () => {
                 </Button>
             </div>
         </main>
+        <MainFooter />
     </div>
 </template>

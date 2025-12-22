@@ -1,31 +1,39 @@
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
-import { ArrowRight, CheckCircle, Sparkles } from "lucide-vue-next";
+import { ArrowRight, CheckCircle, Sparkles, Star, Zap, ShieldCheck } from "lucide-vue-next";
+import MainNavbar from "@/components/layout/MainNavbar.vue";
+import MainFooter from "@/components/layout/MainFooter.vue";
 
 const features = [
   {
     title: "450+ Tema Premium",
     description: "Pilihan tema beragam kategori untuk berbagai jenis acara",
+    icon: Star,
   },
   {
     title: "Edit Mudah",
     description: "Cukup dari HP, edit undangan dalam hitungan menit",
+    icon: Zap,
   },
   {
     title: "Custom Domain",
     description: "Tampil unik dengan domain atas nama pribadi atau brand",
+    icon: Sparkles,
   },
   {
     title: "RSVP & Guest Book",
     description: "Kelola konfirmasi tamu dan ucapan dengan mudah",
+    icon: CheckCircle,
   },
   {
     title: "QR Code Check-in",
     description: "Sistem check-in modern untuk acara Anda",
+    icon: ShieldCheck,
   },
   {
     title: "WhatsApp Broadcast",
     description: "Kirim undangan ke semua tamu dalam sekali klik",
+    icon: Sparkles,
   },
 ];
 
@@ -78,111 +86,135 @@ const formatPrice = (price: number) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-purple-50 font-sans">
+  <div class="min-h-screen bg-slate-50 font-sans selection:bg-indigo-100 selection:text-indigo-900">
+    <MainNavbar />
+
     <!-- Hero Section -->
-    <div class="relative overflow-hidden">
-      <div class="absolute inset-0 bg-grid-opacity-5"></div>
-      <div class="max-w-7xl mx-auto px-6 py-20 relative">
-        <div class="text-center space-y-8">
+    <section class="relative pt-32 pb-20 overflow-hidden">
+      <!-- Decor -->
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-500/10 blur-[120px] rounded-full"></div>
+      </div>
+
+      <div class="max-w-7xl mx-auto px-6 relative">
+        <div class="text-center space-y-10 max-w-4xl mx-auto">
           <div
-            class="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-md rounded-full border border-teal-200 shadow-lg"
+            class="inline-flex items-center gap-2 px-5 py-2 bg-indigo-50 border border-indigo-100 rounded-full shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700"
           >
-            <Sparkles class="w-4 h-4 text-teal-600" />
-            <span class="text-sm font-medium text-teal-700">Platform Undangan Digital #1 di Indonesia</span>
+            <Sparkles class="w-4 h-4 text-indigo-600" />
+            <span class="text-xs font-bold text-indigo-700 uppercase tracking-widest">Platform Undangan Digital #1</span>
           </div>
 
-          <h1 class="text-6xl md:text-7xl font-bold text-gray-900 leading-tight">
-            Buat Undangan Digital
+          <h1 class="text-6xl md:text-8xl font-black text-slate-900 leading-[1.1] tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
+            Rayakan Momen
+            <span class="relative inline-block">
+              Berharga 
+              <div class="absolute -bottom-2 left-0 w-full h-3 bg-indigo-200/50 -rotate-1 -z-10"></div>
+            </span>
             <br />
-            <span class="bg-gradient-to-r from-teal-600 to-blue-600 bg-clip-text text-transparent">
-              Dalam 10 Menit
+            <span class="bg-gradient-to-r from-indigo-600 via-indigo-500 to-teal-500 bg-clip-text text-transparent">
+              Tanpa Batas
             </span>
           </h1>
 
-          <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-            Platform undangan online untuk pernikahan, ulang tahun, dan acara spesial lainnya. Mudah, cepat, dan
-            profesional dengan 450+ tema pilihan.
+          <p class="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-700 delay-300">
+            Platform undangan online tercanggih untuk pernikahan, ulang tahun, dan acara spesial. Desain elegan, fitur premium, dan kemudahan dalam genggaman.
           </p>
 
-          <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-500">
             <RouterLink
-              to="/dashboard"
-              class="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white font-semibold rounded-xl shadow-lg shadow-teal-500/30 hover:shadow-xl hover:scale-105 transition-all duration-200"
+              to="/register"
+              class="group relative inline-flex items-center gap-3 px-10 py-5 bg-slate-900 text-white font-black rounded-2xl shadow-2xl shadow-slate-200 hover:bg-slate-800 hover:scale-105 transition-all duration-300"
             >
-              Mulai Buat Undangan
-              <ArrowRight class="w-5 h-5" />
+              Mulai Sekarang
+              <ArrowRight class="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </RouterLink>
-            <button
-              class="px-8 py-4 bg-white text-gray-900 font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+            <RouterLink
+              to="/templates"
+              class="px-10 py-5 bg-white text-slate-900 border border-slate-200 font-bold rounded-2xl shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:scale-105 transition-all duration-300"
             >
-              Lihat Demo
-            </button>
+              Lihat Template
+            </RouterLink>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Features Section -->
-    <div class="max-w-7xl mx-auto px-6 py-20">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl font-bold text-gray-900 mb-4">Fitur Unggulan</h2>
-        <p class="text-lg text-gray-600">Semua yang Anda butuhkan untuk undangan sempurna</p>
+    <section id="features" class="max-w-7xl mx-auto px-6 py-24">
+      <div class="text-center mb-20 space-y-4">
+        <h2 class="text-indigo-600 font-black uppercase tracking-widest text-sm">Fitur Masa Depan</h2>
+        <h2 class="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Eksklusif Untuk Anda</h2>
+        <div class="w-20 h-1.5 bg-indigo-600 mx-auto rounded-full"></div>
       </div>
 
-      <div class="grid md:grid-cols-3 gap-8">
+      <div class="grid md:grid-cols-3 gap-10">
         <div
           v-for="(feature, index) in features"
           :key="index"
-          class="p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+          class="group p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/50 transition-all duration-500 hover:-translate-y-2"
         >
-          <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
-            <CheckCircle class="w-6 h-6 text-teal-600" />
+          <div class="w-16 h-16 bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+            <component :is="feature.icon" class="w-8 h-8 text-indigo-600" />
           </div>
-          <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ feature.title }}</h3>
-          <p class="text-gray-600">{{ feature.description }}</p>
+          <h3 class="text-2xl font-bold text-slate-900 mb-4 tracking-tight">{{ feature.title }}</h3>
+          <p class="text-slate-600 leading-relaxed font-medium">{{ feature.description }}</p>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Pricing Section -->
-    <div class="max-w-7xl mx-auto px-6 py-20">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl font-bold text-gray-900 mb-4">Paket Harga Terjangkau</h2>
-        <p class="text-lg text-gray-600">Pilih paket yang sesuai dengan kebutuhan Anda</p>
+    <section id="pricing" class="max-w-7xl mx-auto px-6 py-24 mb-20">
+      <div class="text-center mb-16 space-y-4">
+        <h2 class="text-teal-600 font-black uppercase tracking-widest text-sm">Investasi Terbaik</h2>
+        <h2 class="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Pilih Paket Kebahagiaan</h2>
+        <div class="w-20 h-1.5 bg-teal-500 mx-auto rounded-full"></div>
       </div>
 
-      <div class="grid md:grid-cols-3 gap-8">
+      <div class="grid md:grid-cols-3 gap-8 items-center">
         <div
           v-for="(plan, index) in pricingPlans"
           :key="index"
-          class="p-8 rounded-2xl transition-transform duration-200"
-          :class="plan.popular ? 'bg-gradient-to-br from-teal-500 to-teal-600 text-white shadow-2xl scale-105' : 'bg-white text-gray-900 shadow-lg'"
+          class="relative p-10 rounded-[2.5rem] transition-all duration-500 hover:-translate-y-2 group"
+          :class="plan.popular 
+            ? 'bg-slate-900 text-white shadow-[0_30px_60px_-15px_rgba(15,23,42,0.3)] scale-105 z-10' 
+            : 'bg-white text-slate-900 border border-slate-100 shadow-sm hover:shadow-2xl'"
         >
-          <div v-if="plan.popular" class="text-center mb-4">
-            <span class="px-4 py-1 bg-yellow-400 text-gray-900 text-sm font-bold rounded-full">
-              PALING POPULER
-            </span>
+          <div v-if="plan.popular" class="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-teal-500 text-white text-[10px] font-black tracking-[0.2em] uppercase py-2 px-6 rounded-full shadow-lg">
+            Rekomendasi Utama
           </div>
-          <h3 class="text-2xl font-bold mb-2">{{ plan.name }}</h3>
-          <div class="text-4xl font-bold mb-6">
-            Rp {{ formatPrice(plan.price) }}
-            <span class="text-lg font-normal opacity-75">/event</span>
+          
+          <h3 class="text-2xl font-black mb-2 tracking-tight">{{ plan.name }}</h3>
+          <div class="flex items-baseline gap-1 mb-8">
+            <span class="text-sm font-bold opacity-60">Rp</span>
+            <span class="text-5xl font-black tracking-tighter">{{ formatPrice(plan.price) }}</span>
+            <span class="text-sm font-medium opacity-60">/acara</span>
           </div>
-          <ul class="space-y-3 mb-8">
-            <li v-for="(feature, i) in plan.features" :key="i" class="flex items-start gap-2">
-              <CheckCircle class="w-5 h-5 mt-0.5 flex-shrink-0" />
-              <span>{{ feature }}</span>
+
+          <div class="h-[1px] w-full bg-current opacity-10 mb-8"></div>
+
+          <ul class="space-y-4 mb-10">
+            <li v-for="(feature, i) in plan.features" :key="i" class="flex items-center gap-3 text-sm font-semibold">
+              <div class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" :class="plan.popular ? 'bg-indigo-500/20 text-indigo-400' : 'bg-teal-50 text-teal-600'">
+                <CheckCircle class="w-3.5 h-3.5" />
+              </div>
+              <span class="opacity-90">{{ feature }}</span>
             </li>
           </ul>
+
           <button
-            class="w-full py-3 rounded-lg font-semibold transition-all duration-200"
-            :class="plan.popular ? 'bg-white text-teal-600 hover:bg-gray-100' : 'bg-teal-600 text-white hover:bg-teal-700'"
+            class="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all duration-300 transform active:scale-95"
+            :class="plan.popular 
+              ? 'bg-white text-slate-900 hover:bg-slate-100' 
+              : 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700'"
           >
-            Pilih Paket
+            Pilih Sekarang
           </button>
         </div>
       </div>
-    </div>
+    </section>
+    <MainFooter />
   </div>
 </template>
 

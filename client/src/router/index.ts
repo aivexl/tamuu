@@ -96,6 +96,9 @@ router.beforeEach(async (to, _from, next) => {
 
     // 1. Check if route is public
     if (!requiresAuth && !requiredRoles) {
+        if (isAuthenticated && (to.name === 'login' || to.name === 'register')) {
+            return next({ name: 'dashboard' });
+        }
         return next();
     }
 
