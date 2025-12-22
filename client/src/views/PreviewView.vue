@@ -1087,7 +1087,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                         :class="{ 
                             'atomic-cover-layer': index === 0, 
                             'atomic-next-layer': index === 1,
-                            'split-door-container': index === 0 && transitionStage === 'REVEALING' && filteredSections[0]?.pageTransition?.effect === 'split-door'
+                            'split-door-effect': index === 0 && transitionStage === 'REVEALING' && filteredSections[0]?.pageTransition?.effect === 'split-door'
                         }"
                         :style="getSectionSlotStyle(index)"
                         @click="handleSectionClick(index, section)"
@@ -1327,57 +1327,31 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
     }
 }
 
-/* SPLIT DOOR TRANSITION - True split with pseudo-elements */
-@keyframes split-left {
+/* SPLIT DOOR TRANSITION - Using mask-position animation */
+@keyframes split-door-mask {
     0% {
-        transform: translateX(0);
+        -webkit-mask-position: 0% 0%, 50% 0%;
+        mask-position: 0% 0%, 50% 0%;
     }
     100% {
-        transform: translateX(-100%);
+        -webkit-mask-position: -50% 0%, 100% 0%;
+        mask-position: -50% 0%, 100% 0%;
     }
 }
 
-@keyframes split-right {
-    0% {
-        transform: translateX(0);
-    }
-    100% {
-        transform: translateX(100%);
-    }
-}
-
-/* Split door container - hides original content, shows pseudo halves */
-.split-door-container {
-    position: relative;
-    overflow: hidden;
-}
-
-.split-door-container > * {
-    visibility: hidden; /* Hide actual content */
-}
-
-.split-door-container::before,
-.split-door-container::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    width: 50%;
-    height: 100%;
-    background: inherit;
-    background-size: 200% 100%;
-    will-change: transform;
-}
-
-.split-door-container::before {
-    left: 0;
-    background-position: left center;
-    animation: split-left var(--split-duration, 1000ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.split-door-container::after {
-    right: 0;
-    background-position: right center;
-    animation: split-right var(--split-duration, 1000ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.split-door-effect {
+    -webkit-mask-image: 
+        linear-gradient(to right, black, black),
+        linear-gradient(to right, black, black);
+    mask-image: 
+        linear-gradient(to right, black, black),
+        linear-gradient(to right, black, black);
+    -webkit-mask-size: 50% 100%, 50% 100%;
+    mask-size: 50% 100%, 50% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    animation: split-door-mask var(--split-duration, 1000ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    will-change: mask-position, -webkit-mask-position;
 }
 
 .pinch-close-animate {
