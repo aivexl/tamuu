@@ -470,7 +470,7 @@ export interface MotionPathConfig {
 
 export type ParticleType = 'none' | 'butterflies' | 'petals' | 'leaves' | 'sparkles';
 
-export type PageTransitionEffect = 'none' | 'fade' | 'slide-up' | 'slide-down' | 'zoom-reveal' | 'stack-reveal' | 'parallax-reveal' | 'door-reveal';
+export type PageTransitionEffect = 'none' | 'fade' | 'slide-up' | 'slide-down' | 'zoom-reveal' | 'stack-reveal' | 'parallax-reveal' | 'door-reveal' | 'split-door';
 
 export interface PageTransitionConfig {
     enabled: boolean;

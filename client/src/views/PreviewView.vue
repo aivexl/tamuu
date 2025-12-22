@@ -866,9 +866,9 @@ const getSectionSlotStyle = (index: number): any => {
 
             if (isReveal) {
                 const luxuryEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
-                // LUXURY EASING for fade/door/slide-down/zoom-reveal/stack-reveal/parallax-reveal; preserve original for slide-up
-                const easing = (effect === 'fade' || effect === 'door-reveal' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
-                firstStyle.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ease-in-out`;
+                // LUXURY EASING for fade/door/slide-down/zoom-reveal/stack-reveal/parallax-reveal/split-door; preserve original for slide-up
+                const easing = (effect === 'fade' || effect === 'door-reveal' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal' || effect === 'split-door') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
+                firstStyle.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ease-in-out, clip-path ${duration}ms ${easing}`;
                 
                 if (effect === 'slide-up') firstStyle.transform = 'translateY(-100%)';
                 else if (effect === 'slide-down') {
@@ -891,6 +891,10 @@ const getSectionSlotStyle = (index: number): any => {
                     firstStyle.transform = 'perspective(1500px) rotateY(-90deg) translateZ(0)';
                     firstStyle.opacity = 0;
                     firstStyle.transformOrigin = 'left center';
+                } else if (effect === 'split-door') {
+                    // SPLIT DOOR: Cover splits from center using clip-path
+                    firstStyle.clipPath = 'inset(0 50% 0 50%)';
+                    firstStyle.opacity = 0;
                 }
             }
 
@@ -930,9 +934,14 @@ const getSectionSlotStyle = (index: number): any => {
                     secondStyle.transform = 'scale(0.95) translateZ(0)';
                     secondStyle.opacity = 0;
                 }
+                else if (effect === 'split-door') {
+                    // Split door: Content starts slightly scaled behind
+                    secondStyle.transform = 'scale(0.95) translateZ(0)';
+                    secondStyle.opacity = 0;
+                }
             } else {
                 const luxuryEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
-                const easing = (effect === 'fade' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal' || effect === 'door-reveal') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
+                const easing = (effect === 'fade' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal' || effect === 'door-reveal' || effect === 'split-door') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
                 secondStyle.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ease-in-out`;
                 secondStyle.transform = 'scale(1) translateY(0) translateZ(0)';
                 secondStyle.opacity = 1;
