@@ -1330,12 +1330,14 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 /* SPLIT DOOR TRANSITION - Using mask-position animation */
 @keyframes split-door-mask {
     0% {
-        -webkit-mask-position: 0% 0%, 50% 0%;
-        mask-position: 0% 0%, 50% 0%;
+        /* Both masks start overlapping at center */
+        -webkit-mask-position: 25% 0%, 25% 0%;
+        mask-position: 25% 0%, 25% 0%;
     }
     100% {
-        -webkit-mask-position: -50% 0%, 100% 0%;
-        mask-position: -50% 0%, 100% 0%;
+        /* Masks slide apart symmetrically */
+        -webkit-mask-position: -25% 0%, 75% 0%;
+        mask-position: -25% 0%, 75% 0%;
     }
 }
 
@@ -1350,7 +1352,8 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
     mask-size: 50% 100%, 50% 100%;
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
-    animation: split-door-mask var(--split-duration, 1000ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    /* Ultra-smooth easing for premium feel */
+    animation: split-door-mask var(--split-duration, 1000ms) cubic-bezier(0.16, 1, 0.3, 1) forwards;
     will-change: mask-position, -webkit-mask-position;
 }
 
