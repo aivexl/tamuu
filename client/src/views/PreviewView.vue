@@ -866,8 +866,8 @@ const getSectionSlotStyle = (index: number): any => {
 
             if (isReveal) {
                 const luxuryEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
-                // LUXURY EASING for fade/door/slide-down/zoom-reveal/stack-reveal/parallax-reveal/split-door/pinch-close; preserve original for slide-up
-                const easing = (effect === 'fade' || effect === 'door-reveal' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal' || effect === 'split-door' || effect === 'pinch-close') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
+                // LUXURY EASING for fade/door/slide-down/zoom-reveal/stack-reveal/parallax-reveal/carry-up/pinch-close; preserve original for slide-up
+                const easing = (effect === 'fade' || effect === 'door-reveal' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal' || effect === 'carry-up' || effect === 'pinch-close') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
                 firstStyle.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ease-in-out, clip-path ${duration}ms ${easing}`;
                 
                 if (effect === 'slide-up') firstStyle.transform = 'translateY(-100%)';
@@ -891,10 +891,11 @@ const getSectionSlotStyle = (index: number): any => {
                     firstStyle.transform = 'perspective(1500px) rotateY(-90deg) translateZ(0)';
                     firstStyle.opacity = 0;
                     firstStyle.transformOrigin = 'left center';
-                } else if (effect === 'split-door') {
-                    // SPLIT DOOR: True split with pseudo-elements - set CSS var for duration
-                    firstStyle['--split-duration'] = `${duration}ms`;
-                } else if (effect === 'pinch-close') {
+                } else if (effect === 'carry-up') {
+                    // CARRY UP: Cover slides up, content follows directly behind (no gap)
+                    firstStyle.transform = 'translateY(-100%) translateZ(0)';
+                }
+ else if (effect === 'pinch-close') {
                     // PINCH CLOSE: Halves squeeze INWARD to center
                     firstStyle.animation = `pinch-close ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`;
                     firstStyle.transformOrigin = 'center center';
@@ -937,15 +938,17 @@ const getSectionSlotStyle = (index: number): any => {
                     secondStyle.transform = 'scale(0.95) translateZ(0)';
                     secondStyle.opacity = 0;
                 }
-                else if (effect === 'split-door' || effect === 'pinch-close') {
-                    // Split/Pinch: Content starts slightly scaled behind
-                    secondStyle.transform = 'scale(0.95) translateZ(0)';
-                    secondStyle.opacity = 0;
+                else if (effect === 'carry-up' || effect === 'pinch-close') {
+                    // Carry/Pinch: Content starts below and moves up to fill
+                    secondStyle.transform = 'translateY(100%) translateZ(0)';
+                    secondStyle.opacity = 1; // Keep visible throughout
                 }
+
             } else {
                 const luxuryEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
-                const easing = (effect === 'fade' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal' || effect === 'door-reveal' || effect === 'split-door' || effect === 'pinch-close') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
+                const easing = (effect === 'fade' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal' || effect === 'door-reveal' || effect === 'carry-up' || effect === 'pinch-close') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
                 secondStyle.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ease-in-out`;
+
                 secondStyle.transform = 'scale(1) translateY(0) translateZ(0)';
                 secondStyle.opacity = 1;
             }
@@ -1086,8 +1089,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                         class="page-section"
                         :class="{ 
                             'atomic-cover-layer': index === 0, 
-                            'atomic-next-layer': index === 1,
-                            'split-door-effect': index === 0 && transitionStage === 'REVEALING' && filteredSections[0]?.pageTransition?.effect === 'split-door'
+                            'atomic-next-layer': index === 1
                         }"
                         :style="getSectionSlotStyle(index)"
                         @click="handleSectionClick(index, section)"
