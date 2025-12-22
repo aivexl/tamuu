@@ -866,8 +866,8 @@ const getSectionSlotStyle = (index: number): any => {
 
             if (isReveal) {
                 const luxuryEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
-                // LUXURY EASING for fade/door; preserve original for slide-up/down
-                const easing = (effect === 'fade' || effect === 'door-reveal') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
+                // LUXURY EASING for fade/door/slide-down; preserve original for slide-up
+                const easing = (effect === 'fade' || effect === 'door-reveal' || effect === 'slide-down') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
                 firstStyle.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ease-in-out`;
                 
                 if (effect === 'slide-up') firstStyle.transform = 'translateY(-100%)';
@@ -902,13 +902,13 @@ const getSectionSlotStyle = (index: number): any => {
             if (!isReveal) {
                 if (effect === 'zoom-reveal') secondStyle.transform = 'scale(0.8)';
                 else if (effect === 'stack-reveal' || effect === 'parallax-reveal') secondStyle.transform = 'translateY(100px)';
-                else if (effect === 'fade') { 
+                else if (effect === 'fade' || effect === 'slide-down') { 
                     secondStyle.opacity = 0;
-                    secondStyle.transform = 'scale(0.98) translateZ(0)'; // Subtle depth Scale
+                    secondStyle.transform = 'scale(0.95) translateZ(0)'; // Subtle depth Scale
                 }
             } else {
                 const luxuryEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
-                const easing = (effect === 'fade') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
+                const easing = (effect === 'fade' || effect === 'slide-down') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
                 secondStyle.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ease-in-out`;
                 secondStyle.transform = 'scale(1) translateY(0) translateZ(0)';
                 secondStyle.opacity = 1;
