@@ -871,7 +871,10 @@ const getSectionSlotStyle = (index: number): any => {
                 firstStyle.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ease-in-out`;
                 
                 if (effect === 'slide-up') firstStyle.transform = 'translateY(-100%)';
-                else if (effect === 'slide-down') firstStyle.transform = 'translateY(100%)';
+                else if (effect === 'slide-down') {
+                    firstStyle.transform = 'translateY(100%)';
+                    firstStyle.opacity = 0; // Prevent overlapping Section 1 during/after slide
+                }
                 else if (effect === 'fade') firstStyle.opacity = 0;
                 else if (effect === 'zoom-reveal') {
                     firstStyle.transform = 'scale(1.5)';
@@ -958,7 +961,10 @@ const getSectionSlotStyle = (index: number): any => {
             flowStyle.transition = 'none';
             if (isFirst) {
                 if (effect === 'slide-up') flowStyle.transform = 'translateY(-100%)';
-                else if (effect === 'slide-down') flowStyle.transform = 'translateY(100%)';
+                else if (effect === 'slide-down') { 
+                    flowStyle.transform = 'translateY(100%)'; 
+                    flowStyle.opacity = 0; // Lock transparency during handoff
+                }
                 else if (effect === 'fade') flowStyle.opacity = 0;
                 else if (effect === 'zoom-reveal') { flowStyle.transform = 'scale(1.5)'; flowStyle.opacity = 0; }
                 else if (effect === 'stack-reveal' || effect === 'parallax-reveal') { flowStyle.transform = 'translateY(-100%)'; flowStyle.opacity = effect === 'stack-reveal' ? 0 : 1; }
