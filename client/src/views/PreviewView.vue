@@ -500,13 +500,25 @@ const getOpenTransitionDuration = () => {
     if (section.zoomConfig?.enabled && section.zoomConfig.trigger === 'open_btn') {
         let zoomTotal = 0;
         const points = section.zoomConfig.points || [];
+        const transitionDuration = Number(section.zoomConfig.transitionDuration) || 1000;
+        const defaultStayDuration = Number(section.zoomConfig.duration) || 3000;
+
         if (points.length > 0) {
+            // Formula: SUM(transition + stay) for each point
             zoomTotal = points.reduce((acc: number, p: any) => 
-                acc + (Number(p.duration) || Number(section.zoomConfig.duration) || 3000), 0
+                acc + (Number(p.duration) || defaultStayDuration) + transitionDuration, 0
             );
         } else {
-            zoomTotal = Number(section.zoomConfig.duration) || 3000;
+            // Single zoom: transition to target + stay
+            zoomTotal = transitionDuration + defaultStayDuration;
         }
+
+        // IMPORTANT: If behavior is 'reset', we must wait for the final transition back to normal (-1)
+        if (section.zoomConfig.behavior === 'reset') {
+            zoomTotal += transitionDuration;
+            console.log(`[Reveal] Adding ${transitionDuration}ms for zoom reset transition`);
+        }
+        
         if (zoomTotal > maxDuration) maxDuration = zoomTotal;
     }
 
