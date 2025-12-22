@@ -2356,6 +2356,7 @@ const handleAddFlyingDecoration = async (decoration: typeof flyingDecorationsWit
                                 <option value="stack-reveal">Stack Layer Reveal</option>
                                 <option value="parallax-reveal">Parallax Move</option>
                                 <option value="door-reveal">Door Open</option>
+                                <option value="pinch-close">Pinch Close</option>
                                 <option value="split-door">Split Door</option>
                             </optgroup>
                         </select>

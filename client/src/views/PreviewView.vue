@@ -866,8 +866,8 @@ const getSectionSlotStyle = (index: number): any => {
 
             if (isReveal) {
                 const luxuryEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
-                // LUXURY EASING for fade/door/slide-down/zoom-reveal/stack-reveal/parallax-reveal/split-door; preserve original for slide-up
-                const easing = (effect === 'fade' || effect === 'door-reveal' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal' || effect === 'split-door') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
+                // LUXURY EASING for fade/door/slide-down/zoom-reveal/stack-reveal/parallax-reveal/split-door/pinch-close; preserve original for slide-up
+                const easing = (effect === 'fade' || effect === 'door-reveal' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal' || effect === 'split-door' || effect === 'pinch-close') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
                 firstStyle.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ease-in-out, clip-path ${duration}ms ${easing}`;
                 
                 if (effect === 'slide-up') firstStyle.transform = 'translateY(-100%)';
@@ -892,9 +892,13 @@ const getSectionSlotStyle = (index: number): any => {
                     firstStyle.opacity = 0;
                     firstStyle.transformOrigin = 'left center';
                 } else if (effect === 'split-door') {
-                    // SPLIT DOOR: Use CSS animation class for two halves sliding apart
-                    // Animation applied via class, keep opacity 1 (no fade)
-                    firstStyle.animation = `split-door-open ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`;
+                    // SPLIT DOOR: True split - halves slide OUTWARD from center
+                    firstStyle.animation = `split-door-outward ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`;
+                    firstStyle.transformOrigin = 'center center';
+                } else if (effect === 'pinch-close') {
+                    // PINCH CLOSE: Halves squeeze INWARD to center
+                    firstStyle.animation = `pinch-close ${duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`;
+                    firstStyle.transformOrigin = 'center center';
                 }
             }
 
@@ -934,14 +938,14 @@ const getSectionSlotStyle = (index: number): any => {
                     secondStyle.transform = 'scale(0.95) translateZ(0)';
                     secondStyle.opacity = 0;
                 }
-                else if (effect === 'split-door') {
-                    // Split door: Content starts slightly scaled behind
+                else if (effect === 'split-door' || effect === 'pinch-close') {
+                    // Split/Pinch: Content starts slightly scaled behind
                     secondStyle.transform = 'scale(0.95) translateZ(0)';
                     secondStyle.opacity = 0;
                 }
             } else {
                 const luxuryEasing = 'cubic-bezier(0.22, 1, 0.36, 1)';
-                const easing = (effect === 'fade' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal' || effect === 'door-reveal' || effect === 'split-door') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
+                const easing = (effect === 'fade' || effect === 'slide-down' || effect === 'zoom-reveal' || effect === 'stack-reveal' || effect === 'parallax-reveal' || effect === 'door-reveal' || effect === 'split-door' || effect === 'pinch-close') ? luxuryEasing : 'cubic-bezier(0.4, 0, 0.2, 1)';
                 secondStyle.transition = `transform ${duration}ms ${easing}, opacity ${duration}ms ease-in-out`;
                 secondStyle.transform = 'scale(1) translateY(0) translateZ(0)';
                 secondStyle.opacity = 1;
@@ -1313,8 +1317,8 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
     100% { transform: translate(var(--zoom-translate-x, 0), var(--zoom-translate-y, 0)) scale(var(--zoom-scale, 1.3)); }
 }
 
-/* SPLIT DOOR TRANSITION - Symmetric split from center */
-@keyframes split-door-open {
+/* PINCH CLOSE TRANSITION - Symmetric squeeze to center */
+@keyframes pinch-close {
     0% {
         transform: scaleX(1);
     }
@@ -1323,9 +1327,18 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
     }
 }
 
-.split-door-animate {
-    animation: split-door-open var(--split-duration, 1000ms) cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    transform-origin: center center;
+/* SPLIT DOOR TRANSITION - True split, halves slide OUTWARD */
+@keyframes split-door-outward {
+    0% {
+        transform: scaleX(1);
+    }
+    100% {
+        transform: scaleX(2);
+        opacity: 0;
+    }
+}
+
+.split-door-animate, .pinch-close-animate {
     will-change: transform;
 }
 </style>
