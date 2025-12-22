@@ -1330,14 +1330,12 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
 /* SPLIT DOOR TRANSITION - Using mask-position animation */
 @keyframes split-door-mask {
     0% {
-        /* Both masks start overlapping at center */
-        -webkit-mask-position: 25% 0%, 25% 0%;
-        mask-position: 25% 0%, 25% 0%;
+        -webkit-mask-position: 0% 0%, 50% 0%;
+        mask-position: 0% 0%, 50% 0%;
     }
     100% {
-        /* Masks slide apart symmetrically */
-        -webkit-mask-position: -25% 0%, 75% 0%;
-        mask-position: -25% 0%, 75% 0%;
+        -webkit-mask-position: -50% 0%, 100% 0%;
+        mask-position: -50% 0%, 100% 0%;
     }
 }
 
