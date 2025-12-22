@@ -1,58 +1,10 @@
 /**
- * Auth API Service
- * Client SDK for authentication endpoints
- * Uses localStorage for token persistence (cross-origin compatible)
+ * Auth API Service - Supabase Edition
+ * Uses Supabase Auth for reliable session management
  */
 
+import { supabase } from '@/lib/supabase';
 import type { UserResponse } from '@/lib/types';
-
-// Hardcoded to ensure production uses correct worker
-const API_BASE_URL = 'https://tamuu-api.shafania57.workers.dev';
-const TOKEN_KEY = 'tamuu_auth_token';
-
-// ============================================
-// TOKEN MANAGEMENT
-// ============================================
-
-export function getToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token: string): void {
-    localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function clearToken(): void {
-    localStorage.removeItem(TOKEN_KEY);
-}
-
-// ============================================
-// HTTP CLIENT
-// ============================================
-
-async function request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-): Promise<T> {
-    const token = getToken();
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-            ...options.headers,
-        },
-    });
-
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: response.statusText }));
-        throw new Error(error.error || error.message || 'Request failed');
-    }
-
-    return response.json();
-}
 
 // ============================================
 // AUTH TYPES
@@ -83,71 +35,136 @@ export interface ProfileUpdateRequest {
 }
 
 // ============================================
+// HELPER: Map Supabase User to App User
+// ============================================
+
+function mapSupabaseUser(supabaseUser: any): UserResponse {
+    return {
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
+        phone: supabaseUser.user_metadata?.phone || null,
+        avatarUrl: supabaseUser.user_metadata?.avatar_url || null,
+        plan: supabaseUser.user_metadata?.plan || 'free',
+        role: supabaseUser.user_metadata?.role || 'user',
+        planExpiresAt: supabaseUser.user_metadata?.plan_expires_at || null,
+        isVerified: supabaseUser.email_confirmed_at !== null,
+        createdAt: supabaseUser.created_at,
+        updatedAt: supabaseUser.updated_at,
+    };
+}
+
+// ============================================
 // AUTH API FUNCTIONS
 // ============================================
 
 export async function register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await request<AuthResponse>('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(data),
+    const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+            data: {
+                name: data.name,
+                phone: data.phone,
+                role: 'user',
+                plan: 'free',
+            },
+        },
     });
-    // Save token to localStorage for session persistence
-    if (response.token) {
-        setToken(response.token);
-    }
-    return response;
+
+    if (error) throw new Error(error.message);
+    if (!authData.user) throw new Error('Registration failed');
+
+    return {
+        user: mapSupabaseUser(authData.user),
+        token: authData.session?.access_token || '',
+        message: 'Registration successful. Please verify your email.',
+    };
 }
 
 export async function login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await request<AuthResponse>('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(data),
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
     });
-    // Save token to localStorage for session persistence
-    if (response.token) {
-        setToken(response.token);
-    }
-    return response;
+
+    if (error) throw new Error(error.message);
+    if (!authData.user) throw new Error('Login failed');
+
+    return {
+        user: mapSupabaseUser(authData.user),
+        token: authData.session?.access_token || '',
+    };
 }
 
 export async function logout(): Promise<{ success: boolean }> {
-    // Clear token from localStorage
-    clearToken();
-    try {
-        return await request<{ success: boolean }>('/api/auth/logout', {
-            method: 'POST',
-        });
-    } catch {
-        // Even if server logout fails, client is logged out
-        return { success: true };
-    }
+    const { error } = await supabase.auth.signOut();
+    if (error) throw new Error(error.message);
+    return { success: true };
 }
 
 export async function getCurrentUser(): Promise<{ user: UserResponse }> {
-    return request<{ user: UserResponse }>('/api/auth/me');
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    if (error || !user) {
+        throw new Error('Not authenticated');
+    }
+
+    return { user: mapSupabaseUser(user) };
 }
 
 export async function updateProfile(data: ProfileUpdateRequest): Promise<{ user: UserResponse }> {
-    return request<{ user: UserResponse }>('/api/auth/profile', {
-        method: 'PUT',
-        body: JSON.stringify(data),
+    const { data: authData, error } = await supabase.auth.updateUser({
+        data: {
+            name: data.name,
+            phone: data.phone,
+            avatar_url: data.avatarUrl,
+        },
     });
+
+    if (error) throw new Error(error.message);
+    if (!authData.user) throw new Error('Update failed');
+
+    return { user: mapSupabaseUser(authData.user) };
 }
 
 export async function forgotPassword(email: string): Promise<{ message: string }> {
-    return request<{ message: string }>('/api/auth/forgot-password', {
-        method: 'POST',
-        body: JSON.stringify({ email }),
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
     });
+
+    if (error) throw new Error(error.message);
+    return { message: 'Password reset email sent' };
 }
 
 export async function resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
-    return request<{ message: string }>('/api/auth/reset-password', {
-        method: 'POST',
-        body: JSON.stringify({ token, newPassword }),
+    // Note: Supabase handles token verification automatically via the URL
+    const { error } = await supabase.auth.updateUser({
+        password: newPassword,
     });
+
+    if (error) throw new Error(error.message);
+    return { message: 'Password reset successful' };
 }
 
 export async function verifyEmail(token: string): Promise<{ message: string }> {
-    return request<{ message: string }>(`/api/auth/verify/${token}`);
+    // Supabase handles email verification automatically via URL parameters
+    return { message: 'Email verification handled by Supabase' };
+}
+
+// ============================================
+// SESSION HELPERS (for compatibility)
+// ============================================
+
+export function getToken(): string | null {
+    // Supabase handles token storage internally
+    return null;
+}
+
+export function setToken(_token: string): void {
+    // Supabase handles token storage internally
+}
+
+export function clearToken(): void {
+    // Supabase handles token clearing via signOut
 }

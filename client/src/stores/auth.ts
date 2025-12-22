@@ -39,22 +39,12 @@ export const useAuthStore = defineStore('auth', {
             this.isLoading = true;
             this.error = null;
 
-            // Check if token exists in localStorage first
-            const token = AuthAPI.getToken();
-            if (!token) {
-                // No token = not logged in, skip API call
-                this.user = null;
-                this.isLoading = false;
-                this.isInitialized = true;
-                return;
-            }
-
             try {
+                // Supabase handles session persistence automatically
                 const { user } = await AuthAPI.getCurrentUser();
                 this.user = user;
             } catch (error) {
-                // Token invalid or expired - clear it
-                AuthAPI.clearToken();
+                // Not logged in - this is normal
                 this.user = null;
             } finally {
                 this.isLoading = false;
