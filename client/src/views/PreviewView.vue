@@ -1010,16 +1010,17 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                     THE UNIFIED ATOMIC CONTAINER
                     Refined for Luxury Transitions (Zero-Error Architecture)
                 -->
-                <div class="relative w-full overflow-hidden" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? 'auto' : `${coverHeightComputed}px` }">
+                <div class="relative w-full" :style="{ width: `${CANVAS_WIDTH}px`, height: flowMode ? `${coverHeightComputed + (filteredSections.length - 1) * CANVAS_HEIGHT}px` : `${coverHeightComputed}px` }">
                     
                 <!-- THE SINGULAR RENDER STACK (CTO Level: Unified DOM Management) -->
-                <div class="relative w-full" :style="{ height: flowMode ? 'auto' : `${coverHeightComputed}px` }">
+                <div class="relative w-full" :style="{ height: flowMode ? `${coverHeightComputed + (filteredSections.length - 1) * CANVAS_HEIGHT}px` : `${coverHeightComputed}px` }">
                     <div 
-                        v-for="(section, index) in filteredSections.slice(0, flowMode ? undefined : 2)" 
+                        v-for="(section, index) in filteredSections" 
                         :key="section.key"
                         :id="index === 0 ? 'atomic-cover-section' : undefined"
                         :ref="(el) => setSectionRef(el, index)" :data-index="index"
                         class="page-section"
+                        :class="{ 'atomic-cover-layer': index === 0, 'atomic-next-layer': index === 1 }"
                         :style="getSectionWrapperStyle(index)"
                         @click="handleSectionClick(index, section)"
                     >
