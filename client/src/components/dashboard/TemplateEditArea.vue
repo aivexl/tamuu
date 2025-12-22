@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import draggable from 'vuedraggable';
+import SectionDesignPreview from './SectionDesignPreview.vue';
 import { 
     GripVertical, 
     Layers, 
@@ -17,7 +18,6 @@ import type { TemplateElement } from '@/lib/types';
 import Toggle from '@/components/ui/Toggle.vue';
 import Button from '@/components/ui/Button.vue';
 import UserElementEditor from '@/components/dashboard/UserElementEditor.vue';
-import SafeImage from '@/components/ui/SafeImage.vue';
 
 const templateStore = useTemplateStore();
 const invitationStore = useInvitationStore();
@@ -34,12 +34,12 @@ const sections = computed({
 });
 
 const templateId = computed(() => invitationStore.invitation.templateId);
+
 const currentTemplate = computed(() => {
     const id = invitationStore.invitation.templateId;
     if (id) {
         return templateStore.templates.find(t => t.id === id) || templateStore.templates[0] || null;
     }
-    // Deep master fallback for custom slugs without explicit templateId link
     return templateStore.templates[0] || null;
 });
 
@@ -64,7 +64,7 @@ onMounted(async () => {
     if (templateStore.templates.length === 0) {
         await templateStore.fetchTemplates();
     }
-    if (templateId.value && !currentTemplate.value) {
+    if (templateId.value && !templateStore.templates.find(t => t.id === templateId.value)) {
         await templateStore.fetchTemplate(templateId.value);
     }
 });
@@ -151,77 +151,20 @@ const getEditableElements = (sectionKey: string) => {
                                 class="border-t border-gray-50 bg-gray-50/10"
                             >
                                 <div class="p-5 space-y-6">
-                                    <!-- Visual Preview Area (High-Fidelity) -->
-                                    <div 
-                                        class="relative w-full aspect-[4/5] sm:aspect-[3/4] rounded-2xl overflow-hidden shadow-sm border border-gray-100 bg-white group/preview"
-                                        :style="{ 
-                                            backgroundColor: currentTemplate?.sections[section.type]?.backgroundColor || 
-                                                           (section.type === 'opening' ? invitationStore.invitation.theme.colors.primary : invitationStore.invitation.theme.colors.background) || 
-                                                           '#f8fafc' 
-                                        }"
-                                    >
-                                        <!-- 1. Background Image Preview (From Master Template) -->
-                                        <SafeImage 
-                                            v-if="currentTemplate?.sections?.[section.type]?.backgroundUrl"
-                                            :src="currentTemplate?.sections?.[section.type]?.backgroundUrl || ''"
-                                            alt="Section preview bg"
-                                            class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover/preview:scale-110"
+                                    <!-- Visual Preview Area (High-Fidelity Enterprise Engine) -->
+                                    <div class="relative group/preview-container">
+                                        <SectionDesignPreview 
+                                            :section-type="section.type"
+                                            :template-id="invitationStore.invitation.templateId"
                                         />
 
-                                        <!-- 2. Master elements rendering (The Design Elements) -->
-                                        <div 
-                                            v-if="currentTemplate?.sections?.[section.type]?.elements"
-                                            class="absolute inset-0 w-full h-full p-2 pointer-events-none"
-                                        >
-                                            <div 
-                                                v-for="el in currentTemplate?.sections?.[section.type]?.elements || []" 
-                                                :key="el.id"
-                                                class="absolute flex items-center justify-center overflow-hidden"
-                                                :style="{
-                                                    left: (el.position?.x ?? 0) + '%',
-                                                    top: (el.position?.y ?? 0) + '%',
-                                                    width: (el.size?.width ?? 0) + '%',
-                                                    height: (el.size?.height ?? 0) + '%',
-                                                    zIndex: el.zIndex || 1,
-                                                    transform: `rotate(${el.rotation || 0}deg)`,
-                                                    opacity: el.opacity ?? 1,
-                                                }"
-                                            >
-                                                <!-- Image Design Elements -->
-                                                <img 
-                                                    v-if="el.type === 'image' && el.imageUrl" 
-                                                    :src="el.imageUrl" 
-                                                    class="w-full h-full object-contain"
-                                                    alt=""
-                                                />
-                                                <!-- Text Design Elements (Subtle preview) -->
-                                                <div 
-                                                    v-else-if="el.type === 'text'"
-                                                    class="w-full h-full bg-black/10 rounded-sm scale-[0.6] opacity-30"
-                                                ></div>
-                                                 <!-- Other/Placeholder -->
-                                                 <div 
-                                                    v-else 
-                                                    class="w-[80%] h-[80%] border border-black/5 rounded-sm opacity-20"
-                                                ></div>
-                                            </div>
-                                        </div>
-
-                                        <!-- If no template data at all, show a really subtle indicator -->
-                                        <div v-else class="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
-                                            <LayoutTemplate class="w-32 h-32" />
-                                        </div>
-
-                                        <!-- Overlay Gradient for better visibility of controls -->
-                                        <div class="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover/preview:opacity-100 transition-opacity duration-500"></div>
-
-                                        <!-- Floating Action Menu (Ultra Minimal Overlay) -->
-                                        <div class="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover/preview:opacity-100 transition-all duration-300 transform translate-x-2 group-hover/preview:translate-x-0">
-                                             <Button 
+                                        <!-- Overlay Interaction Layer (Floating Menu) -->
+                                        <div class="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover/preview-container:opacity-100 transition-all duration-300 transform translate-x-2 group-hover/preview-container:translate-x-0">
+                                            <Button 
                                                 variant="secondary" 
                                                 size="icon" 
                                                 @click.stop="invitationStore.duplicateSection(section.id)" 
-                                                class="w-9 h-9 bg-white/95 backdrop-blur-md border border-gray-100 shadow-xl hover:bg-teal-500 hover:text-white rounded-xl transition-all"
+                                                class="w-10 h-10 bg-white/95 backdrop-blur-md border border-gray-100 shadow-xl hover:bg-teal-500 hover:text-white rounded-xl transition-all"
                                                 title="Duplikat Halaman"
                                             >
                                                 <Copy class="w-4 h-4" />
@@ -230,7 +173,7 @@ const getEditableElements = (sectionKey: string) => {
                                                 variant="secondary" 
                                                 size="icon" 
                                                 @click.stop="invitationStore.deleteSection(section.id)" 
-                                                class="w-9 h-9 bg-white/95 backdrop-blur-md border border-gray-100 shadow-xl hover:bg-red-500 hover:text-white rounded-xl transition-all"
+                                                class="w-10 h-10 bg-white/95 backdrop-blur-md border border-gray-100 shadow-xl hover:bg-red-500 hover:text-white rounded-xl transition-all"
                                                 title="Hapus Halaman"
                                             >
                                                 <Trash2 class="w-4 h-4" />
