@@ -190,12 +190,8 @@ router.beforeEach(async (to, _from, next) => {
                 hasInvitationCache = true;
             }
         }
-
-        // If no invitation, redirect to onboarding
-        if (!hasInvitationCache) {
-            console.log('[Router] User has no invitation, redirecting to onboarding');
-            return next({ name: 'onboarding' });
-        }
+        // Users can access dashboard regardless of invitation status
+        // Creating invitations is now optional/manual
     }
 
     // 5. Already has invitation trying to access onboarding? Redirect to dashboard
