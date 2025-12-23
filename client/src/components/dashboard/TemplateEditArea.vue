@@ -25,14 +25,7 @@ const invitationStore = useInvitationStore();
 // UI State
 const expandedSections = ref<Set<string>>(new Set());
 
-// Data Binding
-const sections = computed({
-    get: () => invitationStore.invitation.sections || [],
-    set: (newOrder) => {
-        invitationStore.reorderSections(newOrder);
-    }
-});
-
+// Template references (defined first as sections depends on them)
 const templateId = computed(() => invitationStore.invitation.templateId);
 
 const currentTemplate = computed(() => {
@@ -43,7 +36,34 @@ const currentTemplate = computed(() => {
     return templateStore.templates[0] || null;
 });
 
+// Data Binding - FILTERED by template sections
+// Only show sections that actually exist in the selected template
+const sections = computed({
+    get: () => {
+        const allSections = invitationStore.invitation.sections || [];
+        const template = currentTemplate.value;
+        
+        // If no template selected, show nothing
+        if (!template || !template.sections) {
+            return [];
+        }
+        
+        // Get valid section types from template (case-insensitive matching)
+        const templateSectionKeys = Object.keys(template.sections).map(k => k.toLowerCase());
+        
+        // Filter invitation sections to only those that exist in template
+        return allSections.filter(section => {
+            const sectionType = (section.type || '').toLowerCase();
+            return templateSectionKeys.includes(sectionType);
+        });
+    },
+    set: (newOrder) => {
+        invitationStore.reorderSections(newOrder);
+    }
+});
+
 const overrides = computed(() => invitationStore.invitation.elementOverrides || {});
+
 
 // Methods
 const toggleSection = (id: string) => {
@@ -125,7 +145,7 @@ const getEditableElements = (sectionKey: string) => {
                         <!-- Section Card -->
                         <div 
                             class="bg-white rounded-2xl border border-gray-100 shadow-sm transition-all duration-300 overflow-hidden"
-                            :class="{ 'ring-2 ring-teal-500/20 border-teal-100 shadow-md': expandedSections.has(section.id) }"
+                            :class="{ 'ring-2 ring-gray-200 border-gray-200 shadow-md': expandedSections.has(section.id) }"
                         >
                             <!-- Card Header -->
                             <div class="px-5 py-4 flex items-center gap-4">
@@ -160,7 +180,7 @@ const getEditableElements = (sectionKey: string) => {
                                         size="sm"
                                         @click="toggleSection(section.id)"
                                         class="h-9 px-4 rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 border-none transition-all"
-                                        :class="{ 'bg-teal-50 text-teal-700 hover:bg-teal-100': expandedSections.has(section.id) }"
+                                        :class="{ 'bg-gray-200 text-gray-800 hover:bg-gray-300': expandedSections.has(section.id) }"
                                     >
                                         Edit
                                         <ChevronDown 
