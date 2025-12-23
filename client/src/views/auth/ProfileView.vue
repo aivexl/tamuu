@@ -2,11 +2,13 @@
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import DashboardHeader from '@/components/dashboard/DashboardHeader.vue';
-import { User, Mail, Phone, Shield, Camera, Save, Loader2, CheckCircle2 } from 'lucide-vue-next';
+import { User, Mail, Phone, Shield, Camera, Save, Loader2, CheckCircle2, Copy } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
 const isSaving = ref(false);
 const saveSuccess = ref(false);
+const isHovering = ref(false);
+const copySuccess = ref(false);
 
 const profileData = ref({
   name: '',
@@ -38,6 +40,20 @@ const handleSave = async () => {
     console.error('Failed to update profile:', error);
   } finally {
     isSaving.value = false;
+  }
+};
+
+const copyTamuuId = async () => {
+  if (authStore.user?.tamuuId) {
+    try {
+      await navigator.clipboard.writeText(authStore.user.tamuuId);
+      copySuccess.value = true;
+      setTimeout(() => {
+        copySuccess.value = false;
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
   }
 };
 </script>
@@ -137,6 +153,37 @@ const handleSave = async () => {
                   />
                 </div>
                 <p class="text-xs text-slate-500">Email cannot be changed for security reasons.</p>
+              </div>
+
+              <!-- Tamuu ID (Read-only with Copy) -->
+              <div 
+                v-if="authStore.user?.tamuuId"
+                class="space-y-1.5 group/tamuu"
+                @mouseenter="isHovering = true"
+                @mouseleave="isHovering = false"
+              >
+                <label class="text-sm font-medium text-slate-700">Tamuu ID</label>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <Shield class="w-4 h-4" />
+                  </div>
+                  <input 
+                    :value="authStore.user?.tamuuId"
+                    disabled
+                    class="block w-full pl-10 pr-12 py-2.5 bg-gradient-to-r from-slate-50 to-indigo-50 border border-indigo-100 rounded-xl text-indigo-700 font-mono text-sm cursor-default tracking-wide"
+                  />
+                  <!-- Copy Button (visible on hover) -->
+                  <button 
+                    v-show="isHovering || copySuccess"
+                    @click="copyTamuuId"
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-indigo-500 hover:text-indigo-700 transition-all"
+                    :class="copySuccess ? 'text-emerald-600' : ''"
+                  >
+                    <CheckCircle2 v-if="copySuccess" class="w-4 h-4" />
+                    <Copy v-else class="w-4 h-4" />
+                  </button>
+                </div>
+                <p class="text-xs text-slate-500">Your unique Tamuu identifier. Used for billing and support.</p>
               </div>
             </div>
           </div>

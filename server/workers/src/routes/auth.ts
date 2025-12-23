@@ -123,6 +123,7 @@ function mapUserToResponse(user: DBUser): UserResponse {
         avatarUrl: user.avatar_url,
         plan: user.plan,
         role: user.role,
+        tamuuId: user.tamuu_id,
         planExpiresAt: user.plan_expires_at,
         isVerified: user.is_verified === 1,
         createdAt: user.created_at,

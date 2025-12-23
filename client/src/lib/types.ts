@@ -604,6 +604,7 @@ export interface UserResponse {
     avatarUrl: string | null;
     plan: 'free' | 'basic' | 'premium' | 'priority';
     role: 'admin' | 'user';
+    tamuuId: string | null;
     planExpiresAt: string | null;
     isVerified: boolean;
     createdAt: string;

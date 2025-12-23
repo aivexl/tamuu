@@ -35,6 +35,7 @@ export interface DBUser {
     avatar_url: string | null;
     plan: 'free' | 'basic' | 'premium' | 'priority';
     role: 'admin' | 'user';
+    tamuu_id: string | null;
     plan_expires_at: string | null;
     is_verified: number; // SQLite boolean
     verification_token: string | null;
@@ -149,6 +150,7 @@ export interface UserResponse {
     avatarUrl: string | null;
     plan: 'free' | 'basic' | 'premium' | 'priority';
     role: 'admin' | 'user';
+    tamuuId: string | null;
     planExpiresAt: string | null;
     isVerified: boolean;
     createdAt: string;

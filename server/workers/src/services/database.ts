@@ -49,10 +49,23 @@ export class DatabaseService {
     // ============================================
 
     /**
+     * Generate a unique Tamuu ID
+     * Format: tamuu-XXXXX for users, admin-tamuu-XXXXX for admins
+     */
+    private generateTamuuId(role: 'admin' | 'user'): string {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let suffix = '';
+        for (let i = 0; i < 6; i++) {
+            suffix += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return role === 'admin' ? `admin-tamuu-${suffix}` : `tamuu-${suffix}`;
+    }
+
+    /**
      * Ensure a user exists in D1 (for Supabase users)
      * Creates a minimal user record if it doesn't exist
      */
-    async ensureUserExists(userId: string, email: string, name?: string): Promise<void> {
+    async ensureUserExists(userId: string, email: string, name?: string, role?: 'admin' | 'user'): Promise<void> {
         // Check if user already exists
         const existing = await this.db
             .prepare('SELECT id FROM users WHERE id = ?')
@@ -61,24 +74,43 @@ export class DatabaseService {
 
         if (existing) return; // Already exists
 
+        // Determine role (default to 'user')
+        const userRole = role || 'user';
+
+        // Generate unique tamuu_id
+        const tamuuId = this.generateTamuuId(userRole);
+
         // Create minimal user record for Supabase user
         const now = new Date().toISOString();
         await this.db
             .prepare(`
-                INSERT INTO users (id, email, password_hash, name, plan, role, is_verified, created_at, updated_at)
-                VALUES (?, ?, ?, ?, 'free', 'user', 1, ?, ?)
+                INSERT INTO users (id, email, password_hash, name, plan, role, is_verified, tamuu_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, 'free', ?, 1, ?, ?, ?)
             `)
             .bind(
                 userId,
                 email,
                 'supabase-managed', // Placeholder - password is managed by Supabase
                 name || email.split('@')[0],
+                userRole,
+                tamuuId,
                 now,
                 now
             )
             .run();
 
-        console.log(`[DB] Created D1 user record for Supabase user: ${userId}`);
+        console.log(`[DB] Created D1 user record for Supabase user: ${userId} with Tamuu ID: ${tamuuId}`);
+    }
+
+    /**
+     * Get user's Tamuu ID
+     */
+    async getUserTamuuId(userId: string): Promise<string | null> {
+        const result = await this.db
+            .prepare('SELECT tamuu_id FROM users WHERE id = ?')
+            .bind(userId)
+            .first<{ tamuu_id: string | null }>();
+        return result?.tamuu_id || null;
     }
 
     // ============================================
