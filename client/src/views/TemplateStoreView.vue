@@ -130,11 +130,8 @@ const previewTemplate = (templateId: string) => {
             </div>
 
             <!-- Empty State -->
-            <div v-if="templateStore.templates.length === 0 && !templateStore.isLoading" class="text-center py-20">
+            <div v-if="masterTemplates.length === 0 && !isLoading" class="text-center py-20">
                 <p class="text-gray-500 mb-4">Belum ada template tersedia</p>
-                <Button variant="outline" @click="templateStore.fetchTemplates()">
-                    Muat Ulang
-                </Button>
             </div>
         </main>
         <MainFooter />
