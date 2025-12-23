@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from "vue-router";
 // Views will be lazy-loaded
 const HomeView = () => import("../views/HomeView.vue");
 const DashboardView = () => import("../views/DashboardView.vue");
+const CreateView = () => import("../views/CreateView.vue");
 const EditorView = () => import("../views/EditorView.vue");
 const AdminView = () => import("../views/AdminView.vue");
 const PreviewView = () => import("../views/PreviewView.vue");
@@ -68,9 +69,16 @@ const router = createRouter({
             component: ProfileView,
             meta: { requiresAuth: true },
         },
-        // User Onboarding (create invitation) - /create path
+        // Create/Edit invitation page (sections: Tema, Musik, Template, etc.)
         {
             path: "/create",
+            name: "create",
+            component: CreateView,
+            meta: { requiresAuth: true, roles: ['user', 'admin'] },
+        },
+        // User Onboarding (select category, create slug, pick template)
+        {
+            path: "/onboarding",
             name: "onboarding",
             component: OnboardingView,
             meta: { requiresAuth: true, roles: ['user', 'admin'] },
