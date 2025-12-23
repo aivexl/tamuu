@@ -8,20 +8,18 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-import { useInvitationStore } from '@/stores/invitation';
 import { invitationsApi, type TemplateResponse } from '@/lib/api/invitations';
 import SafeImage from '@/components/ui/SafeImage.vue';
 import AppHeader from '@/components/layout/AppHeader.vue';
 import { 
     LayoutDashboard, Mail, FileText, GraduationCap, 
     User, LogOut, Plus, Search, Bell, Settings, 
-    ChevronRight, Eye, Edit3, Copy, Trash2, 
+    Eye, Edit3, Copy, Trash2, 
     Calendar, Users, Sparkles, Menu, X
 } from 'lucide-vue-next';
 
 const router = useRouter();
 const authStore = useAuthStore();
-const invitationStore = useInvitationStore();
 
 // State
 const activeTab = ref('invitations');

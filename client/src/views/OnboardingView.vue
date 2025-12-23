@@ -311,7 +311,7 @@ function prevStep() {
                 <span class="text-sm font-medium text-slate-700 mb-2 block">Link Undangan</span>
                 <div class="flex items-center">
                   <span class="px-4 py-3 bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-slate-500 text-sm">
-                    tamuu.id/
+                    tamuu.pages.dev/
                   </span>
                   <div class="relative flex-1">
                     <input
