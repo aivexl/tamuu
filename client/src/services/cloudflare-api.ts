@@ -1,15 +1,10 @@
-/**
- * Cloudflare API Service
- * Client SDK for Tamuu Cloudflare Workers API
- * Replaces Supabase client
- */
-
 import type {
     Template,
     TemplateElement,
     RSVPResponse,
     SectionDesign,
 } from "@/lib/types";
+import { supabase } from "@/lib/supabase";
 
 // API Base URL - uses environment variable or defaults
 // Hardcoded to ensure production uses correct worker
@@ -31,8 +26,9 @@ async function request<T>(
     const { maxRetries = 3, baseDelayMs = 100, ...fetchOptions } = options;
     let lastError: Error | null = null;
 
-    // Get token from localStorage for Authorization header
-    const token = localStorage.getItem('tamuu_auth_token');
+    // Get token from Supabase session (correct method for Supabase Auth)
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
