@@ -183,7 +183,6 @@ const copyTamuuId = async () => {
                     <Copy v-else class="w-4 h-4" />
                   </button>
                 </div>
-                <p class="text-xs text-slate-500">Your unique Tamuu identifier. Used for billing and support.</p>
               </div>
             </div>
           </div>
