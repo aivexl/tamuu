@@ -104,12 +104,35 @@ export async function logout(): Promise<{ success: boolean }> {
 }
 
 export async function getCurrentUser(): Promise<{ user: UserResponse }> {
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (error || !user) {
+    if (sessionError || !session) {
         throw new Error('Not authenticated');
     }
 
+    // Fetch user data from backend API (includes tamuuId from D1)
+    try {
+        const response = await fetch('https://tamuu-api.shafania57.workers.dev/api/auth/me', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return { user: data.user };
+        }
+    } catch (err) {
+        console.error('Failed to fetch user from backend:', err);
+    }
+
+    // Fallback to Supabase user metadata (without tamuuId)
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) {
+        throw new Error('Not authenticated');
+    }
     return { user: mapSupabaseUser(user) };
 }
 
