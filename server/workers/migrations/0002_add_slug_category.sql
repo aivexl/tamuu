@@ -1,20 +1,23 @@
 -- ============================================
 -- Migration: Add Slug, Category, Source Template
 -- Version: 2024-12-23
+-- SQLite Compatible (no UNIQUE in ALTER TABLE)
 -- ============================================
 
--- Add slug column (unique, for public URL access)
-ALTER TABLE templates ADD COLUMN slug TEXT UNIQUE;
+-- Add slug column (UNIQUE will be enforced by index)
+ALTER TABLE templates ADD COLUMN slug TEXT;
 
 -- Add category column for template filtering
--- Categories: wedding, kids, birthday, aqiqah, tasmiyah, khitan, umum, seminar,
---             christmas, newyear, syukuran, islami, party, dinner, school, graduation, other
 ALTER TABLE templates ADD COLUMN category TEXT DEFAULT 'wedding';
 
--- Add source_template_id for tracking cloned templates (user templates point to master)
-ALTER TABLE templates ADD COLUMN source_template_id TEXT REFERENCES templates(id) ON DELETE SET NULL;
+-- Add source_template_id for tracking cloned templates
+ALTER TABLE templates ADD COLUMN source_template_id TEXT;
 
--- Create indexes for fast lookups
-CREATE INDEX IF NOT EXISTS idx_templates_slug ON templates(slug);
+-- Create unique index for slug (enforces uniqueness)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_templates_slug ON templates(slug);
+
+-- Create index for category filtering
 CREATE INDEX IF NOT EXISTS idx_templates_category ON templates(category);
+
+-- Create index for source template lookups
 CREATE INDEX IF NOT EXISTS idx_templates_source ON templates(source_template_id);

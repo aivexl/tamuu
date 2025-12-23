@@ -90,6 +90,11 @@ const router = createRouter({
 // ============================================
 
 import { useAuthStore } from "@/stores/auth";
+import { invitationsApi } from "@/lib/api/invitations";
+
+// Cache for user invitations check (avoid repeated API calls)
+let hasInvitationCache: boolean | null = null;
+let lastCheckedUserId: string | null = null;
 
 router.beforeEach(async (to, _from, next) => {
     const authStore = useAuthStore();
@@ -135,7 +140,35 @@ router.beforeEach(async (to, _from, next) => {
         }
     }
 
+    // 4. Onboarding Check for regular users accessing customer-dashboard
+    if (user && user.role === 'user' && to.name === 'customer-dashboard') {
+        // Check if cache needs refresh (different user or no cache)
+        if (lastCheckedUserId !== user.id || hasInvitationCache === null) {
+            try {
+                const invitations = await invitationsApi.getMyInvitations();
+                hasInvitationCache = invitations.length > 0;
+                lastCheckedUserId = user.id;
+            } catch (error) {
+                console.error('[Router] Failed to check invitations:', error);
+                // On error, allow access (fail open) - user can retry
+                hasInvitationCache = true;
+            }
+        }
+
+        // If no invitation, redirect to onboarding
+        if (!hasInvitationCache) {
+            console.log('[Router] User has no invitation, redirecting to onboarding');
+            return next({ name: 'onboarding' });
+        }
+    }
+
+    // 5. Already has invitation trying to access onboarding? Redirect to dashboard
+    if (user && user.role === 'user' && to.name === 'onboarding' && hasInvitationCache === true) {
+        return next({ name: 'customer-dashboard' });
+    }
+
     next();
 });
 
 export default router;
+

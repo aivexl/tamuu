@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref } from 'vue';
+import { onMounted, onUnmounted, computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTemplateStore } from '@/stores/template';
-import { PREDEFINED_SECTION_TYPES, type SectionDesign } from '@/lib/types';
+import { PREDEFINED_SECTION_TYPES, type SectionDesign, type InvitationCategory } from '@/lib/types';
+import { invitationsApi } from '@/lib/api/invitations';
 import { DEFAULT_ZOOM_CONFIG } from '@/lib/constants';
 import KonvaCanvas from '@/components/editor/KonvaCanvas.vue';
 import PropertyPanel from '@/components/editor/PropertyPanel.vue';
@@ -10,7 +11,7 @@ import ParticleOverlay from '@/components/effects/ParticleOverlay.vue';
 import AddElementPanel from '@/components/editor/AddElementPanel.vue';
 import Button from '@/components/ui/Button.vue';
 import * as CloudflareAPI from '@/services/cloudflare-api';
-import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, Check, Upload, User } from 'lucide-vue-next';
+import { ArrowLeft, Save, Undo, Redo, Layers, ChevronUp, ChevronDown, Eye, EyeOff, Copy, Trash2, Pencil, Plus, Check, Upload, User, Settings, Link2, Tag, Loader2, AlertCircle } from 'lucide-vue-next';
 
 const route = useRoute();
 const store = useTemplateStore();
@@ -30,6 +31,110 @@ const toastVariant = ref<'default' | 'success' | 'destructive'>('success');
 // Saving state
 const isSaving = ref(false);
 const lastSavedAt = ref<Date | null>(null);
+
+// Template Settings: Slug & Category
+const showTemplateSettings = ref(false);
+const templateSlug = ref('');
+const templateCategory = ref<InvitationCategory>('wedding');
+const slugChecking = ref(false);
+const slugError = ref<string | null>(null);
+const slugSuccess = ref(false);
+const savingSettings = ref(false);
+
+const categoryOptions: { value: InvitationCategory; label: string }[] = [
+    { value: 'wedding', label: 'Pernikahan' },
+    { value: 'kids', label: 'Anak & Balita' },
+    { value: 'birthday', label: 'Ulang Tahun' },
+    { value: 'aqiqah', label: 'Aqiqah' },
+    { value: 'tasmiyah', label: 'Tasmiyah' },
+    { value: 'khitan', label: 'Khitan' },
+    { value: 'umum', label: 'Umum' },
+    { value: 'seminar', label: 'Seminar' },
+    { value: 'christmas', label: 'Natal' },
+    { value: 'newyear', label: 'Tahun Baru' },
+    { value: 'syukuran', label: 'Syukuran' },
+    { value: 'islami', label: 'Islami' },
+    { value: 'party', label: 'Pesta' },
+    { value: 'dinner', label: 'Makan Malam' },
+    { value: 'school', label: 'Sekolah' },
+    { value: 'graduation', label: 'Wisuda' },
+    { value: 'other', label: 'Lainnya' },
+];
+
+let slugCheckTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const checkSlug = async () => {
+    if (!templateSlug.value || templateSlug.value.length < 3) {
+        slugError.value = templateSlug.value.length > 0 ? 'Minimal 3 karakter' : null;
+        slugSuccess.value = false;
+        return;
+    }
+    
+    const cleanSlug = templateSlug.value.toLowerCase().replace(/\s+/g, '-');
+    const slugFormat = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
+    
+    if (!slugFormat.test(cleanSlug)) {
+        slugError.value = 'Huruf kecil, angka, dan tanda hubung saja';
+        slugSuccess.value = false;
+        return;
+    }
+
+    // Skip check if slug is same as current
+    if (cleanSlug === currentTemplate.value?.slug) {
+        slugSuccess.value = true;
+        slugError.value = null;
+        return;
+    }
+    
+    slugChecking.value = true;
+    slugError.value = null;
+    
+    try {
+        const result = await invitationsApi.checkSlug(cleanSlug);
+        if (result.available) {
+            slugSuccess.value = true;
+            templateSlug.value = cleanSlug;
+        } else {
+            slugError.value = result.message;
+            slugSuccess.value = false;
+        }
+    } catch {
+        slugError.value = 'Gagal memeriksa';
+    } finally {
+        slugChecking.value = false;
+    }
+};
+
+watch(templateSlug, () => {
+    slugSuccess.value = false;
+    slugError.value = null;
+    if (slugCheckTimeout) clearTimeout(slugCheckTimeout);
+    slugCheckTimeout = setTimeout(() => {
+        if (templateSlug.value.length >= 3) checkSlug();
+    }, 500);
+});
+
+const saveTemplateSettings = async () => {
+    if (!templateId.value || !currentTemplate.value) return;
+    if (templateSlug.value && templateSlug.value.length >= 3 && !slugSuccess.value && !slugChecking.value) {
+        await checkSlug();
+        if (!slugSuccess.value) return;
+    }
+    
+    savingSettings.value = true;
+    try {
+        await CloudflareAPI.updateTemplate(templateId.value, {
+            slug: templateSlug.value || null,
+            category: templateCategory.value
+        });
+        showSaveToast('Pengaturan template disimpan', 'success');
+        await store.fetchTemplate(templateId.value, true);
+    } catch (e: any) {
+        showSaveToast(e.message || 'Gagal menyimpan', 'destructive');
+    } finally {
+        savingSettings.value = false;
+    }
+};
 
 const showSaveToast = (message: string, variant: 'default' | 'success' | 'destructive' = 'success') => {
     toastMessage.value = message;
@@ -177,6 +282,14 @@ onMounted(async () => {
         store.activeTemplateId = templateId.value;
         
         const t = store.templates.find(t => t.id === templateId.value);
+        
+        // Initialize template slug/category from fetched data
+        if (t) {
+            templateSlug.value = t.slug || '';
+            templateCategory.value = (t.category as InvitationCategory) || 'wedding';
+            if (t.slug) slugSuccess.value = true; // Existing slug is valid
+        }
+        
         // Hydrate defaults if sections are empty (legacy or new template)
         if (t && (!t.sections || Object.keys(t.sections).length === 0)) {
              const defaults = PREDEFINED_SECTION_TYPES.map((type, index) => ({
@@ -435,6 +548,84 @@ const handleSectionZoomUpdate = async (sectionKey: string, updates: any) => {
         <div class="flex-1 flex overflow-hidden">
              <!-- Sidebar Left (Sections & Add) -->
             <aside class="w-64 border-r bg-white flex flex-col z-10">
+                <!-- Template Settings (Collapsible) -->
+                <div class="border-b">
+                    <button 
+                        class="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                        @click="showTemplateSettings = !showTemplateSettings"
+                    >
+                        <div class="flex items-center gap-2 text-slate-600">
+                            <Settings class="w-4 h-4" />
+                            <span class="text-xs font-bold uppercase tracking-wider">Pengaturan</span>
+                        </div>
+                        <ChevronDown 
+                            class="w-4 h-4 text-slate-400 transition-transform" 
+                            :class="{ 'rotate-180': showTemplateSettings }"
+                        />
+                    </button>
+                    
+                    <!-- Settings Content (Collapsible) -->
+                    <div v-if="showTemplateSettings" class="px-4 pb-4 space-y-4 border-t bg-slate-50">
+                        <!-- Slug Input -->
+                        <div class="pt-3">
+                            <label class="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1.5">
+                                <Link2 class="w-3 h-3" />
+                                Slug / Link
+                            </label>
+                            <div class="relative">
+                                <input 
+                                    v-model="templateSlug"
+                                    type="text"
+                                    placeholder="nama-template"
+                                    :class="[
+                                        'w-full px-3 py-2 text-sm border rounded-lg pr-8 transition-colors',
+                                        slugError ? 'border-red-300 focus:border-red-500' :
+                                        slugSuccess ? 'border-green-300 focus:border-green-500' :
+                                        'border-slate-200 focus:border-teal-500'
+                                    ]"
+                                />
+                                <div class="absolute right-2.5 top-1/2 -translate-y-1/2">
+                                    <Loader2 v-if="slugChecking" class="w-4 h-4 text-slate-400 animate-spin" />
+                                    <Check v-else-if="slugSuccess" class="w-4 h-4 text-green-500" />
+                                    <AlertCircle v-else-if="slugError" class="w-4 h-4 text-red-500" />
+                                </div>
+                            </div>
+                            <p v-if="slugError" class="text-xs text-red-500 mt-1">{{ slugError }}</p>
+                            <p v-else-if="slugSuccess" class="text-xs text-green-600 mt-1">✓ Tersedia</p>
+                            <p v-else class="text-xs text-slate-400 mt-1">tamuu.id/{{ templateSlug || '...' }}</p>
+                        </div>
+                        
+                        <!-- Category Dropdown -->
+                        <div>
+                            <label class="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1.5">
+                                <Tag class="w-3 h-3" />
+                                Kategori
+                            </label>
+                            <select 
+                                v-model="templateCategory"
+                                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:border-teal-500 transition-colors"
+                            >
+                                <option v-for="opt in categoryOptions" :key="opt.value" :value="opt.value">
+                                    {{ opt.label }}
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <!-- Save Settings Button -->
+                        <Button 
+                            variant="primary"
+                            size="sm"
+                            class="w-full bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-center gap-2"
+                            @click="saveTemplateSettings"
+                            :disabled="savingSettings || (templateSlug.length >= 3 && !slugSuccess && !slugChecking)"
+                        >
+                            <Loader2 v-if="savingSettings" class="w-4 h-4 animate-spin" />
+                            <Save v-else class="w-4 h-4" />
+                            {{ savingSettings ? 'Menyimpan...' : 'Simpan Pengaturan' }}
+                        </Button>
+                    </div>
+                </div>
+                
                 <!-- Section List -->
                 <div class="flex-1 overflow-y-auto p-4 border-b">
                     <div class="flex items-center gap-2 mb-3 text-slate-400">
