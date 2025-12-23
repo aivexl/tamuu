@@ -169,8 +169,8 @@ async function createInvitation() {
             category: selectedCategory.value
         });
 
-        // Redirect to dashboard
-        router.push('/my/dashboard');
+        // Redirect to create/edit page
+        router.push('/create');
     } catch (e: any) {
         error.value = e.message || 'Gagal membuat undangan';
     } finally {
