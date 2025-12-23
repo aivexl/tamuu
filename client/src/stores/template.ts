@@ -149,6 +149,30 @@ export const useTemplateStore = defineStore("template", {
             }
         },
 
+        async fetchPublicTemplateBySlug(slug: string) {
+            this.isLoading = true;
+            this.error = null;
+
+            try {
+                console.log(`[Store] Fetching public template by slug: ${slug}...`);
+                const template = await CloudflareAPI.getPublicTemplateBySlug(slug);
+                if (template) {
+                    const existingIdx = this.templates.findIndex((t) => t.id === template.id);
+                    if (existingIdx !== -1) {
+                        this.templates.splice(existingIdx, 1, template);
+                    } else {
+                        this.templates.push(template);
+                    }
+                } else {
+                    this.error = "Invitation not found";
+                }
+            } catch (error: any) {
+                this.error = error.message;
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
         async updateTemplate(id: string, updates: Partial<Template>) {
             this.isLoading = true;
             try {

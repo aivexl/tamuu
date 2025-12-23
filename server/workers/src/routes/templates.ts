@@ -59,6 +59,36 @@ templatesRouter.get('/public/:id', async (c) => {
     });
 });
 
+// GET /api/templates/public/slug/:slug - Get public invitation view by slug
+templatesRouter.get('/public/slug/:slug', async (c) => {
+    const slug = c.req.param('slug').toLowerCase();
+    const cache = new CacheService(c.env.KV);
+
+    // Try cache first (slug-based public view)
+    const cached = await cache.getPublicView(slug);
+    if (cached) {
+        return c.json(cached, 200, {
+            'Cache-Control': 'public, max-age=7200, stale-while-revalidate=86400',
+            'X-Cache-Status': 'HIT',
+        });
+    }
+
+    const db = new DatabaseService(c.env.DB);
+    const template = await db.getTemplateBySlug(slug);
+
+    if (!template || template.status !== 'published') {
+        return c.json({ error: 'Invitation not found or not published' }, 404);
+    }
+
+    // Cache by slug too
+    c.executionCtx.waitUntil(cache.setPublicView(slug, template));
+
+    return c.json(template, 200, {
+        'Cache-Control': 'public, max-age=7200, stale-while-revalidate=86400',
+        'X-Cache-Status': 'MISS',
+    });
+});
+
 // ============================================
 // TEMPLATES LIST (ADMIN)
 // ============================================

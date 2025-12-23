@@ -90,6 +90,13 @@ const router = createRouter({
             component: DashboardView,
             meta: { requiresAuth: true, roles: ['user', 'admin'] },
         },
+        // Root slug route (Catch-all for invitations)
+        // MUST BE LAST
+        {
+            path: "/:slug",
+            name: "public-invitation",
+            component: PreviewView,
+        }
     ],
 });
 

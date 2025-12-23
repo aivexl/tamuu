@@ -27,7 +27,18 @@ const isFullscreen = ref(false);
 const mainViewport = ref<HTMLElement | null>(null);
 const scrollContainer = ref<HTMLElement | null>(null);
 
-const currentTemplate = computed(() => store.templates.find(t => t.id === templateId.value));
+const currentTemplate = computed(() => {
+    const id = templateId.value;
+    const slug = route.params.slug as string;
+    
+    if (id) {
+        return store.templates.find(t => t.id === id);
+    }
+    if (slug) {
+        return store.templates.find(t => t.slug?.toLowerCase() === slug.toLowerCase());
+    }
+    return null;
+});
 
 const orderedSections = computed((): (any)[] => {
     if (!currentTemplate.value) return [];
@@ -442,8 +453,15 @@ onMounted(async () => {
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
 
-    if (templateId.value && !currentTemplate.value) {
-        await store.fetchTemplate(templateId.value);
+    if (templateId.value) {
+        if (!currentTemplate.value) {
+            await store.fetchTemplate(templateId.value);
+        }
+    } else {
+        const slug = route.params.slug as string;
+        if (slug) {
+            await store.fetchPublicTemplateBySlug(slug);
+        }
     }
     
     // Watch for template to be fully loaded before starting observer/initial zoom
