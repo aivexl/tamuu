@@ -42,6 +42,14 @@ const handleFileChange = (e: Event) => {
            </div>
         </div>
         <div>
+          <div class="text-sm text-gray-600 mb-1">Link Publik</div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-bold text-teal-700">
+              tamuu.id/{{ store.invitation.slug }}
+            </span>
+          </div>
+        </div>
+        <div>
           <div class="text-sm text-gray-600 mb-1">Aktif Sampai</div>
           <div class="flex items-center gap-2 flex-wrap">
             <Clock class="w-4 h-4 text-gray-500" />

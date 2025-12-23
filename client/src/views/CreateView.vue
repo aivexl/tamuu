@@ -20,13 +20,21 @@ onMounted(async () => {
         loading.value = true;
         try {
             const invitation = await invitationsApi.getInvitation(invitationId);
-            // We need to map TemplateResponse to Invitation type if they differ
-            // For now, assume store.setInvitation can handle it or we map it
-            // Actually, let's just set the ID in store for now, or fetch full data
-            store.updateTemplateId(invitation.id);
-            // If the invitation object from backend is what we need:
-            // store.setInvitation(invitation as any); 
-        } catch (error) {
+            
+            // Map TemplateResponse (API) to Invitation (Store)
+            // This ensures ID, Slug, and other properties are correctly populated
+            store.setInvitation({
+                ...store.invitation, // keep defaults for missing fields
+                id: invitation.id,
+                slug: invitation.slug || "",
+                title: invitation.name,
+                templateId: invitation.sourceTemplateId || undefined,
+                updatedAt: invitation.updatedAt,
+                createdAt: invitation.createdAt
+            });
+            
+            // Log for verification
+            console.log("[CreateView] Invitation loaded:", invitation.slug);        } catch (error) {
             console.error("Failed to load invitation:", error);
         } finally {
             loading.value = false;
