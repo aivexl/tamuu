@@ -11,6 +11,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useInvitationStore } from '@/stores/invitation';
 import { invitationsApi, type TemplateResponse } from '@/lib/api/invitations';
 import SafeImage from '@/components/ui/SafeImage.vue';
+import AppHeader from '@/components/layout/AppHeader.vue';
 import { 
     LayoutDashboard, Mail, FileText, GraduationCap, 
     User, LogOut, Plus, Search, Bell, Settings, 
@@ -100,7 +101,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 flex">
+  <div class="min-h-screen bg-slate-50 flex flex-col">
+    <!-- Unified Header -->
+    <AppHeader />
+    
+    <div class="flex-1 flex">
     <!-- Sidebar -->
     <aside 
         :class="[
@@ -435,5 +440,6 @@ onMounted(() => {
             </div>
         </div>
     </main>
+    </div> <!-- Close flex-1 flex wrapper -->
   </div>
 </template>

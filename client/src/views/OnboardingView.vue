@@ -10,6 +10,7 @@ import { useRouter } from 'vue-router';
 import { invitationsApi } from '@/lib/api/invitations';
 import type { InvitationCategory, Template } from '@/lib/types';
 import SafeImage from '@/components/ui/SafeImage.vue';
+import AppHeader from '@/components/layout/AppHeader.vue';
 import { 
     Heart, Baby, Gift, BookOpen, Mic, TreePine, Sun, 
     PartyPopper, UtensilsCrossed, GraduationCap, Star,
@@ -198,17 +199,12 @@ function prevStep() {
 
 <template>
   <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-    <!-- Header -->
-    <div class="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-      <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold">
-            T
-          </div>
-          <span class="font-semibold text-slate-800">Tamuu</span>
-        </div>
-        
-        <!-- Progress Steps -->
+    <!-- Unified Header -->
+    <AppHeader />
+    
+    <!-- Progress Steps -->
+    <div class="border-b bg-white/80 backdrop-blur-sm sticky top-16 z-10">
+      <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-center">
         <div class="flex items-center gap-2">
           <div 
             v-for="step in 3" 
@@ -235,8 +231,6 @@ function prevStep() {
             />
           </div>
         </div>
-
-        <div class="w-20" /> <!-- Spacer -->
       </div>
     </div>
 

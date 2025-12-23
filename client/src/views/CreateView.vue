@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import DashboardHeader from "@/components/dashboard/DashboardHeader.vue";
+import AppHeader from "@/components/layout/AppHeader.vue";
 import InvitationInfoCard from "@/components/dashboard/InvitationInfoCard.vue";
 import IconGridMenu from "@/components/dashboard/IconGridMenu.vue";
 import StatusToggles from "@/components/dashboard/StatusToggles.vue";
@@ -20,7 +20,7 @@ const handleCloseModal = () => {
 
 <template>
   <div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-teal-50">
-    <DashboardHeader />
+    <AppHeader />
 
     <div class="max-w-4xl mx-auto p-6 space-y-6">
       <InvitationInfoCard />
