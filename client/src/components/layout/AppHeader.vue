@@ -71,12 +71,6 @@ const closeDropdown = () => {
 
         <!-- Right Section -->
         <div class="flex items-center gap-4">
-          <!-- Settings -->
-          <button class="hidden md:flex p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all">
-            <Settings class="w-5 h-5" />
-          </button>
-
-          <div class="h-6 w-px bg-slate-200 hidden md:block" />
 
           <!-- User Dropdown -->
           <div class="relative" v-click-outside="closeDropdown">

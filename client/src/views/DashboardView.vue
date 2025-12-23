@@ -222,9 +222,6 @@ onMounted(() => {
                     <Bell class="w-5 h-5" />
                     <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>
-                <button class="p-2 rounded-lg hover:bg-slate-100 text-slate-500">
-                    <Settings class="w-5 h-5" />
-                </button>
             </div>
         </header>
 
