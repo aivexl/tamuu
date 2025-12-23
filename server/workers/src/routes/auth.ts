@@ -268,29 +268,17 @@ authRouter.post('/logout', async (c) => {
 
 // GET /api/auth/me - Get current user from token
 authRouter.get('/me', async (c) => {
-    // Try cookie first, then Authorization header
-    let token = getCookie(c, 'auth_token');
+    // Import AuthService for Supabase token verification
+    const { AuthService } = await import('../services/auth');
+    const authUser = await AuthService.getAuthUser(c);
 
-    if (!token) {
-        const authHeader = c.req.header('Authorization');
-        if (authHeader?.startsWith('Bearer ')) {
-            token = authHeader.slice(7);
-        }
-    }
-
-    if (!token) {
+    if (!authUser) {
         return c.json({ error: 'Not authenticated' }, 401);
-    }
-
-    const payload = await verifyJWT(token);
-    if (!payload) {
-        deleteCookie(c, 'auth_token', { path: '/' });
-        return c.json({ error: 'Invalid or expired token' }, 401);
     }
 
     const user = await c.env.DB
         .prepare('SELECT * FROM users WHERE id = ?')
-        .bind(payload.userId)
+        .bind(authUser.userId)
         .first<DBUser>();
 
     if (!user) {
