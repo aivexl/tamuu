@@ -43,7 +43,7 @@ const handleCreateTemplate = async () => {
   });
 
   if (createdId) {
-    router.push(`/editor/${createdId}`);
+    router.push({ name: 'editor', params: { id: createdId } });
   }
 };
 
@@ -139,7 +139,7 @@ const handleDelete = async (_id: string) => {
                   size="sm"
                   variant="secondary"
                   class="flex items-center gap-1"
-                  @click="router.push(`/editor/${template.id}`)"
+                  @click="router.push({ name: 'editor', params: { id: template.id } })"
                 >
                   <Edit class="w-3.5 h-3.5" />
                   Edit

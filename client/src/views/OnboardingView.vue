@@ -62,8 +62,8 @@ const slugError = ref<string | null>(null);
 const slugSuccess = ref(false);
 const slugChecking = ref(false);
 const invitationName = ref('');
-const selectedTemplate = ref<Template | null>(null);
-const templates = ref<Template[]>([]);
+const selectedTemplate = ref<any | null>(null);
+const templates = ref<any[]>([]);
 const loadingTemplates = ref(false);
 const creating = ref(false);
 const error = ref<string | null>(null);
@@ -171,7 +171,7 @@ async function createInvitation() {
         });
 
         // Redirect to create/edit page with slug
-        router.push(`/create/${result.slug}`);
+        router.push({ name: 'create', params: { slug: result.slug } });
     } catch (e: any) {
         error.value = e.message || 'Gagal membuat undangan';
     } finally {

@@ -62,15 +62,20 @@ templatesRouter.get('/public/:id', async (c) => {
 // GET /api/templates/public/slug/:slug - Get public invitation view by slug
 templatesRouter.get('/public/slug/:slug', async (c) => {
     const slug = c.req.param('slug').toLowerCase();
+    const freshParam = c.req.query('fresh');
+    const skipCache = freshParam === 'true';
+
     const cache = new CacheService(c.env.KV);
 
     // Try cache first (slug-based public view)
-    const cached = await cache.getPublicView(slug);
-    if (cached) {
-        return c.json(cached, 200, {
-            'Cache-Control': 'public, max-age=7200, stale-while-revalidate=86400',
-            'X-Cache-Status': 'HIT',
-        });
+    if (!skipCache) {
+        const cached = await cache.getPublicView(slug);
+        if (cached) {
+            return c.json(cached, 200, {
+                'Cache-Control': 'public, max-age=7200, stale-while-revalidate=86400',
+                'X-Cache-Status': 'HIT',
+            });
+        }
     }
 
     const db = new DatabaseService(c.env.DB);
@@ -226,15 +231,23 @@ templatesRouter.put('/:id', async (c) => {
 
     const body = await c.req.json();
 
+    // Get old template to find slug for invalidation
+    const oldTemplate = await db.getTemplate(id);
+
     await db.updateTemplate(id, body);
 
-    // Invalidate template cache only (1 delete instead of 3)
-    // Public view has 48h TTL and will refresh when user publishes
+    // Invalidate template cache
     await cache.invalidateTemplate(id);
 
-    // Only invalidate public view if explicitly publishing
-    if (body.status === 'published') {
+    // Invalidate public views if publishing or already published
+    if (body.status === 'published' || (oldTemplate && oldTemplate.status === 'published')) {
         await cache.invalidatePublicView(id);
+
+        // ALSO invalidate by slug to prevent stale public view
+        const currentSlug = body.slug || (oldTemplate && oldTemplate.slug);
+        if (currentSlug) {
+            await cache.invalidatePublicView(currentSlug.toLowerCase());
+        }
     }
 
     return c.json({ success: true });

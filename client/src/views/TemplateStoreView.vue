@@ -24,7 +24,7 @@ onMounted(async () => {
 
 const selectTemplate = (templateId: string) => {
     invitationStore.updateTemplateId(templateId);
-    router.push('/dashboard');
+    router.push({ name: 'customer-dashboard' });
 };
 
 const previewTemplate = (templateId: string) => {

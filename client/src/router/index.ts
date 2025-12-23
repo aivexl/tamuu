@@ -25,71 +25,91 @@ const router = createRouter({
             component: HomeView,
         },
         {
-            path: "/login",
-            name: "login",
-            component: LoginView,
-        },
-        {
-            path: "/register",
-            name: "register",
-            component: RegisterView,
-        },
-        // Main Dashboard
-        {
-            path: "/dashboard",
-            name: "dashboard",
-            component: DashboardView,
-            meta: { requiresAuth: true },
-        },
-        {
-            path: "/editor/:id",
-            name: "editor",
-            component: EditorView,
-            meta: { requiresAuth: true, roles: ['admin'] },
-        },
-        {
-            path: "/preview/:id",
-            name: "preview",
-            component: PreviewView,
-        },
-        {
-            path: "/admin/templates",
-            name: "admin",
-            component: AdminView,
-            meta: { requiresAuth: true, roles: ['admin'] },
-        },
-        {
             path: "/templates",
             name: "template-store",
             component: TemplateStoreView,
         },
+
+        // Authentication group
         {
-            path: "/profile",
-            name: "profile",
-            component: ProfileView,
+            path: "/auth",
+            children: [
+                {
+                    path: "login",
+                    name: "login",
+                    component: LoginView,
+                },
+                {
+                    path: "register",
+                    name: "register",
+                    component: RegisterView,
+                },
+            ]
+        },
+
+        // Application group (Protected)
+        {
+            path: "/app",
             meta: { requiresAuth: true },
+            children: [
+                {
+                    path: "dashboard",
+                    name: "customer-dashboard",
+                    component: DashboardView,
+                    meta: { roles: ['user', 'admin'] },
+                },
+                {
+                    path: "onboarding",
+                    name: "onboarding",
+                    component: OnboardingView,
+                    meta: { roles: ['user', 'admin'] },
+                },
+                {
+                    path: "editor/:slug",
+                    name: "create",
+                    component: CreateView,
+                    meta: { roles: ['user', 'admin'] },
+                },
+                {
+                    path: "profile",
+                    name: "profile",
+                    component: ProfileView,
+                },
+            ]
         },
-        // Create/Edit invitation page (sections: Tema, Musik, Template, etc.)
+
+        // Admin group
         {
-            path: "/create/:slug",
-            name: "create",
-            component: CreateView,
-            meta: { requiresAuth: true, roles: ['user', 'admin'] },
+            path: "/admin",
+            meta: { requiresAuth: true, roles: ['admin'] },
+            children: [
+                {
+                    path: "templates",
+                    name: "admin",
+                    component: AdminView,
+                },
+                {
+                    path: "editor/:id",
+                    name: "editor",
+                    component: EditorView,
+                },
+                {
+                    path: "preview/:id",
+                    name: "admin-preview",
+                    component: PreviewView,
+                },
+            ]
         },
-        // User Onboarding (select category, create slug, pick template)
-        {
-            path: "/onboarding",
-            name: "onboarding",
-            component: OnboardingView,
-            meta: { requiresAuth: true, roles: ['user', 'admin'] },
-        },
-        // Customer routes (protected)
-        {
-            path: "/my/dashboard",
-            name: "customer-dashboard",
-            component: DashboardView,
-            meta: { requiresAuth: true, roles: ['user', 'admin'] },
-        },
+
+        // Legacy Redirects
+        { path: "/login", redirect: "/auth/login" },
+        { path: "/register", redirect: "/auth/register" },
+        { path: "/dashboard", redirect: "/app/dashboard" },
+        { path: "/my/dashboard", redirect: "/app/dashboard" },
+        { path: "/onboarding", redirect: "/app/onboarding" },
+        { path: "/profile", redirect: "/app/profile" },
+        { path: "/create/:slug", redirect: "/app/editor/:slug" },
+
         // Root slug route (Catch-all for invitations)
         // MUST BE LAST
         {
@@ -125,8 +145,9 @@ router.beforeEach(async (to, _from, next) => {
 
     // 1. Check if route is public
     if (!requiresAuth && !requiredRoles) {
-        if (isAuthenticated && (to.name === 'login' || to.name === 'register')) {
-            return next({ name: 'dashboard' });
+        const isAuthRoute = to.name === 'login' || to.name === 'register';
+        if (isAuthenticated && isAuthRoute) {
+            return next({ name: 'customer-dashboard' });
         }
         return next();
     }

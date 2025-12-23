@@ -5,10 +5,10 @@
  * Consistent navbar across Dashboard, Create, Onboarding
  */
 
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useRouter, RouterLink, useRoute } from 'vue-router';
 import { useAuthStore } from "@/stores/auth";
-import { Settings, User, LogOut, ChevronDown, LayoutDashboard, PlusCircle, Sparkles } from "lucide-vue-next";
+import { Settings, User, LogOut, ChevronDown, LayoutDashboard, Sparkles } from "lucide-vue-next";
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -17,12 +17,11 @@ const isDropdownOpen = ref(false);
 
 // Navigation items
 const navItems = [
-    { path: '/dashboard', name: 'Dashboard', icon: LayoutDashboard },
-    { path: '/create', name: 'Buat Undangan', icon: PlusCircle },
-    { path: '/onboarding', name: 'Onboarding', icon: Sparkles },
+    { routeName: 'customer-dashboard', name: 'Dashboard', icon: LayoutDashboard },
+    { routeName: 'template-store', name: 'Template Store', icon: Sparkles },
 ];
 
-const isActive = (path: string) => route.path === path;
+const isActive = (routeName: string) => route.name === routeName;
 
 const handleLogout = async () => {
     await authStore.logout();
@@ -55,11 +54,11 @@ const closeDropdown = () => {
           <nav class="hidden md:flex items-center gap-1">
             <RouterLink
               v-for="item in navItems"
-              :key="item.path"
-              :to="item.path"
+              :key="item.routeName"
+              :to="{ name: item.routeName }"
               :class="[
                 'flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all',
-                isActive(item.path)
+                isActive(item.routeName)
                   ? 'bg-teal-50 text-teal-700'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
               ]"
@@ -112,7 +111,7 @@ const closeDropdown = () => {
               </div>
               
               <RouterLink 
-                to="/profile" 
+                :to="{ name: 'profile' }" 
                 class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-all"
                 @click="isDropdownOpen = false"
               >
@@ -137,11 +136,11 @@ const closeDropdown = () => {
     <div class="md:hidden border-t border-slate-100 px-4 py-2 flex gap-1 overflow-x-auto">
       <RouterLink
         v-for="item in navItems"
-        :key="item.path"
-        :to="item.path"
+        :key="item.routeName"
+        :to="{ name: item.routeName }"
         :class="[
           'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all',
-          isActive(item.path)
+          isActive(item.routeName)
             ? 'bg-teal-50 text-teal-700'
             : 'text-slate-600 hover:bg-slate-50'
         ]"

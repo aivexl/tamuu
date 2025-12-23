@@ -37,7 +37,7 @@ const menuItems = [
 ];
 
 const accountItems = [
-    { id: 'profile', label: 'Edit Profil', icon: User, action: () => router.push('/profile') },
+    { id: 'profile', label: 'Edit Profil', icon: User, action: () => router.push({ name: 'profile' }) },
     { id: 'logout', label: 'Log Out', icon: LogOut, action: () => handleLogout() },
 ];
 
@@ -67,11 +67,11 @@ async function loadInvitations() {
 
 function handleLogout() {
     authStore.logout();
-    router.push('/login');
+    router.push({ name: 'login' });
 }
 
 function createNewInvitation() {
-    router.push('/onboarding');
+    router.push({ name: 'onboarding' });
 }
 
 function viewInvitation(inv: TemplateResponse) {
@@ -83,10 +83,10 @@ function viewInvitation(inv: TemplateResponse) {
 function editInvitation(inv: TemplateResponse) {
     // Navigate to create/edit page with slug
     if (inv.slug) {
-        router.push(`/create/${inv.slug}`);
+        router.push({ name: 'create', params: { slug: inv.slug } });
     } else {
-        // Fallback to ID if slug is missing (though it shouldn't be for user invites)
-        router.push(`/create/${inv.id}`);
+        // Fallback to ID if slug is missing 
+        router.push({ name: 'create', params: { slug: inv.id } });
     }
 }
 
@@ -295,7 +295,7 @@ onMounted(() => {
                             <span class="text-sm font-medium text-slate-700">Invoice</span>
                         </button>
                         <button 
-                            @click="router.push('/profile')"
+                            @click="router.push({ name: 'profile' })"
                             class="flex flex-col items-center gap-3 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all"
                         >
                             <div class="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-600">

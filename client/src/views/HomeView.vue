@@ -124,14 +124,14 @@ const formatPrice = (price: number) => {
 
           <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-500">
             <RouterLink
-              to="/register"
+              :to="{ name: 'register' }"
               class="group relative inline-flex items-center gap-3 px-10 py-5 bg-slate-900 text-white font-black rounded-2xl shadow-2xl shadow-slate-200 hover:bg-slate-800 hover:scale-105 transition-all duration-300"
             >
               Mulai Sekarang
               <ArrowRight class="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </RouterLink>
             <RouterLink
-              to="/templates"
+              :to="{ name: 'template-store' }"
               class="px-10 py-5 bg-white text-slate-900 border border-slate-200 font-bold rounded-2xl shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:scale-105 transition-all duration-300"
             >
               Lihat Template

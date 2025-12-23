@@ -51,7 +51,7 @@ const handleRegister = async () => {
     
     try {
         await authStore.register(email.value, password.value, name.value || undefined, phone.value || undefined);
-        router.push('/my/dashboard');
+        router.push({ name: 'customer-dashboard' });
     } catch (error: any) {
         errorMessage.value = error.message || 'Registration failed. Please try again.';
     } finally {
@@ -201,7 +201,7 @@ const handleRegister = async () => {
                 <p class="text-center text-slate-400">
                     Sudah punya akun?
                     <RouterLink 
-                        to="/login" 
+                        :to="{ name: 'login' }" 
                         class="text-teal-400 hover:text-teal-300 font-medium transition-colors"
                     >
                         Masuk

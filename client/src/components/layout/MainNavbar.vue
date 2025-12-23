@@ -96,7 +96,7 @@ const navLinks = [
 
         <div v-else class="flex items-center gap-3">
           <RouterLink 
-            to="/dashboard"
+            :to="{ name: 'customer-dashboard' }"
             class="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-colors"
           >
             <LayoutDashboard class="w-4 h-4" />
@@ -111,7 +111,7 @@ const navLinks = [
             <!-- Dropdown -->
             <div class="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right translate-y-2 group-hover:translate-y-0">
               <div class="p-2 space-y-1">
-                <RouterLink to="/profile" class="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors">
+                <RouterLink :to="{ name: 'profile' }" class="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors">
                   <User class="w-4 h-4" />
                   Profil
                 </RouterLink>
@@ -156,14 +156,14 @@ const navLinks = [
         <div class="h-[1px] bg-slate-100 my-2"></div>
         <div v-if="!authStore.isAuthenticated" class="flex flex-col gap-3">
           <RouterLink 
-            to="/login"
+            :to="{ name: 'login' }"
             class="text-center py-3 font-bold text-slate-900 border border-slate-200 rounded-xl"
             @click="isMenuOpen = false"
           >
             Masuk
           </RouterLink>
           <RouterLink 
-            to="/register"
+            :to="{ name: 'register' }"
             class="text-center py-3 font-bold text-white bg-indigo-600 rounded-xl"
             @click="isMenuOpen = false"
           >
@@ -172,7 +172,7 @@ const navLinks = [
         </div>
         <div v-else class="flex flex-col gap-3">
           <RouterLink 
-            to="/dashboard"
+            :to="{ name: 'customer-dashboard' }"
             class="flex items-center gap-3 px-4 py-3 bg-indigo-50 text-indigo-700 rounded-xl font-bold"
             @click="isMenuOpen = false"
           >

@@ -463,7 +463,7 @@ const handleSectionZoomUpdate = async (sectionKey: string, updates: any) => {
         <!-- Toolbar -->
         <header class="h-16 border-b flex items-center justify-between px-6 bg-white z-20 shadow-sm">
              <div class="flex items-center gap-4">
-                 <Button variant="ghost" size="icon" @click="$router.push('/admin/templates')">
+                 <Button variant="ghost" size="icon" @click="$router.push({ name: 'admin' })">
                      <ArrowLeft class="w-5 h-5" />
                  </Button>
                  <div>
@@ -506,7 +506,7 @@ const handleSectionZoomUpdate = async (sectionKey: string, updates: any) => {
                 <Button 
                     variant="outline"
                     class="flex items-center gap-2"
-                    @click="$router.push(`/preview/${templateId}`)"
+                    @click="$router.push({ name: 'admin-preview', params: { id: templateId } })"
                 >
                     <Eye class="w-4 h-4" />
                     Preview

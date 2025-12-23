@@ -32,7 +32,7 @@ const handleLogin = async () => {
         if (redirectPath) {
             router.push(redirectPath);
         } else {
-            router.push('/my/dashboard');
+            router.push({ name: 'customer-dashboard' });
         }
     } catch (error: any) {
         errorMessage.value = error.message || 'Login failed. Please try again.';
@@ -139,7 +139,7 @@ const handleLogin = async () => {
                 <p class="text-center text-slate-400">
                     Belum punya akun?
                     <RouterLink 
-                        to="/register" 
+                        :to="{ name: 'register' }" 
                         class="text-teal-400 hover:text-teal-300 font-medium transition-colors"
                     >
                         Daftar sekarang

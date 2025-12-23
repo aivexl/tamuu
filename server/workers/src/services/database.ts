@@ -389,10 +389,17 @@ export class DatabaseService {
             }
 
             // Sync elements if provided
-            if (updates.elements && updates.elements.length > 0) {
-                // For updates, we might want to be careful, but for cloning/sync:
-                // Let's at least ensure they can be created if missing
-                // In this context, we usually only call this with elements during initial creation
+            if (updates.elements) {
+                // For a robust sync, we clear existing elements and re-create them
+                // This ensures the database exactly matches the state from the editor/source
+                await this.db
+                    .prepare('DELETE FROM template_elements WHERE section_id = ?')
+                    .bind(existing.id)
+                    .run();
+
+                for (const el of updates.elements) {
+                    await this.createElement(existing.id, el);
+                }
             }
 
             return existing.id;
@@ -436,6 +443,7 @@ export class DatabaseService {
 
             // Create elements if provided
             if (updates.elements && updates.elements.length > 0) {
+                console.log(`[Database] Creating ${updates.elements.length} elements for new section ${sectionType}`);
                 for (const el of updates.elements) {
                     await this.createElement(id, el);
                 }
@@ -974,7 +982,7 @@ export class DatabaseService {
             category: category as any,
             sourceTemplateId,
             thumbnail: source.thumbnail,
-            status: 'draft',
+            status: 'published', // Default to published for immediate visibility
             sectionOrder: source.sectionOrder,
             customSections: source.customSections,
             globalTheme: source.globalTheme,

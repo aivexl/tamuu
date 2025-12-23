@@ -142,7 +142,14 @@ app.route('/api/auth', authRouter);
 // Protected routes (require login)
 import { authMiddleware, roleMiddleware } from './middleware/auth';
 
-app.use('/api/templates/*', authMiddleware);
+// Protect all /api/templates routes EXCEPT /api/templates/public/*
+app.use('/api/templates/*', async (c, next) => {
+    if (c.req.path.startsWith('/api/templates/public/')) {
+        return await next();
+    }
+    return authMiddleware(c, next);
+});
+
 app.use('/api/sections/*', authMiddleware);
 app.use('/api/elements/*', authMiddleware);
 app.use('/api/batch-update/*', authMiddleware);
