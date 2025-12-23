@@ -36,6 +36,8 @@ export interface DBUser {
     plan: 'free' | 'basic' | 'premium' | 'priority';
     role: 'admin' | 'user';
     tamuu_id: string | null;
+    gender: 'male' | 'female' | null;
+    birth_date: string | null;
     plan_expires_at: string | null;
     is_verified: number; // SQLite boolean
     verification_token: string | null;
@@ -151,6 +153,8 @@ export interface UserResponse {
     plan: 'free' | 'basic' | 'premium' | 'priority';
     role: 'admin' | 'user';
     tamuuId: string | null;
+    gender: 'male' | 'female' | null;
+    birthDate: string | null;
     planExpiresAt: string | null;
     isVerified: boolean;
     createdAt: string;

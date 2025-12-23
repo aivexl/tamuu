@@ -124,6 +124,8 @@ function mapUserToResponse(user: DBUser): UserResponse {
         plan: user.plan,
         role: user.role,
         tamuuId: user.tamuu_id,
+        gender: user.gender,
+        birthDate: user.birth_date,
         planExpiresAt: user.plan_expires_at,
         isVerified: user.is_verified === 1,
         createdAt: user.created_at,
@@ -290,26 +292,16 @@ authRouter.get('/me', async (c) => {
 
 // PUT /api/auth/profile - Update user profile
 authRouter.put('/profile', async (c) => {
-    let token = getCookie(c, 'auth_token');
+    // Use AuthService for Supabase token verification
+    const { AuthService } = await import('../services/auth');
+    const authUser = await AuthService.getAuthUser(c);
 
-    if (!token) {
-        const authHeader = c.req.header('Authorization');
-        if (authHeader?.startsWith('Bearer ')) {
-            token = authHeader.slice(7);
-        }
-    }
-
-    if (!token) {
+    if (!authUser) {
         return c.json({ error: 'Not authenticated' }, 401);
     }
 
-    const payload = await verifyJWT(token);
-    if (!payload) {
-        return c.json({ error: 'Invalid or expired token' }, 401);
-    }
-
     const body = await c.req.json();
-    const { name, phone, avatarUrl } = body;
+    const { name, phone, avatarUrl, gender, birthDate } = body;
 
     const now = new Date().toISOString();
     await c.env.DB
@@ -318,10 +310,12 @@ authRouter.put('/profile', async (c) => {
             SET name = COALESCE(?, name), 
                 phone = COALESCE(?, phone), 
                 avatar_url = COALESCE(?, avatar_url),
+                gender = COALESCE(?, gender),
+                birth_date = COALESCE(?, birth_date),
                 updated_at = ?
             WHERE id = ?
         `)
-        .bind(name, phone, avatarUrl, now, payload.userId)
+        .bind(name, phone, avatarUrl, gender, birthDate, now, authUser.userId)
         .run();
 
     const user = await c.env.DB

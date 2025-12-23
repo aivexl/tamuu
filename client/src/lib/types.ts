@@ -605,6 +605,8 @@ export interface UserResponse {
     plan: 'free' | 'basic' | 'premium' | 'priority';
     role: 'admin' | 'user';
     tamuuId: string | null;
+    gender: 'male' | 'female' | null;
+    birthDate: string | null;
     planExpiresAt: string | null;
     isVerified: boolean;
     createdAt: string;
