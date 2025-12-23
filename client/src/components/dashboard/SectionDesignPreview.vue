@@ -283,4 +283,3 @@ const getStaticImageUrl = (url: string) => {
     </div>
   </div>
 </template>
-</script>
