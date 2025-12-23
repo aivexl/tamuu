@@ -10,16 +10,14 @@ import { getCookie } from 'hono/cookie';
 export class AuthService {
     private supabase: SupabaseClient;
 
-    constructor(env: Env) {
-        // Must use service key for admin tasks, or anon key for client tasks
-        // For verification, we just need the URL and a key (anon is enough for getUser with token)
-        const supabaseUrl = env.SUPABASE_URL || 'https://fzcpyybfnlqlisdqercg.supabase.co';
-        const supabaseKey = env.SUPABASE_SERVICE_KEY || env.R2_PUBLIC_URL?.split('?')[0] || '';
-        // Note: Ideally SUPABASE_SERVICE_KEY should be in Env. 
-        // If not found, we might fallback or error.
+    // Supabase anon key (safe to hardcode - same as frontend, it's a public key)
+    private static readonly SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6Y3B5eWJmbmxxbGlzZHFlcmNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5MTc1NjQsImV4cCI6MjA4MDQ5MzU2NH0.sE1-WHRNtxdJiDITqVFl8e_jSINtcUn_WVqehOmK-HY';
 
-        // IMPORTANT: For Workers, we create a new client per request usually, 
-        // or re-use if possible. But for getUser(token), we need to set the session.
+    constructor(env: Env) {
+        const supabaseUrl = env.SUPABASE_URL || 'https://fzcpyybfnlqlisdqercg.supabase.co';
+        // Use service key if available, otherwise fall back to anon key
+        const supabaseKey = env.SUPABASE_SERVICE_KEY || AuthService.SUPABASE_ANON_KEY;
+
         this.supabase = createClient(supabaseUrl, supabaseKey);
     }
 

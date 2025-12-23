@@ -27,6 +27,7 @@
     ],
     "vars": {
         "ENVIRONMENT": "production",
-        "R2_PUBLIC_URL": "https://pub-1e0a9ae6152440268987d00a564a8da5.r2.dev"
+        "R2_PUBLIC_URL": "https://pub-1e0a9ae6152440268987d00a564a8da5.r2.dev",
+        "SUPABASE_URL": "https://fzcpyybfnlqlisdqercg.supabase.co"
     }
 }
