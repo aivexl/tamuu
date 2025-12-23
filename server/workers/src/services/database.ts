@@ -54,7 +54,7 @@ export class DatabaseService {
     async getTemplates(): Promise<TemplateResponse[]> {
         const results = await this.db
             .prepare(`
-        SELECT id, name, thumbnail, status, updated_at, created_at
+        SELECT id, user_id, name, slug, category, source_template_id, thumbnail, status, updated_at, created_at
         FROM templates
         ORDER BY updated_at DESC
         LIMIT 50
@@ -63,7 +63,11 @@ export class DatabaseService {
 
         return (results.results || []).map((t) => ({
             id: t.id,
+            userId: t.user_id,
             name: t.name,
+            slug: t.slug,
+            category: (t.category || 'wedding') as any,
+            sourceTemplateId: t.source_template_id,
             thumbnail: t.thumbnail,
             status: t.status,
             sections: {},
@@ -162,7 +166,11 @@ export class DatabaseService {
 
         return {
             id: template.id,
+            userId: template.user_id,
             name: template.name,
+            slug: template.slug,
+            category: (template.category || 'wedding') as any,
+            sourceTemplateId: template.source_template_id,
             thumbnail: template.thumbnail,
             status: template.status,
             sections: finalSections,
@@ -190,18 +198,22 @@ export class DatabaseService {
     /**
      * Create new template
      */
-    async createTemplate(data: Partial<TemplateResponse>): Promise<TemplateResponse> {
+    async createTemplate(data: Partial<TemplateResponse> & { userId?: string }): Promise<TemplateResponse> {
         const id = generateUUID();
         const now = new Date().toISOString();
 
         await this.db
             .prepare(`
-        INSERT INTO templates (id, name, thumbnail, status, section_order, custom_sections, global_theme, event_date, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO templates (id, user_id, name, slug, category, source_template_id, thumbnail, status, section_order, custom_sections, global_theme, event_date, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
             .bind(
                 id,
+                data.userId || null,
                 data.name || 'Untitled Template',
+                data.slug || null,
+                data.category || 'wedding',
+                data.sourceTemplateId || null,
                 data.thumbnail || null,
                 data.status || 'draft',
                 JSON.stringify(data.sectionOrder || []),
@@ -235,6 +247,14 @@ export class DatabaseService {
         if (updates.name !== undefined) {
             sets.push('name = ?');
             values.push(updates.name);
+        }
+        if (updates.slug !== undefined) {
+            sets.push('slug = ?');
+            values.push(updates.slug || null);
+        }
+        if (updates.category !== undefined) {
+            sets.push('category = ?');
+            values.push(updates.category);
         }
         if (updates.thumbnail !== undefined) {
             sets.push('thumbnail = ?');
@@ -792,5 +812,166 @@ export class DatabaseService {
             // Lottie Animation
             lottieConfig: safeParseJSON(el.lottie_config, undefined),
         };
+    }
+
+    // ============================================
+    // INVITATION / SLUG OPERATIONS
+    // ============================================
+
+    /**
+     * Check if a slug is available (not already taken)
+     */
+    async checkSlugAvailability(slug: string): Promise<boolean> {
+        const existing = await this.db
+            .prepare('SELECT id FROM templates WHERE slug = ?')
+            .bind(slug.toLowerCase())
+            .first<{ id: string }>();
+
+        return !existing;
+    }
+
+    /**
+     * Get template by slug (for public access)
+     */
+    async getTemplateBySlug(slug: string): Promise<TemplateResponse | null> {
+        const template = await this.db
+            .prepare('SELECT id FROM templates WHERE slug = ?')
+            .bind(slug.toLowerCase())
+            .first<{ id: string }>();
+
+        if (!template) return null;
+        return this.getTemplate(template.id);
+    }
+
+    /**
+     * Get master templates (templates without user_id - for template store)
+     */
+    async getMasterTemplates(category?: string): Promise<TemplateResponse[]> {
+        let query = `
+            SELECT id, user_id, name, slug, category, source_template_id, thumbnail, status, updated_at, created_at
+            FROM templates
+            WHERE user_id IS NULL AND status = 'published'
+        `;
+        const values: string[] = [];
+
+        if (category) {
+            query += ' AND category = ?';
+            values.push(category);
+        }
+
+        query += ' ORDER BY updated_at DESC LIMIT 50';
+
+        const results = await this.db
+            .prepare(query)
+            .bind(...values)
+            .all<DBTemplate>();
+
+        return (results.results || []).map((t) => ({
+            id: t.id,
+            userId: t.user_id,
+            name: t.name,
+            slug: t.slug,
+            category: (t.category || 'wedding') as any,
+            sourceTemplateId: t.source_template_id,
+            thumbnail: t.thumbnail,
+            status: t.status,
+            sections: {},
+            sectionOrder: [],
+            customSections: [],
+            globalTheme: {
+                id: 'default',
+                name: 'Default',
+                category: 'modern',
+                colors: {
+                    primary: '#000000',
+                    secondary: '#ffffff',
+                    accent: '#000000',
+                    background: '#ffffff',
+                    text: '#000000',
+                },
+                fontFamily: 'Inter',
+            },
+            createdAt: t.created_at,
+            updatedAt: t.updated_at,
+        }));
+    }
+
+    /**
+     * Get user's invitations (templates owned by user)
+     */
+    async getUserInvitations(userId: string): Promise<TemplateResponse[]> {
+        const results = await this.db
+            .prepare(`
+                SELECT id, user_id, name, slug, category, source_template_id, thumbnail, status, updated_at, created_at
+                FROM templates
+                WHERE user_id = ?
+                ORDER BY updated_at DESC
+            `)
+            .bind(userId)
+            .all<DBTemplate>();
+
+        return (results.results || []).map((t) => ({
+            id: t.id,
+            userId: t.user_id,
+            name: t.name,
+            slug: t.slug,
+            category: (t.category || 'wedding') as any,
+            sourceTemplateId: t.source_template_id,
+            thumbnail: t.thumbnail,
+            status: t.status,
+            sections: {},
+            sectionOrder: [],
+            customSections: [],
+            globalTheme: {
+                id: 'default',
+                name: 'Default',
+                category: 'modern',
+                colors: {
+                    primary: '#000000',
+                    secondary: '#ffffff',
+                    accent: '#000000',
+                    background: '#ffffff',
+                    text: '#000000',
+                },
+                fontFamily: 'Inter',
+            },
+            createdAt: t.created_at,
+            updatedAt: t.updated_at,
+        }));
+    }
+
+    /**
+     * Clone a master template for a user (creates user's personal copy)
+     */
+    async cloneTemplateForUser(
+        sourceTemplateId: string,
+        userId: string,
+        slug: string,
+        name: string,
+        category: string
+    ): Promise<TemplateResponse> {
+        // 1. Get source template with full data
+        const source = await this.getTemplate(sourceTemplateId);
+        if (!source) {
+            throw new Error('Source template not found');
+        }
+
+        // 2. Create new template with user ownership
+        const newTemplate = await this.createTemplate({
+            userId,
+            name,
+            slug: slug.toLowerCase(),
+            category: category as any,
+            sourceTemplateId,
+            thumbnail: source.thumbnail,
+            status: 'draft',
+            sectionOrder: source.sectionOrder,
+            customSections: source.customSections,
+            globalTheme: source.globalTheme,
+            eventDate: source.eventDate,
+            sections: source.sections, // This will create all sections + elements
+        });
+
+        return newTemplate;
     }
 }

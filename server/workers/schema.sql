@@ -32,6 +32,9 @@ CREATE TABLE IF NOT EXISTS templates (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
     name TEXT NOT NULL,
+    slug TEXT UNIQUE, -- Unique URL identifier (e.g., "john-jane-wedding")
+    category TEXT DEFAULT 'wedding', -- Template category for filtering
+    source_template_id TEXT REFERENCES templates(id) ON DELETE SET NULL, -- Master template for cloned user templates
     thumbnail TEXT,
     status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
     section_order TEXT DEFAULT '[]', -- JSON array of section types

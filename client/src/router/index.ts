@@ -7,6 +7,7 @@ const EditorView = () => import("../views/EditorView.vue");
 const AdminView = () => import("../views/AdminView.vue");
 const PreviewView = () => import("../views/PreviewView.vue");
 const TemplateStoreView = () => import("../views/TemplateStoreView.vue");
+const OnboardingView = () => import("../views/OnboardingView.vue");
 
 // Auth views
 const LoginView = () => import("../views/auth/LoginView.vue");
@@ -66,6 +67,13 @@ const router = createRouter({
             name: "profile",
             component: ProfileView,
             meta: { requiresAuth: true },
+        },
+        // User Onboarding (create slug + select template)
+        {
+            path: "/onboarding",
+            name: "onboarding",
+            component: OnboardingView,
+            meta: { requiresAuth: true, roles: ['user', 'admin'] },
         },
         // Customer routes (protected)
         {

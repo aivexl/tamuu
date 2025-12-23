@@ -48,6 +48,9 @@ export interface DBTemplate {
     id: string;
     user_id: string | null;
     name: string;
+    slug: string | null;
+    category: string;
+    source_template_id: string | null;
     thumbnail: string | null;
     status: 'draft' | 'published';
     section_order: string; // JSON string
@@ -159,10 +162,33 @@ export interface AuthTokenPayload {
     exp: number;
 }
 
+// Invitation categories
+export type InvitationCategory =
+    | 'wedding'
+    | 'kids'
+    | 'birthday'
+    | 'aqiqah'
+    | 'tasmiyah'
+    | 'khitan'
+    | 'umum'
+    | 'seminar'
+    | 'christmas'
+    | 'newyear'
+    | 'syukuran'
+    | 'islami'
+    | 'party'
+    | 'dinner'
+    | 'school'
+    | 'graduation'
+    | 'other';
+
 export interface TemplateResponse {
     id: string;
     userId?: string | null;
     name: string;
+    slug?: string | null;
+    category?: InvitationCategory;
+    sourceTemplateId?: string | null;
     thumbnail: string | null;
     status: 'draft' | 'published';
     sections: Record<string, SectionDesign>;

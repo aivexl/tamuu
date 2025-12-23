@@ -542,9 +542,33 @@ export interface CustomSection {
     order: number;
 }
 
+// Invitation Categories (matching backend)
+export type InvitationCategory =
+    | 'wedding'
+    | 'kids'
+    | 'birthday'
+    | 'aqiqah'
+    | 'tasmiyah'
+    | 'khitan'
+    | 'umum'
+    | 'seminar'
+    | 'christmas'
+    | 'newyear'
+    | 'syukuran'
+    | 'islami'
+    | 'party'
+    | 'dinner'
+    | 'school'
+    | 'graduation'
+    | 'other';
+
 export interface Template {
     id: string;
+    userId?: string | null;
     name: string;
+    slug?: string | null;
+    category?: InvitationCategory;
+    sourceTemplateId?: string | null;
     thumbnail: string;
     status: 'draft' | 'published';
     sections: Record<string, SectionDesign>;
