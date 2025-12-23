@@ -592,7 +592,7 @@ const handleSectionZoomUpdate = async (sectionKey: string, updates: any) => {
                             </div>
                             <p v-if="slugError" class="text-xs text-red-500 mt-1">{{ slugError }}</p>
                             <p v-else-if="slugSuccess" class="text-xs text-green-600 mt-1">✓ Tersedia</p>
-                            <p v-else class="text-xs text-slate-400 mt-1">tamuu.id/{{ templateSlug || '...' }}</p>
+                            <p v-else class="text-xs text-slate-400 mt-1">tamuu.pages.dev/{{ templateSlug || '...' }}</p>
                         </div>
                         
                         <!-- Category Dropdown -->

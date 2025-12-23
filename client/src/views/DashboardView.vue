@@ -94,7 +94,7 @@ function editInvitation(inv: TemplateResponse) {
 
 function copyLink(inv: TemplateResponse) {
     if (inv.slug) {
-        navigator.clipboard.writeText(`https://tamuu.id/${inv.slug}`);
+        navigator.clipboard.writeText(`https://tamuu.pages.dev/${inv.slug}`);
         alert('Link berhasil disalin!');
     }
 }
@@ -403,7 +403,7 @@ onMounted(() => {
                         <!-- Info -->
                         <div class="p-4">
                             <h3 class="font-semibold text-slate-800 truncate">{{ inv.name }}</h3>
-                            <p v-if="inv.slug" class="text-sm text-teal-600 truncate">tamuu.id/{{ inv.slug }}</p>
+                            <p v-if="inv.slug" class="text-sm text-teal-600 truncate">tamuu.pages.dev/{{ inv.slug }}</p>
                             <p v-else class="text-sm text-slate-400">No slug</p>
                             <div class="flex items-center justify-between mt-3">
                                 <span 

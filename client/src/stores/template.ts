@@ -71,13 +71,13 @@ export const useTemplateStore = defineStore("template", {
             }
         },
 
-        async fetchTemplate(id: string) {
+        async fetchTemplate(id: string, fresh: boolean = false) {
             this.isLoading = true;
             this.error = null;
 
             try {
-                console.log(`[Store] Fetching template ${id}...`);
-                const template = await CloudflareAPI.getTemplate(id);
+                console.log(`[Store] Fetching template ${id} (fresh: ${fresh})...`);
+                const template = await CloudflareAPI.getTemplate(id, fresh);
                 console.log(`[Store] Fetch result for ${id}:`, template ? 'FOUND' : 'NOT FOUND');
                 if (template) {
                     console.log(`[Store] Section zoomConfigs from DB:`,

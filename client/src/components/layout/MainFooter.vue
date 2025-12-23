@@ -58,7 +58,7 @@ import { Sparkles, Instagram, Twitter, Facebook, Mail, Phone, MapPin } from 'luc
           <ul class="space-y-4">
             <li class="flex items-center gap-3 text-slate-400">
               <Mail class="w-4 h-4 text-indigo-400" />
-              <span class="text-xs font-bold uppercase tracking-tight">support@tamuu.id</span>
+              <span class="text-xs font-bold uppercase tracking-tight">support@tamuu.pages.dev</span>
             </li>
             <li class="flex items-center gap-3 text-slate-400">
               <Phone class="w-4 h-4 text-indigo-400" />
@@ -76,7 +76,7 @@ import { Sparkles, Instagram, Twitter, Facebook, Mail, Phone, MapPin } from 'luc
 
       <div class="flex flex-col md:flex-row items-center justify-between gap-6">
         <p class="text-slate-500 text-xs font-bold uppercase tracking-widest">
-          &copy; 2025 Tamuu.id. All rights reserved.
+          &copy; 2025 Tamuu.pages.dev. All rights reserved.
         </p>
         <div class="flex items-center gap-8">
           <span class="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em]">Crafted by Unicorn Team</span>
