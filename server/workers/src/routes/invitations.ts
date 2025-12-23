@@ -24,8 +24,8 @@ export const invitationsRouter = new Hono<{ Bindings: Env }>();
 // SLUG VALIDATION
 // ============================================
 
-// Slug format: lowercase, alphanumeric, hyphens only, 3-50 chars
-const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
+// Slug format: lowercase, alphanumeric, hyphens only, 6-50 chars
+const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{4,48}[a-z0-9]$/;
 
 function isValidSlugFormat(slug: string): boolean {
     return SLUG_REGEX.test(slug);
@@ -40,7 +40,7 @@ invitationsRouter.get('/check-slug/:slug', async (c) => {
         return c.json({
             available: false,
             reason: 'invalid_format',
-            message: 'Slug harus 3-50 karakter, huruf kecil, angka, dan tanda hubung saja'
+            message: 'Slug harus 6-50 karakter, huruf kecil, angka, dan tanda hubung saja'
         }, 400);
     }
 
@@ -105,7 +105,7 @@ invitationsRouter.post('/', async (c) => {
     if (!isValidSlugFormat(slug.toLowerCase())) {
         return c.json({
             error: 'Invalid slug format',
-            message: 'Slug harus 3-50 karakter, huruf kecil, angka, dan tanda hubung saja'
+            message: 'Slug harus 6-50 karakter, huruf kecil, angka, dan tanda hubung saja'
         }, 400);
     }
 
