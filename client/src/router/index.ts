@@ -35,7 +35,7 @@ const router = createRouter({
         },
         // Legacy dashboard (admin/internal)
         {
-            path: "/dashboard",
+            path: "/create",
             name: "dashboard",
             component: DashboardView,
             meta: { requiresAuth: true },
@@ -70,7 +70,7 @@ const router = createRouter({
         },
         // User Onboarding (create slug + select template)
         {
-            path: "/create",
+            path: "/onboarding",
             name: "onboarding",
             component: OnboardingView,
             meta: { requiresAuth: true, roles: ['user', 'admin'] },
