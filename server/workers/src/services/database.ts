@@ -974,6 +974,20 @@ export class DatabaseService {
             throw new Error('Source template not found');
         }
 
+        // 3. Deep clean sections to remove IDs (ensure fresh creation)
+        const cleanedSections = JSON.parse(JSON.stringify(source.sections));
+        Object.values(cleanedSections).forEach((section: any) => {
+            // Remove section ID
+            delete section.id;
+
+            // Remove element IDs to force new UUID generation
+            if (section.elements && Array.isArray(section.elements)) {
+                section.elements.forEach((el: any) => {
+                    delete el.id;
+                });
+            }
+        });
+
         // 2. Create new template with user ownership
         const newTemplate = await this.createTemplate({
             userId,
@@ -987,7 +1001,7 @@ export class DatabaseService {
             customSections: source.customSections,
             globalTheme: source.globalTheme,
             eventDate: source.eventDate,
-            sections: source.sections, // This will create all sections + elements
+            sections: cleanedSections, // This will create all sections + elements with NEW IDs
         });
 
         return newTemplate;
