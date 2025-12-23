@@ -200,6 +200,6 @@ const handleSave = async () => {
         </div>
       </div>
     </div>
-    <!-- End content wrapper -->
+    </div>
   </div>
 </template>
