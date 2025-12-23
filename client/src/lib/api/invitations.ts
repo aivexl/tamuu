@@ -103,6 +103,14 @@ export const invitationsApi = {
     },
 
     /**
+     * Get a specific invitation by ID (protected)
+     */
+    async getInvitation(id: string): Promise<TemplateResponse> {
+        const res = await request<{ invitation: TemplateResponse }>(`/api/invitations/${id}`);
+        return res.invitation;
+    },
+
+    /**
      * Get master templates for selection
      */
     async getMasterTemplates(category?: InvitationCategory): Promise<TemplateResponse[]> {

@@ -133,26 +133,6 @@ app.get('/health', async (c) => {
 });
 
 // ============================================
-// DIAGNOSTIC ROUTES
-// ============================================
-
-app.get('/api/debug/columns', async (c) => {
-    try {
-        const result = await c.env.DB.prepare('PRAGMA table_info(template_sections)').all();
-        return c.json({
-            table: 'template_sections',
-            columns: result.results.map((r: any) => ({
-                name: r.name,
-                type: r.type,
-                dflt_value: r.dflt_value
-            }))
-        });
-    } catch (error) {
-        return c.json({ error: true, message: error instanceof Error ? error.message : String(error) }, 500);
-    }
-});
-
-// ============================================
 // API ROUTES
 // ============================================
 

@@ -163,15 +163,15 @@ async function createInvitation() {
     error.value = null;
 
     try {
-        await invitationsApi.createInvitation({
+        const result = await invitationsApi.createInvitation({
             templateId: selectedTemplate.value.id,
             slug: slug.value,
             name: invitationName.value || `Undangan ${selectedCategoryData.value?.name}`,
             category: selectedCategory.value
         });
 
-        // Redirect to create/edit page
-        router.push('/create');
+        // Redirect to create/edit page with invitation ID
+        router.push(`/create?id=${result.id}`);
     } catch (e: any) {
         error.value = e.message || 'Gagal membuat undangan';
     } finally {

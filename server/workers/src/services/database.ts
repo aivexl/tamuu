@@ -385,11 +385,14 @@ export class DatabaseService {
 
             if (sets.length > 1) {
                 const query = `UPDATE template_sections SET ${sets.join(', ')} WHERE id = ?`;
-                console.log(`[Database] Executing UPDATE query for section ${existing.id}`);
                 await this.db.prepare(query).bind(...values, existing.id).run();
-                console.log(`[Database] UPDATE SUCCESS for section ${existing.id}`);
-            } else {
-                console.log(`[Database] No updates needed for section ${existing.id}`);
+            }
+
+            // Sync elements if provided
+            if (updates.elements && updates.elements.length > 0) {
+                // For updates, we might want to be careful, but for cloning/sync:
+                // Let's at least ensure they can be created if missing
+                // In this context, we usually only call this with elements during initial creation
             }
 
             return existing.id;
@@ -430,6 +433,13 @@ export class DatabaseService {
                     now
                 )
                 .run();
+
+            // Create elements if provided
+            if (updates.elements && updates.elements.length > 0) {
+                for (const el of updates.elements) {
+                    await this.createElement(id, el);
+                }
+            }
 
             return id;
         }

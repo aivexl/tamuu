@@ -219,6 +219,24 @@ invitationsRouter.get('/public/:slug', async (c) => {
     });
 });
 
+// GET /api/invitations/:id - Get user's invitation by ID (protected)
+invitationsRouter.get('/:id', async (c) => {
+    const user = await getAuthUser(c);
+    if (!user) {
+        return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    const id = c.req.param('id');
+    const db = new DatabaseService(c.env.DB);
+    const invitation = await db.getTemplate(id);
+
+    if (!invitation || (invitation.userId !== user.userId && user.role !== 'admin')) {
+        return c.json({ error: 'Not found or access denied' }, 404);
+    }
+
+    return c.json({ invitation });
+});
+
 // PUT /api/invitations/:id - Update user's invitation
 invitationsRouter.put('/:id', async (c) => {
     const user = await getAuthUser(c);

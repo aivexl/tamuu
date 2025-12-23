@@ -83,9 +83,8 @@ function viewInvitation(inv: TemplateResponse) {
 }
 
 function editInvitation(inv: TemplateResponse) {
-    // Set invitation in store then navigate to edit area
-    invitationStore.setTemplateId(inv.id);
-    router.push('/my/dashboard');
+    // Navigate to create/edit page with invitation ID
+    router.push(`/create?id=${inv.id}`);
 }
 
 function copyLink(inv: TemplateResponse) {
