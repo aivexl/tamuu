@@ -83,8 +83,13 @@ function viewInvitation(inv: TemplateResponse) {
 }
 
 function editInvitation(inv: TemplateResponse) {
-    // Navigate to create/edit page with invitation ID
-    router.push(`/create?id=${inv.id}`);
+    // Navigate to create/edit page with slug
+    if (inv.slug) {
+        router.push(`/create/${inv.slug}`);
+    } else {
+        // Fallback to ID if slug is missing (though it shouldn't be for user invites)
+        router.push(`/create/${inv.id}`);
+    }
 }
 
 function copyLink(inv: TemplateResponse) {

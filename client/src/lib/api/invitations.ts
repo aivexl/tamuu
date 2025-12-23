@@ -111,6 +111,14 @@ export const invitationsApi = {
     },
 
     /**
+     * Get a specific invitation by slug (protected)
+     */
+    async getInvitationBySlug(slug: string): Promise<TemplateResponse> {
+        const res = await request<{ invitation: TemplateResponse }>(`/api/invitations/by-slug/${encodeURIComponent(slug)}`);
+        return res.invitation;
+    },
+
+    /**
      * Get master templates for selection
      */
     async getMasterTemplates(category?: InvitationCategory): Promise<TemplateResponse[]> {

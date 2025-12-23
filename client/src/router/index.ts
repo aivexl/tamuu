@@ -71,7 +71,7 @@ const router = createRouter({
         },
         // Create/Edit invitation page (sections: Tema, Musik, Template, etc.)
         {
-            path: "/create",
+            path: "/create/:slug",
             name: "create",
             component: CreateView,
             meta: { requiresAuth: true, roles: ['user', 'admin'] },

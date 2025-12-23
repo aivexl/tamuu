@@ -170,8 +170,8 @@ async function createInvitation() {
             category: selectedCategory.value
         });
 
-        // Redirect to create/edit page with invitation ID
-        router.push(`/create?id=${result.id}`);
+        // Redirect to create/edit page with slug
+        router.push(`/create/${result.slug}`);
     } catch (e: any) {
         error.value = e.message || 'Gagal membuat undangan';
     } finally {

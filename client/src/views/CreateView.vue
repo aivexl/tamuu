@@ -15,16 +15,22 @@ const route = useRoute();
 const loading = ref(false);
 
 onMounted(async () => {
+    const slug = route.params.slug as string;
     const invitationId = route.query.id as string;
-    if (invitationId) {
+    
+    if (slug || invitationId) {
         loading.value = true;
         try {
-            const invitation = await invitationsApi.getInvitation(invitationId);
+            let invitation;
+            if (slug) {
+                invitation = await invitationsApi.getInvitationBySlug(slug);
+            } else {
+                invitation = await invitationsApi.getInvitation(invitationId);
+            }
             
             // Map TemplateResponse (API) to Invitation (Store)
-            // This ensures ID, Slug, and other properties are correctly populated
             store.setInvitation({
-                ...store.invitation, // keep defaults for missing fields
+                ...store.invitation,
                 id: invitation.id,
                 slug: invitation.slug || "",
                 title: invitation.name,
@@ -33,8 +39,8 @@ onMounted(async () => {
                 createdAt: invitation.createdAt
             });
             
-            // Log for verification
-            console.log("[CreateView] Invitation loaded:", invitation.slug);        } catch (error) {
+            console.log("[CreateView] Invitation loaded:", slug || invitationId);
+        } catch (error) {
             console.error("Failed to load invitation:", error);
         } finally {
             loading.value = false;
