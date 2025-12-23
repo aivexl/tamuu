@@ -8,8 +8,9 @@ import { Hono } from 'hono';
 import type { Env } from '../types';
 import { DatabaseService } from '../services/database';
 import { CacheService } from '../services/cache';
+import type { Variables } from '../middleware/auth';
 
-export const templatesRouter = new Hono<{ Bindings: Env }>();
+export const templatesRouter = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 // ============================================
 // PUBLIC VIEW ENDPOINT (HIGHLY CACHED - FOR GUESTS)
@@ -98,25 +99,30 @@ templatesRouter.get('/public/slug/:slug', async (c) => {
 // TEMPLATES LIST (ADMIN)
 // ============================================
 
-// GET /api/templates - List all templates
+// GET /api/templates - List templates (filtered by user role)
 templatesRouter.get('/', async (c) => {
-    const cache = new CacheService(c.env.KV);
     const db = new DatabaseService(c.env.DB);
+    const userId = c.get('userId');
+    const userRole = c.get('userRole');
+    const isAdmin = userRole === 'admin';
 
-    // Try cache first
-    const cached = await cache.getTemplatesList();
-    if (cached) {
-        return c.json(cached, 200, {
-            'Cache-Control': 'private, max-age=60',
-            'X-Cache-Status': 'HIT',
-        });
+    let templates;
+    if (isAdmin) {
+        // Admins see all templates
+        const cache = new CacheService(c.env.KV);
+        const cached = await cache.getTemplatesList();
+        if (cached) {
+            return c.json(cached, 200, {
+                'Cache-Control': 'private, max-age=60',
+                'X-Cache-Status': 'HIT',
+            });
+        }
+        templates = await db.getTemplates();
+        await cache.setTemplatesList(templates);
+    } else {
+        // Regular users only see their own templates + master templates
+        templates = await db.getTemplatesForUser(userId);
     }
-
-    // Fetch from database
-    const templates = await db.getTemplates();
-
-    // Cache the result
-    await cache.setTemplatesList(templates);
 
     return c.json(templates, 200, {
         'Cache-Control': 'private, max-age=60',
@@ -134,8 +140,18 @@ templatesRouter.get('/:id', async (c) => {
     const freshParam = c.req.query('fresh');
     const skipCache = freshParam === 'true';
 
+    const userId = c.get('userId');
+    const userRole = c.get('userRole');
+    const isAdmin = userRole === 'admin';
+
     const cache = new CacheService(c.env.KV);
     const db = new DatabaseService(c.env.DB);
+
+    // Check ownership first (before cache to ensure security)
+    const canAccess = await db.canUserAccessTemplate(id, userId, isAdmin);
+    if (!canAccess) {
+        return c.json({ error: 'Access denied. You can only access your own templates.' }, 403);
+    }
 
     // If fresh=true is passed, skip cache entirely (used by editor after save)
     if (!skipCache) {

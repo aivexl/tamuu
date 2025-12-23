@@ -88,6 +88,7 @@ export class DatabaseService {
 
     /**
      * Get all templates (list view - minimal data)
+     * ADMIN ONLY - returns all templates
      */
     async getTemplates(): Promise<TemplateResponse[]> {
         const results = await this.db
@@ -127,6 +128,70 @@ export class DatabaseService {
             createdAt: t.created_at,
             updatedAt: t.updated_at,
         }));
+    }
+
+    /**
+     * Get templates for a specific user (user isolation)
+     * Returns only: user's own templates + master templates (user_id IS NULL)
+     */
+    async getTemplatesForUser(userId: string): Promise<TemplateResponse[]> {
+        const results = await this.db
+            .prepare(`
+        SELECT id, user_id, name, slug, category, source_template_id, thumbnail, status, updated_at, created_at
+        FROM templates
+        WHERE user_id = ? OR user_id IS NULL
+        ORDER BY updated_at DESC
+        LIMIT 50
+      `)
+            .bind(userId)
+            .all<DBTemplate>();
+
+        return (results.results || []).map((t) => ({
+            id: t.id,
+            userId: t.user_id,
+            name: t.name,
+            slug: t.slug,
+            category: (t.category || 'wedding') as any,
+            sourceTemplateId: t.source_template_id,
+            thumbnail: t.thumbnail,
+            status: t.status,
+            sections: {},
+            sectionOrder: [],
+            customSections: [],
+            globalTheme: {
+                id: 'default',
+                name: 'Default',
+                category: 'modern',
+                colors: {
+                    primary: '#000000',
+                    secondary: '#ffffff',
+                    accent: '#000000',
+                    background: '#ffffff',
+                    text: '#000000',
+                },
+                fontFamily: 'Inter',
+            },
+            createdAt: t.created_at,
+            updatedAt: t.updated_at,
+        }));
+    }
+
+    /**
+     * Check if user can access a template
+     * Returns true if: user owns it, it's a master template, or user is admin
+     */
+    async canUserAccessTemplate(templateId: string, userId: string, isAdmin: boolean): Promise<boolean> {
+        if (isAdmin) return true;
+
+        const template = await this.db
+            .prepare('SELECT user_id FROM templates WHERE id = ?')
+            .bind(templateId)
+            .first<{ user_id: string | null }>();
+
+        if (!template) return false;
+
+        // Allow access if: user owns it OR it's a master template
+        return template.user_id === userId || template.user_id === null;
     }
 
     /**
