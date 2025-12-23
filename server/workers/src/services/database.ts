@@ -113,6 +113,39 @@ export class DatabaseService {
         return result?.tamuu_id || null;
     }
 
+    /**
+     * Generate Tamuu IDs for all existing users who don't have one
+     * Returns count of updated users
+     */
+    async generateTamuuIdsForExistingUsers(): Promise<{ updated: number; errors: string[] }> {
+        const errors: string[] = [];
+        let updated = 0;
+
+        // Get all users without tamuu_id
+        const result = await this.db
+            .prepare('SELECT id, role FROM users WHERE tamuu_id IS NULL')
+            .all<{ id: string; role: 'admin' | 'user' }>();
+
+        const users = result.results || [];
+        console.log(`[DB] Found ${users.length} users without Tamuu ID`);
+
+        for (const user of users) {
+            try {
+                const tamuuId = this.generateTamuuId(user.role);
+                await this.db
+                    .prepare('UPDATE users SET tamuu_id = ? WHERE id = ?')
+                    .bind(tamuuId, user.id)
+                    .run();
+                updated++;
+                console.log(`[DB] Generated Tamuu ID for user ${user.id}: ${tamuuId}`);
+            } catch (err: any) {
+                errors.push(`Failed to update user ${user.id}: ${err.message}`);
+            }
+        }
+
+        return { updated, errors };
+    }
+
     // ============================================
     // TEMPLATES
     // ============================================
