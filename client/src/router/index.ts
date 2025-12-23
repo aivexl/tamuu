@@ -194,10 +194,9 @@ router.beforeEach(async (to, _from, next) => {
         // Creating invitations is now optional/manual
     }
 
-    // 5. Already has invitation trying to access onboarding? Redirect to dashboard
-    if (user && user.role === 'user' && to.name === 'onboarding' && hasInvitationCache === true) {
-        return next({ name: 'customer-dashboard' });
-    }
+    // 5. Users can access onboarding to create additional invitations
+    // Previously: redirected to dashboard if hasInvitationCache === true
+    // Now: Allow users to create multiple invitations
 
     next();
 });
