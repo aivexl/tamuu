@@ -108,7 +108,7 @@ app.get('/', (c) => {
 app.get('/health', async (c) => {
     try {
         // Check D1 connection
-        const dbCheck = await c.env.DB.prepare('SELECT 1 as check').first();
+        const dbCheck = await c.env.DB.prepare('SELECT 1 as result').first();
 
         // Check KV connection
         await c.env.KV.put('health_check', 'ok', { expirationTtl: 60 });
