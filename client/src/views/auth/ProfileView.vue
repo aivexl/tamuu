@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import DashboardHeader from '@/components/dashboard/DashboardHeader.vue';
 import { User, Mail, Phone, Shield, Camera, Save, Loader2, CheckCircle2 } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
@@ -42,7 +43,11 @@ const handleSave = async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-slate-50">
+    <!-- Navigation Header -->
+    <DashboardHeader />
+    
+    <div class="py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-3xl mx-auto">
       <!-- Header -->
       <div class="mb-8">
@@ -195,5 +200,6 @@ const handleSave = async () => {
         </div>
       </div>
     </div>
+    <!-- End content wrapper -->
   </div>
 </template>
