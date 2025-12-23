@@ -33,9 +33,9 @@ const router = createRouter({
             name: "register",
             component: RegisterView,
         },
-        // Legacy dashboard (admin/internal)
+        // Main Dashboard
         {
-            path: "/create",
+            path: "/dashboard",
             name: "dashboard",
             component: DashboardView,
             meta: { requiresAuth: true },
@@ -68,9 +68,9 @@ const router = createRouter({
             component: ProfileView,
             meta: { requiresAuth: true },
         },
-        // User Onboarding (create slug + select template)
+        // User Onboarding (create invitation) - /create path
         {
-            path: "/onboarding",
+            path: "/create",
             name: "onboarding",
             component: OnboardingView,
             meta: { requiresAuth: true, roles: ['user', 'admin'] },
