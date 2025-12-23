@@ -39,13 +39,6 @@ const closeDropdown = () => {
     </div>
 
     <div class="flex items-center gap-6">
-      <div class="hidden md:flex items-center gap-1">
-        <button class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all">
-          <Settings class="w-5 h-5" />
-        </button>
-      </div>
-
-      <div class="h-6 w-px bg-slate-200 hidden md:block"></div>
 
       <div class="relative" v-click-outside="closeDropdown">
         <button 
