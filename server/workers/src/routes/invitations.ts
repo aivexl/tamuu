@@ -118,6 +118,9 @@ invitationsRouter.post('/', async (c) => {
     }
 
     try {
+        // Ensure user exists in D1 (sync from Supabase)
+        await db.ensureUserExists(user.userId, user.email);
+
         // Clone template for user
         const invitation = await db.cloneTemplateForUser(
             templateId,

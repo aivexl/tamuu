@@ -45,8 +45,46 @@ export class DatabaseService {
     constructor(private db: D1Database) { }
 
     // ============================================
+    // USER SYNC (Supabase -> D1)
+    // ============================================
+
+    /**
+     * Ensure a user exists in D1 (for Supabase users)
+     * Creates a minimal user record if it doesn't exist
+     */
+    async ensureUserExists(userId: string, email: string, name?: string): Promise<void> {
+        // Check if user already exists
+        const existing = await this.db
+            .prepare('SELECT id FROM users WHERE id = ?')
+            .bind(userId)
+            .first();
+
+        if (existing) return; // Already exists
+
+        // Create minimal user record for Supabase user
+        const now = new Date().toISOString();
+        await this.db
+            .prepare(`
+                INSERT INTO users (id, email, password_hash, name, plan, role, is_verified, created_at, updated_at)
+                VALUES (?, ?, ?, ?, 'free', 'user', 1, ?, ?)
+            `)
+            .bind(
+                userId,
+                email,
+                'supabase-managed', // Placeholder - password is managed by Supabase
+                name || email.split('@')[0],
+                now,
+                now
+            )
+            .run();
+
+        console.log(`[DB] Created D1 user record for Supabase user: ${userId}`);
+    }
+
+    // ============================================
     // TEMPLATES
     // ============================================
+
 
     /**
      * Get all templates (list view - minimal data)
