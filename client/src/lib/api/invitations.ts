@@ -3,8 +3,35 @@
  * Client-side service for user onboarding and invitation management
  */
 
-import { apiClient } from './cloudflare';
-import type { InvitationCategory, TemplateResponse } from '@/lib/types';
+import type { InvitationCategory } from '@/lib/types';
+
+// API Base URL - matches cloudflare-api.ts
+const API_BASE_URL = "https://tamuu-api.shafania57.workers.dev";
+
+// Simple request helper with auth
+async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const token = localStorage.getItem('tamuu_auth_token');
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            ...options.headers,
+        },
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+            (errorData as { error?: string }).error ||
+            `HTTP ${response.status}: ${response.statusText}`
+        );
+    }
+
+    return response.json();
+}
 
 export interface SlugCheckResult {
     available: boolean;
@@ -19,44 +46,62 @@ export interface CreateInvitationPayload {
     category?: InvitationCategory;
 }
 
+// Template response type (simplified for this module)
+export interface TemplateResponse {
+    id: string;
+    name: string;
+    slug?: string | null;
+    category?: InvitationCategory;
+    thumbnail?: string;
+    status: string;
+    userId?: string | null;
+    sourceTemplateId?: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
 export const invitationsApi = {
     /**
      * Check if a slug is available
      */
     async checkSlug(slug: string): Promise<SlugCheckResult> {
-        const res = await apiClient.get(`/invitations/check-slug/${encodeURIComponent(slug)}`);
-        return res.data as SlugCheckResult;
+        return request<SlugCheckResult>(`/api/invitations/check-slug/${encodeURIComponent(slug)}`);
     },
 
     /**
      * Get current user's invitations
      */
     async getMyInvitations(): Promise<TemplateResponse[]> {
-        const res = await apiClient.get('/invitations/my');
-        return (res.data as { invitations: TemplateResponse[] }).invitations;
+        const res = await request<{ invitations: TemplateResponse[] }>('/api/invitations/my');
+        return res.invitations;
     },
 
     /**
      * Create a new invitation (clone template for user)
      */
     async createInvitation(payload: CreateInvitationPayload): Promise<TemplateResponse> {
-        const res = await apiClient.post('/invitations', payload);
-        return (res.data as { invitation: TemplateResponse }).invitation;
+        const res = await request<{ invitation: TemplateResponse }>('/api/invitations', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+        return res.invitation;
     },
 
     /**
      * Get public invitation by slug
      */
     async getPublicInvitation(slug: string): Promise<TemplateResponse> {
-        const res = await apiClient.get(`/invitations/public/${encodeURIComponent(slug)}`);
-        return res.data as TemplateResponse;
+        return request<TemplateResponse>(`/api/invitations/public/${encodeURIComponent(slug)}`);
     },
 
     /**
      * Update user's invitation
      */
     async updateInvitation(id: string, updates: Partial<TemplateResponse>): Promise<void> {
-        await apiClient.put(`/invitations/${id}`, updates);
+        await request(`/api/invitations/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(updates),
+        });
     },
 
     /**
@@ -64,7 +109,7 @@ export const invitationsApi = {
      */
     async getMasterTemplates(category?: InvitationCategory): Promise<TemplateResponse[]> {
         const params = category ? `?category=${category}` : '';
-        const res = await apiClient.get(`/invitations/masters${params}`);
-        return (res.data as { templates: TemplateResponse[] }).templates;
+        const res = await request<{ templates: TemplateResponse[] }>(`/api/invitations/masters${params}`);
+        return res.templates;
     }
 };
