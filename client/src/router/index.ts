@@ -70,7 +70,7 @@ const router = createRouter({
         },
         // User Onboarding (create slug + select template)
         {
-            path: "/onboarding",
+            path: "/create",
             name: "onboarding",
             component: OnboardingView,
             meta: { requiresAuth: true, roles: ['user', 'admin'] },
