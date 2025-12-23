@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useTemplateStore } from '@/stores/template';
 import { useInvitationStore } from '@/stores/invitation';
+import { invitationsApi, type TemplateResponse } from '@/lib/api/invitations';
 import { LayoutTemplate, Eye, Check, Loader2 } from 'lucide-vue-next';
 import Button from '@/components/ui/Button.vue';
 import SafeImage from '@/components/ui/SafeImage.vue';
@@ -10,15 +10,23 @@ import MainNavbar from '@/components/layout/MainNavbar.vue';
 import MainFooter from '@/components/layout/MainFooter.vue';
 
 const router = useRouter();
-const templateStore = useTemplateStore();
 const invitationStore = useInvitationStore();
+
+// Master templates (only templates without user_id)
+const masterTemplates = ref<TemplateResponse[]>([]);
+const isLoading = ref(true);
 
 // Current selected template
 const currentTemplateId = computed(() => invitationStore.invitation.templateId);
 
 onMounted(async () => {
-    if (templateStore.templates.length === 0) {
-        await templateStore.fetchTemplates();
+    try {
+        isLoading.value = true;
+        masterTemplates.value = await invitationsApi.getMasterTemplates();
+    } catch (error) {
+        console.error('Failed to fetch master templates:', error);
+    } finally {
+        isLoading.value = false;
     }
 });
 
@@ -57,7 +65,7 @@ const previewTemplate = (templateId: string) => {
         </header>
 
         <!-- Loading State -->
-        <div v-if="templateStore.isLoading" class="flex flex-col items-center justify-center py-20">
+        <div v-if="isLoading" class="flex flex-col items-center justify-center py-20">
             <Loader2 class="w-10 h-10 text-teal-600 animate-spin mb-4" />
             <p class="text-gray-500">Memuat template...</p>
         </div>
@@ -66,7 +74,7 @@ const previewTemplate = (templateId: string) => {
         <main v-else class="max-w-6xl mx-auto px-4 py-8">
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 <div 
-                    v-for="template in templateStore.templates" 
+                    v-for="template in masterTemplates" 
                     :key="template.id"
                     class="bg-white rounded-2xl shadow-lg overflow-hidden border-2 transition-all duration-200 hover:shadow-xl"
                     :class="currentTemplateId === template.id ? 'border-teal-500 ring-2 ring-teal-200' : 'border-transparent'"
