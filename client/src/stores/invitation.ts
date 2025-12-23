@@ -102,6 +102,11 @@ export const useInvitationStore = defineStore("invitation", {
             this.invitation.templateId = templateId;
         },
 
+        // Alias for backward compatibility
+        setTemplateId(templateId: string) {
+            this.updateTemplateId(templateId);
+        },
+
         updateThumbnail(url: string) {
             this.invitation.thumbnailUrl = url;
         },
