@@ -5,12 +5,15 @@
 
 import type { InvitationCategory } from '@/lib/types';
 
+import { supabase } from '@/lib/supabase';
+
 // API Base URL - matches cloudflare-api.ts
 const API_BASE_URL = "https://tamuu-api.shafania57.workers.dev";
 
 // Simple request helper with auth
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = localStorage.getItem('tamuu_auth_token');
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
