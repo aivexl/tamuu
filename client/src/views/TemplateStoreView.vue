@@ -183,19 +183,21 @@ const previewTemplate = (templateId: string) => {
                         </div>
 
                         <!-- Info (Exactly like Dashboard p-5) -->
-                        <div class="p-5 flex flex-col h-full">
-                            <h3 class="text-sm font-bold text-slate-900 truncate mb-1 font-outfit">{{ template.name }}</h3>
-                            <p class="text-[10px] text-slate-400 mb-6 uppercase tracking-widest font-medium">{{ template.category || 'Premium' }}</p>
+                        <div class="p-5">
+                            <div class="mb-4">
+                                <h3 class="text-sm font-bold text-slate-900 truncate font-outfit">{{ template.name }}</h3>
+                                <p class="text-[10px] text-slate-400 uppercase tracking-widest font-medium">{{ template.category || 'Premium' }}</p>
+                            </div>
                             
-                            <!-- Actions (Always Visible, Below Title) -->
-                            <div class="space-y-3">
+                            <!-- Actions (Always Visible, Below Info) -->
+                            <div class="space-y-2.5">
                                 <button 
                                     @click="handleSelect(template.id)"
                                     :class="[
-                                        'w-full py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-sm',
+                                        'w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-sm',
                                         currentTemplateId === template.id 
                                             ? 'bg-slate-50 text-slate-300 cursor-default border border-slate-100' 
-                                            : 'bg-slate-900 text-white hover:bg-teal-500 hover:shadow-lg hover:shadow-teal-500/20'
+                                            : 'bg-slate-900 text-white hover:bg-teal-500 hover:shadow-lg hover:shadow-teal-500/10'
                                     ]"
                                 >
                                     {{ currentTemplateId === template.id ? 'Terpilih' : 'Gunakan Desain' }}
@@ -203,7 +205,7 @@ const previewTemplate = (templateId: string) => {
                                 
                                 <button 
                                     @click="previewTemplate(template.id)"
-                                    class="w-full py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.1em] text-slate-600 border border-slate-200 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all duration-500 flex items-center justify-center gap-2"
+                                    class="w-full py-2 rounded-xl text-[9px] font-black uppercase tracking-[0.1em] text-slate-500 border border-slate-200 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all duration-500 flex items-center justify-center gap-2"
                                 >
                                     <Eye class="w-3.5 h-3.5" /> Preview Desain
                                 </button>
