@@ -392,21 +392,25 @@ function handleExport(format: 'csv' | 'excel') {
 
 function downloadImportFormat() {
     const headers = ['TIER', 'NAMA TAMU', 'NO WHATSAPP', 'ALAMAT', 'JUMLAH TAMU', 'MEJA/KURSI/RUANGAN'];
+    // Use example with leading 0 to show it's preserved
     const data = [
-        ['VIP', 'Joni Saputra', '628123456789', 'Bandung', 2, 'Meja A1'],
-        ['REGULER', 'Siti Aminah', '628987654321', 'di tempat', 1, 'Room 302']
+        ['VIP', 'Joni Saputra', '081234567890', 'Bandung', 2, 'Meja A1'],
+        ['REGULER', 'Siti Aminah', '085678901234', 'di tempat', 1, 'Room 302']
     ];
     
     const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
     
-    // Force phone number cells (column C) to be text type to prevent scientific notation
-    // Row 2 and 3 (data rows), Column C (index 2)
-    ['C2', 'C3'].forEach(cell => {
-        if (worksheet[cell]) {
-            worksheet[cell].t = 's'; // Set type to string
-            worksheet[cell].v = String(worksheet[cell].v); // Ensure value is string
+    // Set cell format to Text (@) for phone column (C) to preserve leading zeros
+    // and prevent Excel from formatting as numbers
+    // Apply to header and data rows, plus extra rows for user input
+    for (let row = 1; row <= 100; row++) {
+        const cellRef = 'C' + row;
+        if (!worksheet[cellRef]) {
+            worksheet[cellRef] = { t: 's', v: '' };
         }
-    });
+        worksheet[cellRef].t = 's'; // Type: string
+        worksheet[cellRef].z = '@'; // Format: Text
+    }
     
     // Set column widths for better readability
     worksheet['!cols'] = [
@@ -417,6 +421,9 @@ function downloadImportFormat() {
         { wch: 12 },  // JUMLAH TAMU
         { wch: 20 }   // MEJA/KURSI/RUANGAN
     ];
+    
+    // Update range to include the formatted cells
+    worksheet['!ref'] = 'A1:F100';
     
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Format Import');
