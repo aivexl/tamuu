@@ -119,11 +119,9 @@ guests.put('/:guestId', async (c) => {
     // For now, allow direct update if guest exists
 
     try {
-        console.log(`[API] Updating guest ${guestId} with body:`, body);
         await db.updateGuest(guestId, body);
         return c.json({ success: true });
     } catch (err: any) {
-        console.error(`[API] Update guest failed:`, err);
         return c.json({ error: err.message }, 500);
     }
 });
