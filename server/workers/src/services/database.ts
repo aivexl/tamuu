@@ -12,6 +12,8 @@ import type {
     TemplateResponse,
     SectionDesign,
     TemplateElement,
+    DBGuest,
+    GuestResponse,
     RSVPResponse as RSVPResponseType
 } from '../types';
 
@@ -358,6 +360,7 @@ export class DatabaseService {
                 fontFamily: 'Inter',
             }),
             eventDate: template.event_date || undefined,
+            invitationMessage: template.invitation_message || undefined,
             createdAt: template.created_at,
             updatedAt: template.updated_at,
         };
@@ -1173,5 +1176,158 @@ export class DatabaseService {
         });
 
         return newTemplate;
+    }
+
+    // ============================================
+    // GUESTS (Buku Tamu)
+    // ============================================
+
+    /**
+     * Map DB Guest to Response
+     */
+    private mapGuestToResponse(g: DBGuest): GuestResponse {
+        return {
+            id: g.id,
+            invitationId: g.invitation_id,
+            name: g.name,
+            phone: g.phone,
+            address: g.address || 'di tempat',
+            tier: g.tier || 'reguler',
+            guestCount: g.guest_count,
+            checkInCode: g.check_in_code,
+            checkedInAt: g.checked_in_at,
+            createdAt: g.created_at,
+            updatedAt: g.updated_at
+        };
+    }
+
+    /**
+     * Get all guests for an invitation
+     */
+    async getGuests(invitationId: string): Promise<GuestResponse[]> {
+        const results = await this.db
+            .prepare('SELECT * FROM guests WHERE invitation_id = ? ORDER BY created_at DESC')
+            .bind(invitationId)
+            .all<DBGuest>();
+
+        return (results.results || []).map(g => this.mapGuestToResponse(g));
+    }
+
+    /**
+     * Add a single guest
+     */
+    async addGuest(invitationId: string, data: Partial<GuestResponse>): Promise<GuestResponse> {
+        const id = generateUUID();
+        const checkInCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const now = new Date().toISOString();
+
+        await this.db
+            .prepare(`
+                INSERT INTO guests (id, invitation_id, name, phone, address, tier, guest_count, check_in_code, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `)
+            .bind(
+                id,
+                invitationId,
+                data.name || 'Tamu Baru',
+                data.phone || null,
+                data.address || 'di tempat',
+                data.tier || 'reguler',
+                data.guestCount || 1,
+                checkInCode,
+                now,
+                now
+            )
+            .run();
+
+        const created = await this.db
+            .prepare('SELECT * FROM guests WHERE id = ?')
+            .bind(id)
+            .first<DBGuest>();
+
+        return this.mapGuestToResponse(created!);
+    }
+
+    /**
+     * Update guest
+     */
+    async updateGuest(guestId: string, updates: Partial<GuestResponse>): Promise<void> {
+        const now = new Date().toISOString();
+        const sets: string[] = ['updated_at = ?'];
+        const values: any[] = [now];
+
+        if (updates.name !== undefined) {
+            sets.push('name = ?');
+            values.push(updates.name);
+        }
+        if (updates.phone !== undefined) {
+            sets.push('phone = ?');
+            values.push(updates.phone);
+        }
+        if (updates.address !== undefined) {
+            sets.push('address = ?');
+            values.push(updates.address);
+        }
+        if (updates.tier !== undefined) {
+            sets.push('tier = ?');
+            values.push(updates.tier);
+        }
+        if (updates.guestCount !== undefined) {
+            sets.push('guest_count = ?');
+            values.push(updates.guestCount);
+        }
+        if (updates.checkedInAt !== undefined) {
+            sets.push('checked_in_at = ?');
+            values.push(updates.checkedInAt);
+        }
+
+        values.push(guestId);
+
+        await this.db
+            .prepare(`UPDATE guests SET ${sets.join(', ')} WHERE id = ?`)
+            .bind(...values)
+            .run();
+    }
+
+    /**
+     * Delete guest
+     */
+    async deleteGuest(guestId: string): Promise<void> {
+        await this.db
+            .prepare('DELETE FROM guests WHERE id = ?')
+            .bind(guestId)
+            .run();
+    }
+
+    /**
+     * Bulk add guests
+     * Enterprise implementation using D1 batch for high performance
+     */
+    async bulkAddGuests(invitationId: string, guests: Partial<GuestResponse>[]): Promise<void> {
+        if (guests.length === 0) return;
+
+        const now = new Date().toISOString();
+        const statements = guests.map(g => {
+            const id = generateUUID();
+            const checkInCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            return this.db.prepare(`
+                INSERT INTO guests (id, invitation_id, name, phone, address, tier, guest_count, check_in_code, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).bind(
+                id,
+                invitationId,
+                g.name || 'Tamu Baru',
+                g.phone || null,
+                g.address || 'di tempat',
+                g.tier || 'reguler',
+                g.guestCount || 1,
+                checkInCode,
+                now,
+                now
+            );
+        });
+
+        // Use D1 transaction-like batch execution
+        await this.db.batch(statements);
     }
 }

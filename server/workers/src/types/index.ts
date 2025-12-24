@@ -60,6 +60,21 @@ export interface DBTemplate {
     custom_sections: string; // JSON string
     global_theme: string; // JSON string
     event_date: string | null;
+    invitation_message: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface DBGuest {
+    id: string;
+    invitation_id: string;
+    name: string;
+    phone: string | null;
+    address: string | null;
+    tier: 'reguler' | 'vip' | 'vvip';
+    guest_count: number;
+    check_in_code: string | null;
+    checked_in_at: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -202,6 +217,21 @@ export interface TemplateResponse {
     customSections: CustomSection[];
     globalTheme: ThemeConfig;
     eventDate?: string;
+    invitationMessage?: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface GuestResponse {
+    id: string;
+    invitationId: string;
+    name: string;
+    phone: string | null;
+    address: string;
+    tier: 'reguler' | 'vip' | 'vvip';
+    guestCount: number;
+    checkInCode: string | null;
+    checkedInAt: string | null;
     createdAt: string;
     updatedAt: string;
 }

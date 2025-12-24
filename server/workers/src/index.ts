@@ -20,6 +20,7 @@ import { authRouter } from './routes/auth';
 import { batchRouter } from './routes/batch';
 import { webhookRouter } from './routes/webhook';
 import { invitationsRouter } from './routes/invitations';
+import guestsRouter from './routes/guests';
 
 
 // Create Hono app with environment type
@@ -147,7 +148,7 @@ app.use('/api/templates/*', async (c, next) => {
     if (c.req.path.startsWith('/api/templates/public/')) {
         return await next();
     }
-    return authMiddleware(c, next);
+    return (authMiddleware as any)(c, next);
 });
 
 app.use('/api/sections/*', authMiddleware);
@@ -171,6 +172,7 @@ app.route('/api/upload', uploadRouter);
 
 // Invitations (user onboarding) - some endpoints are public, some are protected
 app.route('/api/invitations', invitationsRouter);
+app.route('/api/guests', guestsRouter);
 
 // Webhook routes (public, called by payment gateways)
 app.route('/api/webhook', webhookRouter);

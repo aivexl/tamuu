@@ -13,7 +13,7 @@ import SafeImage from '@/components/ui/SafeImage.vue';
 import AppHeader from '@/components/layout/AppHeader.vue';
 import { 
     LayoutDashboard, Mail, FileText, GraduationCap, 
-    User, LogOut, Plus, Search, Bell, Settings, 
+    User, LogOut, Plus, Search, Bell,
     Eye, Edit3, Copy, Trash2, 
     Calendar, Users, Sparkles, Menu, X
 } from 'lucide-vue-next';
@@ -32,6 +32,7 @@ const sidebarOpen = ref(true);
 const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'invitations', label: 'Undangan Saya', icon: Mail },
+    { id: 'guests', label: 'Buku Tamu', icon: Users },
     { id: 'invoice', label: 'Invoice', icon: FileText },
     { id: 'tutorial', label: 'Tutorial', icon: GraduationCap },
 ];
@@ -78,6 +79,10 @@ function viewInvitation(inv: TemplateResponse) {
     if (inv.slug) {
         window.open(`/preview/${inv.id}`, '_blank');
     }
+}
+
+function manageGuests(inv: TemplateResponse) {
+    router.push({ name: 'guest-management', params: { invitationId: inv.id } });
 }
 
 function editInvitation(inv: TemplateResponse) {
@@ -391,6 +396,13 @@ onMounted(() => {
                                     title="Copy Link"
                                 >
                                     <Copy class="w-5 h-5 text-slate-700" />
+                                </button>
+                                <button 
+                                    @click="manageGuests(inv)"
+                                    class="p-2 bg-teal-500 rounded-lg hover:bg-teal-600 transition-colors"
+                                    title="Daftar Tamu"
+                                >
+                                    <Users class="w-5 h-5 text-white" />
                                 </button>
                             </div>
                         </div>

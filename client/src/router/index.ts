@@ -9,6 +9,7 @@ const AdminView = () => import("../views/AdminView.vue");
 const PreviewView = () => import("../views/PreviewView.vue");
 const TemplateStoreView = () => import("../views/TemplateStoreView.vue");
 const OnboardingView = () => import("../views/OnboardingView.vue");
+const GuestManagementView = () => import("../views/auth/GuestManagementView.vue");
 
 // Auth views
 const LoginView = () => import("../views/auth/LoginView.vue");
@@ -74,6 +75,12 @@ const router = createRouter({
                     path: "profile",
                     name: "profile",
                     component: ProfileView,
+                },
+                {
+                    path: "guests/:invitationId",
+                    name: "guest-management",
+                    component: GuestManagementView,
+                    meta: { roles: ['user', 'admin'] },
                 },
             ]
         },
