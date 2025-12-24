@@ -170,8 +170,7 @@ const formatPrice = (price: number) => {
           </h1>
 
           <p class="text-lg md:text-xl text-slate-500 max-w-xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-700 delay-300 font-sans tracking-wide">
-            Ciptakan kesan pertama yang tak terlupakan dengan desain eksklusif. 
-            <span class="font-semibold text-slate-800">Mewah. Minimalis. Abadi.</span>
+            Ciptakan kesan pertama yang tak terlupakan dengan desain eksklusif.
           </p>
 
           <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-500">
