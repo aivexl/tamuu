@@ -83,13 +83,13 @@ app.use('/api/*', async (c, next) => {
     // Don't override existing cache headers
     if (c.res.headers.has('Cache-Control')) return;
 
-    // No cache for mutations
-    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(c.req.method)) {
-        c.res.headers.set('Cache-Control', 'no-store');
+    // No cache for mutations or stats
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(c.req.method) || c.req.path.includes('/stats/')) {
+        c.res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
         return;
     }
 
-    // Default short cache for GET requests
+    // Default short cache for other GET requests
     c.res.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
 });
 

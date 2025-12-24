@@ -49,7 +49,7 @@ const filteredGuests = computed(() => {
 });
 
 const stats = computed(() => {
-    const total = guests.value.length;
+    const total = guests.value.reduce((acc, g) => acc + (g.guestCount || 0), 0);
     const vip = guests.value.filter(g => g.tier === 'vip' || g.tier === 'vvip').length;
     const checkedIn = guests.value.filter(g => g.checkedInAt).length;
     return { total, vip, checkedIn };
@@ -190,11 +190,11 @@ async function handleFileUpload(event: Event) {
         const importedGuests = lines.slice(1).filter(l => l.trim()).map(line => {
             const cols = line.split(',');
             return {
-                name: cols[0]?.trim(),
+                name: cols[0]?.trim() || '',
                 phone: cols[1]?.trim() || '',
                 address: cols[2]?.trim() || 'di tempat',
                 tier: (cols[3]?.trim().toLowerCase() || 'reguler') as 'reguler' | 'vip' | 'vvip',
-                guestCount: parseInt(cols[4]) || 1
+                guestCount: parseInt(cols[4] || '1') || 1
             };
         }).filter(g => g.name);
 

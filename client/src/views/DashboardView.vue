@@ -5,7 +5,7 @@
  * Modern, clean design - completely different from reference
  */
 
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { invitationsApi, type TemplateResponse } from '@/lib/api/invitations';
@@ -54,6 +54,13 @@ const filteredInvitations = computed(() => {
         inv.name.toLowerCase().includes(q) || 
         inv.slug?.toLowerCase().includes(q)
     );
+});
+
+// Watch tab changes to refresh data when returning to dashboard
+watch(activeTab, (newTab) => {
+    if (newTab === 'dashboard') {
+        loadInvitations();
+    }
 });
 
 // Methods
