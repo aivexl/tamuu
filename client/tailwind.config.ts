@@ -49,7 +49,8 @@ const config: Config = {
                 },
             },
             fontFamily: {
-                sans: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+                sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+                jakarta: ['"Plus Jakarta Sans"', 'sans-serif'],
                 outfit: ['Outfit', 'sans-serif'],
                 display: ['Playfair Display', 'Georgia', 'serif'],
                 elegant: ['Cormorant Garamond', 'Georgia', 'serif'],
