@@ -144,38 +144,38 @@ onMounted(() => {
         ]"
     >
         <!-- Logo Area -->
-        <div class="h-16 flex items-center justify-between px-4 border-b border-slate-100">
+        <div class="h-20 flex items-center justify-between px-6">
             <div v-if="sidebarOpen" class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold shadow-lg shadow-teal-500/20">
+                <div class="w-11 h-11 rounded-2xl bg-slate-900 flex items-center justify-center text-white font-black text-xl shadow-2xl shadow-slate-900/20">
                     T
                 </div>
-                <span class="font-bold text-xl text-slate-800">Tamuu</span>
+                <span class="font-black text-2xl text-slate-900 tracking-tighter font-outfit uppercase">Tamuu</span>
             </div>
             <button 
                 @click="sidebarOpen = !sidebarOpen"
-                class="p-2 rounded-lg hover:bg-slate-100 text-slate-500 lg:hidden"
+                class="p-2.5 rounded-xl hover:bg-slate-100 text-slate-500 lg:hidden transition-all"
             >
-                <X v-if="sidebarOpen" class="w-5 h-5" />
-                <Menu v-else class="w-5 h-5" />
+                <X v-if="sidebarOpen" class="w-6 h-6" />
+                <Menu v-else class="w-6 h-6" />
             </button>
         </div>
 
         <!-- User Profile Card -->
-        <div v-if="sidebarOpen" class="p-4 border-b border-slate-100">
-            <div class="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-white font-medium">
+        <div v-if="sidebarOpen" class="p-6">
+            <div class="flex items-center gap-4 p-4 rounded-[1.25rem] bg-slate-50 border border-slate-100 group hover:border-teal-200 transition-all cursor-pointer">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-teal-500/20 group-hover:scale-105 transition-transform">
                     {{ user?.name?.charAt(0) || user?.email?.charAt(0) || 'U' }}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="font-medium text-slate-800 truncate">{{ user?.name || 'User' }}</p>
-                    <p class="text-xs text-slate-500 truncate">{{ user?.email }}</p>
+                    <p class="font-bold text-slate-900 truncate leading-tight">{{ user?.name || 'User' }}</p>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-teal-600 mt-0.5">Premium Plan</p>
                 </div>
             </div>
         </div>
 
         <!-- Navigation -->
-        <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
-            <p v-if="sidebarOpen" class="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+            <p v-if="sidebarOpen" class="px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                 Menu Utama
             </p>
             <button
@@ -183,41 +183,45 @@ onMounted(() => {
                 :key="item.id"
                 @click="handleNavClick(item.id)"
                 :class="[
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
+                    'w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 group',
                     activeTab === item.id
-                        ? 'bg-teal-50 text-teal-700 font-medium'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                        ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 ]"
             >
-                <component 
-                    :is="item.icon" 
+                <div 
                     :class="[
-                        'w-5 h-5 flex-shrink-0',
-                        activeTab === item.id ? 'text-teal-600' : 'text-slate-400'
+                        'w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110',
+                        activeTab === item.id ? 'bg-teal-500 text-slate-900' : 'bg-slate-100 text-slate-400'
                     ]"
-                />
-                <span v-if="sidebarOpen">{{ item.label }}</span>
+                >
+                    <component :is="item.icon" class="w-4 h-4" />
+                </div>
+                <span v-if="sidebarOpen" class="text-sm font-bold tracking-tight">{{ item.label }}</span>
             </button>
         </nav>
 
         <!-- Account Section -->
-        <div class="p-3 border-t border-slate-100">
-            <p v-if="sidebarOpen" class="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-                Akun
+        <div class="p-4 border-t border-slate-100 mt-auto">
+            <p v-if="sidebarOpen" class="px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                Layanan
             </p>
             <button
                 v-for="item in accountItems"
                 :key="item.id"
                 @click="item.action?.()"
                 :class="[
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
+                    'w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300',
                     item.id === 'logout' 
-                        ? 'text-red-600 hover:bg-red-50' 
-                        : 'text-slate-600 hover:bg-slate-50'
+                        ? 'text-rose-600 hover:bg-rose-50' 
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 group'
                 ]"
             >
-                <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
-                <span v-if="sidebarOpen">{{ item.label }}</span>
+                <component 
+                    :is="item.icon" 
+                    class="w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110" 
+                />
+                <span v-if="sidebarOpen" class="text-sm font-bold tracking-tight">{{ item.label }}</span>
             </button>
         </div>
     </aside>
@@ -232,138 +236,286 @@ onMounted(() => {
     <!-- Main Content -->
     <main class="flex-1 flex flex-col min-h-screen">
         <!-- Top Header -->
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-20">
-            <div class="flex items-center gap-4">
+        <header class="h-20 bg-white/70 backdrop-blur-md border-b border-white/40 flex items-center justify-between px-8 sticky top-0 z-20">
+            <div class="flex items-center gap-6">
                 <button 
                     @click="sidebarOpen = !sidebarOpen"
-                    class="p-2 rounded-lg hover:bg-slate-100 text-slate-500 lg:hidden"
+                    class="p-2.5 rounded-xl hover:bg-slate-100/50 text-slate-500 lg:hidden transition-all"
                 >
-                    <Menu class="w-5 h-5" />
+                    <Menu class="w-6 h-6" />
                 </button>
-                <h1 class="text-xl font-semibold text-slate-800">
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900 font-outfit">
                     {{ menuItems.find(m => m.id === activeTab)?.label || 'Dashboard' }}
                 </h1>
             </div>
             
-            <div class="flex items-center gap-3">
-                <button class="p-2 rounded-lg hover:bg-slate-100 text-slate-500 relative">
-                    <Bell class="w-5 h-5" />
-                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            <div class="flex items-center gap-4">
+                <button class="p-2.5 rounded-xl hover:bg-slate-100/50 text-slate-500 relative transition-all group">
+                    <Bell class="w-5 h-5 group-hover:scale-110 transition-transform" />
+                    <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
                 </button>
             </div>
         </header>
 
         <!-- Content Area -->
-        <div class="flex-1 p-6">
+        <div class="flex-1 p-8 bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
             <!-- Dashboard Tab -->
-            <div v-if="activeTab === 'dashboard'" class="space-y-6">
-                <!-- Stats Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-slate-500">Total Undangan</p>
-                                <p class="text-3xl font-bold text-slate-800">{{ invitations.length }}</p>
+            <div v-if="activeTab === 'dashboard'" class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <!-- Welcome Section -->
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <div>
+                        <h2 class="text-3xl font-bold text-slate-900 font-outfit mb-2">Selamat datang, {{ user?.name || 'User' }} ✨</h2>
+                        <p class="text-slate-500 text-lg">Berikut adalah ringkasan performa undangan Anda hari ini.</p>
+                    </div>
+                    <button 
+                        @click="createNewInvitation"
+                        class="flex items-center justify-center gap-2 px-6 py-3.5 bg-slate-900 text-white font-semibold rounded-2xl shadow-xl shadow-slate-900/10 hover:shadow-2xl hover:shadow-slate-900/20 hover:-translate-y-0.5 transition-all active:scale-95"
+                    >
+                        <Plus class="w-5 h-5" /> Buat Undangan Baru
+                    </button>
+                </div>
+
+                <!-- Stats Cards (Luxury Glassmorphism) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="group bg-white/70 backdrop-blur-xl rounded-3xl p-7 border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-14 h-14 rounded-2xl bg-teal-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                                <Mail class="w-7 h-7 text-teal-600" />
                             </div>
-                            <div class="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center">
-                                <Mail class="w-6 h-6 text-teal-600" />
-                            </div>
+                            <span class="text-xs font-bold text-teal-600 px-3 py-1 bg-teal-50 rounded-full uppercase tracking-wider">Total</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-1">Undangan Saya</p>
+                            <p class="text-4xl font-bold text-slate-900 font-outfit">{{ invitations.length }}</p>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-slate-500">Total Tamu</p>
-                                <p class="text-3xl font-bold text-slate-800">{{ totalGuests }}</p>
+
+                    <div class="group bg-white/70 backdrop-blur-xl rounded-3xl p-7 border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                                <Users class="w-7 h-7 text-emerald-600" />
                             </div>
-                            <div class="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center">
-                                <Users class="w-6 h-6 text-emerald-600" />
-                            </div>
+                            <span class="text-xs font-bold text-emerald-600 px-3 py-1 bg-emerald-50 rounded-full uppercase tracking-wider">Pax</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-1">Total Tamu</p>
+                            <p class="text-4xl font-bold text-slate-900 font-outfit">{{ totalGuests }}</p>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-slate-500">Pengunjung</p>
-                                <p class="text-3xl font-bold text-slate-800">0</p>
+
+                    <div class="group bg-white/70 backdrop-blur-xl rounded-3xl p-7 border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                                <Eye class="w-7 h-7 text-blue-600" />
                             </div>
-                            <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
-                                <Users class="w-6 h-6 text-blue-600" />
-                            </div>
+                            <span class="text-xs font-bold text-blue-600 px-3 py-1 bg-blue-50 rounded-full uppercase tracking-wider">Views</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-1">Pengunjung</p>
+                            <p class="text-4xl font-bold text-slate-900 font-outfit">0</p>
                         </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-slate-500">RSVP</p>
-                                <p class="text-3xl font-bold text-slate-800">0</p>
+
+                    <div class="group bg-white/70 backdrop-blur-xl rounded-3xl p-7 border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                                <Calendar class="w-7 h-7 text-purple-600" />
                             </div>
-                            <div class="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center">
-                                <Calendar class="w-6 h-6 text-purple-600" />
-                            </div>
+                            <span class="text-xs font-bold text-purple-600 px-3 py-1 bg-purple-50 rounded-full uppercase tracking-wider">Confirm</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-1">RSVP Terkirim</p>
+                            <p class="text-4xl font-bold text-slate-900 font-outfit">0</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Quick Actions -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                    <h2 class="font-semibold text-slate-800 mb-4">Aksi Cepat</h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <button 
-                            @click="createNewInvitation"
-                            class="flex flex-col items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-teal-50 to-emerald-50 hover:from-teal-100 hover:to-emerald-100 transition-all"
-                        >
-                            <div class="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center text-white shadow-lg shadow-teal-500/30">
-                                <Plus class="w-6 h-6" />
+                <!-- Recent Activity/Invitations Preview Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xl font-bold text-slate-900 font-outfit">Undangan Terbaru</h3>
+                            <button @click="activeTab = 'invitations'" class="text-sm font-bold text-teal-600 hover:text-teal-700 transition-colors">Lihat Semua</button>
+                        </div>
+                        
+                        <div v-if="invitations.length === 0" class="bg-white/50 backdrop-blur-sm rounded-3xl p-12 border border-slate-200/60 flex flex-col items-center justify-center text-center">
+                            <div class="w-20 h-20 rounded-2xl bg-slate-100 flex items-center justify-center mb-6">
+                                <Mail class="w-10 h-10 text-slate-400" />
                             </div>
-                            <span class="text-sm font-medium text-slate-700">Buat Undangan</span>
-                        </button>
-                        <button class="flex flex-col items-center gap-3 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all">
-                            <div class="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-600">
-                                <GraduationCap class="w-6 h-6" />
+                            <h4 class="text-xl font-bold text-slate-800 mb-2">Belum ada undangan</h4>
+                            <p class="text-slate-500 max-w-xs mb-8">Mulailah dengan membuat undangan digital pertama Anda hari ini.</p>
+                            <button @click="createNewInvitation" class="px-6 py-3 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all">Buat Sekarang</button>
+                        </div>
+
+                        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div 
+                                v-for="inv in invitations.slice(0, 2)"
+                                :key="inv.id"
+                                class="group bg-white rounded-3xl border border-slate-200/60 overflow-hidden hover:shadow-2xl hover:border-teal-400/30 transition-all duration-500"
+                            >
+                                <div class="aspect-video relative overflow-hidden">
+                                    <SafeImage 
+                                        v-if="inv.thumbnail"
+                                        :src="inv.thumbnail"
+                                        alt="Invitation Thumbnail"
+                                        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                                    />
+                                    <div v-else class="w-full h-full bg-slate-50 flex items-center justify-center">
+                                        <Sparkles class="w-12 h-12 text-slate-200" />
+                                    </div>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-4">
+                                        <div class="flex gap-2">
+                                            <button @click="viewInvitation(inv)" class="p-2.5 bg-white/90 backdrop-blur-md rounded-xl hover:bg-white text-slate-900 transition-all">
+                                                <Eye class="w-5 h-5" />
+                                            </button>
+                                            <button @click="editInvitation(inv)" class="p-2.5 bg-white/90 backdrop-blur-md rounded-xl hover:bg-white text-slate-900 transition-all">
+                                                <Edit3 class="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-6">
+                                    <h5 class="font-bold text-slate-900 truncate mb-1">{{ inv.name }}</h5>
+                                    <p class="text-sm text-slate-500 truncate mb-4">tamuu.pages.dev/{{ inv.slug }}</p>
+                                    <div class="flex items-center justify-between mt-auto">
+                                        <span class="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-teal-50 text-teal-600 rounded-lg">{{ inv.status }}</span>
+                                        <button @click="manageGuests(inv)" class="text-sm font-bold text-slate-900 hover:text-teal-600 transition-colors flex items-center gap-1.5">
+                                            <Users class="w-4 h-4" /> Tamu
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <span class="text-sm font-medium text-slate-700">Lihat Tutorial</span>
-                        </button>
-                        <button class="flex flex-col items-center gap-3 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all">
-                            <div class="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-600">
-                                <FileText class="w-6 h-6" />
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <h3 class="text-xl font-bold text-slate-900 font-outfit">Layanan & Akun</h3>
+                        <div class="bg-slate-900 text-white rounded-[2rem] p-8 relative overflow-hidden group">
+                            <!-- Premium Gradient Decor -->
+                            <div class="absolute top-0 right-0 w-32 h-32 bg-teal-500/20 rounded-full blur-3xl -mr-10 -mt-10 group-hover:scale-125 transition-transform duration-700"></div>
+                            
+                            <div class="relative z-10 flex flex-col h-full">
+                                <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
+                                    <Sparkles class="w-6 h-6 text-teal-400" />
+                                </div>
+                                <h4 class="text-2xl font-bold mb-4">Ganti ke Premium</h4>
+                                <p class="text-slate-400 mb-8 leading-relaxed text-sm">Buka semua fitur mewah, domain kustom, dan kapasitas tamu tanpa batas dengan paket Priority kami.</p>
+                                <button class="mt-auto w-full py-4 bg-teal-500 hover:bg-teal-400 text-slate-900 font-black rounded-2xl transition-all shadow-lg shadow-teal-500/20 active:scale-95">LIHAT PAKET</button>
                             </div>
-                            <span class="text-sm font-medium text-slate-700">Invoice</span>
-                        </button>
-                        <button 
-                            @click="router.push({ name: 'profile' })"
-                            class="flex flex-col items-center gap-3 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all"
-                        >
-                            <div class="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-600">
-                                <User class="w-6 h-6" />
-                            </div>
-                            <span class="text-sm font-medium text-slate-700">Edit Profil</span>
-                        </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Invitations Tab -->
-            <div v-if="activeTab === 'invitations'" class="space-y-6">
-                <!-- Search & Create -->
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                    <div class="relative flex-1 max-w-md">
-                        <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <div v-if="activeTab === 'invitations'" class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <!-- Search & Filters -->
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div class="relative flex-1 max-w-xl w-full">
+                        <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input 
                             v-model="searchQuery"
                             type="text"
-                            placeholder="Cari undangan..."
-                            class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                            placeholder="Cari undangan digital Anda..."
+                            class="w-full pl-12 pr-6 py-4 bg-white/70 backdrop-blur-sm border border-slate-200/60 rounded-[1.25rem] focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all shadow-sm"
                         />
                     </div>
-                    <button 
-                        @click="createNewInvitation"
-                        class="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-medium rounded-xl shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 transition-all"
-                    >
-                        <Plus class="w-5 h-5" />
-                        Buat Undangan Baru
-                    </button>
+                    <div class="flex gap-3 w-full md:w-auto">
+                        <button class="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-white border border-slate-200 font-semibold rounded-[1.25rem] hover:bg-slate-50 transition-all text-sm">
+                            <Menu class="w-4 h-4" /> Filter
+                        </button>
+                        <button @click="createNewInvitation" class="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-slate-900 text-white font-semibold rounded-[1.25rem] hover:shadow-xl transition-all text-sm">
+                            <Plus class="w-4 h-4" /> Baru
+                        </button>
+                    </div>
                 </div>
+
+                <!-- Grid -->
+                <div v-if="loading" class="flex flex-col items-center justify-center py-20">
+                    <Loader2 class="w-12 h-12 text-teal-500 animate-spin mb-4" />
+                    <p class="text-slate-500 font-medium">Menyesuaikan galeri Anda...</p>
+                </div>
+
+                <div v-else-if="filteredInvitations.length === 0" class="bg-white rounded-[2.5rem] p-20 border border-slate-200/60 text-center">
+                    <div class="w-24 h-24 rounded-3xl bg-slate-50 flex items-center justify-center mx-auto mb-8 shadow-inner">
+                        <Mail class="w-12 h-12 text-slate-300" />
+                    </div>
+                    <h3 class="text-2xl font-bold text-slate-900 mb-2">Tidak ditemukan</h3>
+                    <p class="text-slate-500 max-w-sm mx-auto mb-10 text-lg">Sesuaikan kata kunci pencarian atau buat undangan baru untuk mulai berkarya.</p>
+                    <button @click="createNewInvitation" class="px-10 py-4 bg-slate-900 text-white font-bold rounded-2xl hover:scale-105 transition-all shadow-2xl shadow-slate-900/10">Buat Baru</button>
+                </div>
+
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div 
+                        v-for="inv in filteredInvitations"
+                        :key="inv.id"
+                        class="group bg-white rounded-[2rem] border border-slate-200/60 overflow-hidden hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] hover:border-teal-400/30 transition-all duration-700"
+                    >
+                        <div class="aspect-[4/3] relative overflow-hidden">
+                            <SafeImage 
+                                v-if="inv.thumbnail"
+                                :src="inv.thumbnail"
+                                alt="Invitation Thumbnail"
+                                class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" 
+                            />
+                            <div v-else class="w-full h-full bg-slate-50 flex items-center justify-center">
+                                <Sparkles class="w-16 h-16 text-slate-200" />
+                            </div>
+                            
+                            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col items-center justify-center gap-4">
+                                <div class="flex gap-4">
+                                    <button @click="viewInvitation(inv)" class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-90" title="Preview">
+                                        <Eye class="w-6 h-6 text-slate-900" />
+                                    </button>
+                                    <button @click="editInvitation(inv)" class="w-14 h-14 bg-teal-500 rounded-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-90" title="Edit">
+                                        <Edit3 class="w-6 h-6 text-slate-900" />
+                                    </button>
+                                </div>
+                                <div class="flex gap-4">
+                                    <button @click="copyLink(inv)" class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-90" title="Salin Link">
+                                        <Copy class="w-6 h-6 text-slate-900" />
+                                    </button>
+                                    <button @click="manageGuests(inv)" class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-90" title="Buku Tamu">
+                                        <Users class="w-6 h-6 text-slate-900" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-8">
+                            <div class="flex items-start justify-between gap-4 mb-2">
+                                <h3 class="text-xl font-black text-slate-900 truncate tracking-tight">{{ inv.name }}</h3>
+                                <div class="flex items-center gap-2">
+                                    <button class="p-2 text-slate-400 hover:text-rose-500 transition-colors">
+                                        <Trash2 class="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="text-slate-400 text-sm font-medium mb-6 uppercase tracking-[0.2em]">tamuu.pages.dev/{{ inv.slug }}</p>
+                            
+                            <div class="flex items-center justify-between pt-6 border-t border-slate-100">
+                                <span 
+                                    :class="[
+                                        'text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-[10px]',
+                                        inv.status === 'published' 
+                                            ? 'bg-emerald-50 text-emerald-600' 
+                                            : 'bg-amber-50 text-amber-600'
+                                    ]"
+                                >
+                                    {{ inv.status }}
+                                </span>
+                                <div class="flex items-center gap-4">
+                                    <div class="flex -space-x-2">
+                                        <div v-for="i in 3" :key="i" class="w-6 h-6 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-slate-400">
+                                            {{ i }}
+                                        </div>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-400">88+ Views</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
                 <!-- Loading State -->
                 <div v-if="loading" class="flex flex-col items-center justify-center py-16">
