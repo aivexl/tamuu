@@ -13,7 +13,7 @@ let interval: any = null;
 // Add first element to end for seamless looping
 const displayList = [...eventTypes, eventTypes[0]];
 
-const ITEM_HEIGHT_EM = 2.0; // Significant height to ensure no clipping of descenders
+const ITEM_HEIGHT_EM = 2.4; // Maximum safety for any font height
 
 onMounted(() => {
   // CTO Standard: Reliable state machine for vertical sliding
@@ -147,13 +147,13 @@ const formatPrice = (price: number) => {
             <span class="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
           </div>
 
-          <h1 class="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-slate-900 tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-2 md:gap-4">
+          <h1 class="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-slate-900 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-3 md:gap-6">
             <span class="whitespace-nowrap">Platform Undangan Premium</span>
-            <div class="flex items-center justify-center gap-3 md:gap-5 leading-none">
+            <div class="flex items-center justify-center gap-3 md:gap-6 leading-none overflow-visible">
               <span class="italic font-normal text-slate-500 shrink-0">Untuk</span> 
-              <span class="relative h-[2.0em] overflow-hidden inline-flex flex-col items-start min-w-[160px] sm:min-w-[200px] md:min-w-[300px] lg:min-w-[420px]">
+              <span class="relative h-[2.4em] overflow-hidden inline-flex flex-col items-start min-w-[120px] sm:min-w-[150px]">
                 <span 
-                  class="flex flex-col w-full whitespace-nowrap" 
+                  class="flex flex-col w-full whitespace-nowrap pt-1" 
                   :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
                   :style="{ transform: `translateY(-${currentIndex * ITEM_HEIGHT_EM}em)` }"
                 >
