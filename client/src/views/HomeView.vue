@@ -130,28 +130,28 @@ const formatPrice = (price: number) => {
     <MainNavbar />
 
     <!-- Hero Section -->
-    <section class="relative pt-32 pb-20 overflow-hidden font-outfit">
+    <section class="relative pt-32 pb-20 overflow-hidden font-bodoni">
       <!-- Decor -->
       <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
-        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/20 blur-[120px] rounded-full"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-teal-500/20 blur-[120px] rounded-full"></div>
-        <div class="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-purple-500/15 blur-[100px] rounded-full"></div>
+        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-teal-500/10 blur-[120px] rounded-full"></div>
+        <div class="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-purple-500/10 blur-[100px] rounded-full"></div>
       </div>
 
       <div class="max-w-7xl mx-auto px-6 relative">
-        <div class="text-center space-y-10 max-w-5xl mx-auto">
+        <div class="text-center space-y-8 max-w-5xl mx-auto">
           <div
-            class="inline-flex items-center gap-2 px-5 py-2 bg-indigo-50 border border-indigo-100 rounded-full shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700"
+            class="inline-flex items-center gap-2 px-5 py-2 bg-slate-100/50 backdrop-blur-sm border border-slate-200 rounded-full shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700"
           >
             <Sparkles class="w-4 h-4 text-indigo-600" />
-            <span class="text-xs font-bold text-indigo-700 uppercase tracking-widest">Platform Undangan Digital #1</span>
+            <span class="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
           </div>
 
-          <h1 class="text-5xl md:text-7xl lg:text-9xl font-black text-slate-900 leading-[1.05] tracking-tighter animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
-            Platform Undangan
+          <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold text-slate-900 leading-[1.2] tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
+            Platform Undangan Premium
             <br />
-            <span class="text-indigo-600">Terbaik</span> Untuk 
-            <span class="relative h-[1.2em] overflow-hidden inline-flex flex-col items-start min-w-[260px] md:min-w-[340px] lg:min-w-[400px]">
+            <span class="italic font-normal text-slate-500">Untuk</span> 
+            <span class="relative h-[1.2em] overflow-hidden inline-flex flex-col items-start min-w-[200px] md:min-w-[300px] lg:min-w-[400px] align-bottom">
               <span 
                 class="flex flex-col w-full whitespace-nowrap" 
                 :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
@@ -169,9 +169,9 @@ const formatPrice = (price: number) => {
             </span>
           </h1>
 
-          <p class="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-700 delay-300">
-            Platform undangan digital tercanggih dengan ratusan tema eksklusif. 
-            <span class="font-bold text-slate-900">Mewah, Praktis, & Berkesan.</span>
+          <p class="text-lg md:text-xl text-slate-500 max-w-xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-700 delay-300 font-sans tracking-wide">
+            Ciptakan kesan pertama yang tak terlupakan dengan desain eksklusif. 
+            <span class="font-semibold text-slate-800">Mewah. Minimalis. Abadi.</span>
           </p>
 
           <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-500">
