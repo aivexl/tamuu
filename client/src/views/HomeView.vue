@@ -149,8 +149,8 @@ const formatPrice = (price: number) => {
 
           <h1 class="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold text-slate-900 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-2 md:gap-4 w-full px-2 tracking-tight leading-[1.1]">
             <span class="break-words max-w-full">Platform Undangan Digital Premium</span>
-            <div class="flex items-center justify-center leading-none overflow-visible h-[1.2em]">
-              <span class="relative h-[1.2rem] overflow-hidden inline-flex flex-col items-center min-w-[200px] sm:min-w-[300px] md:min-w-[400px]">
+            <div class="flex items-center justify-center leading-none overflow-visible" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
+              <span class="relative overflow-hidden inline-flex flex-col items-center min-w-[200px] sm:min-w-[300px] md:min-w-[400px]" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
                 <span 
                   class="flex flex-col w-full whitespace-nowrap" 
                   :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
