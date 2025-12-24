@@ -56,12 +56,11 @@ function isoToEmoji(isoCode: string): string {
         .join('');
 }
 
-// Build country codes list from the library
+// Build country codes list from the library (without ISO in display)
 const allCountryCodes = Object.entries(countries).map(([iso, data]) => ({
     code: String(data.phone[0] || ''),
     flag: isoToEmoji(iso),
-    name: data.name,
-    iso
+    name: data.name
 })).filter(c => c.code); // Filter out countries without phone codes
 
 // Indonesia should always be at the top, then sort alphabetically
