@@ -163,7 +163,7 @@ const previewTemplate = (templateId: string) => {
                     <div 
                         v-for="template in filteredTemplates" 
                         :key="template.id"
-                        class="group bg-white rounded-2xl border border-white/60 overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] hover:shadow-xl hover:-translate-y-1 transition-all duration-500"
+                        class="group flex flex-col bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] hover:shadow-2xl hover:border-teal-400/30 transition-all duration-700 hover:-translate-y-1"
                         :class="currentTemplateId === template.id ? 'ring-2 ring-teal-500 ring-offset-4' : ''"
                     >
                         <!-- Thumbnail (Exactly like Dashboard) -->
@@ -183,19 +183,19 @@ const previewTemplate = (templateId: string) => {
                         </div>
 
                         <!-- Info (Exactly like Dashboard p-5) -->
-                        <div class="p-5">
+                        <div class="p-5 flex flex-col h-full">
                             <h3 class="text-sm font-bold text-slate-900 truncate mb-1 font-outfit">{{ template.name }}</h3>
                             <p class="text-[10px] text-slate-400 mb-6 uppercase tracking-widest font-medium">{{ template.category || 'Premium' }}</p>
                             
                             <!-- Actions (Always Visible, Below Title) -->
-                            <div class="space-y-2.5">
+                            <div class="space-y-3">
                                 <button 
                                     @click="handleSelect(template.id)"
                                     :class="[
                                         'w-full py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-sm',
                                         currentTemplateId === template.id 
                                             ? 'bg-slate-50 text-slate-300 cursor-default border border-slate-100' 
-                                            : 'bg-slate-900 text-white hover:bg-teal-500 hover:shadow-lg hover:shadow-teal-500/10'
+                                            : 'bg-slate-900 text-white hover:bg-teal-500 hover:shadow-lg hover:shadow-teal-500/20'
                                     ]"
                                 >
                                     {{ currentTemplateId === template.id ? 'Terpilih' : 'Gunakan Desain' }}
@@ -203,9 +203,9 @@ const previewTemplate = (templateId: string) => {
                                 
                                 <button 
                                     @click="previewTemplate(template.id)"
-                                    class="w-full py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                                    class="w-full py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.1em] text-slate-600 border border-slate-200 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all duration-500 flex items-center justify-center gap-2"
                                 >
-                                    <Eye class="w-3.5 h-3.5" /> Preview
+                                    <Eye class="w-3.5 h-3.5" /> Preview Desain
                                 </button>
                             </div>
                         </div>
