@@ -513,7 +513,7 @@ onMounted(loadData);
                                 <span v-else class="px-2 py-1 bg-slate-100 text-slate-300 text-[9px] font-black rounded-lg tracking-tight uppercase">BELUM</span>
                             </td>
                             <td class="col-send px-3 py-5 text-center">
-                                <div class="relative group mx-auto w-fit">
+                                <div class="relative group mx-auto w-fit group-hover:z-50">
                                     <button 
                                         @click="shareWhatsApp(guest)"
                                         :class="[
@@ -526,10 +526,10 @@ onMounted(loadData);
                                     </button>
                                     
                                     <!-- Tooltip -->
-                                    <div v-if="guest.sharedAt" class="absolute invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-2 z-10">
-                                        <div class="bg-slate-800 text-white text-[9px] font-bold py-1 px-2 rounded whitespace-nowrap shadow-lg">
+                                    <div v-if="guest.sharedAt" class="absolute invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-2 z-[100]">
+                                        <div class="bg-slate-900 text-white text-[10px] font-black py-1.5 px-3 rounded-lg whitespace-nowrap shadow-2xl ring-1 ring-white/10">
                                             Kirim Ulang WA
-                                            <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 w-2 h-2 bg-slate-800 rotate-45"></div>
+                                            <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 w-2 h-2 bg-slate-900 rotate-45"></div>
                                         </div>
                                     </div>
                                 </div>
