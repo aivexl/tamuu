@@ -28,6 +28,10 @@ const isImportModalOpen = ref(false);
 const showExportDropdown = ref(false);
 const invitationMessage = ref('');
 
+// Custom Country Dropdown State
+const isCountryDropdownOpen = ref(false);
+const isEditCountryDropdownOpen = ref(false);
+
 // Share Confirm Modal State
 const showShareConfirm = ref(false);
 const pendingShareGuest = ref<Guest | null>(null);
@@ -741,20 +745,37 @@ onMounted(loadData);
                     <input v-model="newGuest.name" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" placeholder="Contoh: Bpk. Budi & Kel." />
                 </div>
                 <div class="grid grid-cols-12 gap-3">
-                    <div class="col-span-12 md:col-span-5">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                            Negara <span class="text-indigo-500 font-black">+Kode</span>
-                        </label>
-                        <div class="relative group">
-                            <select v-model="selectedCountryCode" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 appearance-none text-sm font-bold text-slate-700 transition-all cursor-pointer pr-10">
-                                <option v-for="c in sortedCountryCodes" :key="c.code" :value="c.code">
-                                    {{ c.name }} +{{ c.code }}
-                                </option>
-                            </select>
-                            <ChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-hover:text-teal-600 transition-colors" />
+                    <div class="col-span-12 md:col-span-4">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Kode Negara</label>
+                        <div class="relative">
+                            <button 
+                                type="button"
+                                @click="isCountryDropdownOpen = !isCountryDropdownOpen"
+                                class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 text-sm font-bold text-slate-700 transition-all cursor-pointer flex items-center justify-between"
+                            >
+                                <span>+{{ selectedCountryCode }}</span>
+                                <ChevronDown class="w-4 h-4 text-slate-400 transition-transform" :class="{ 'rotate-180': isCountryDropdownOpen }" />
+                            </button>
+                            <div 
+                                v-if="isCountryDropdownOpen" 
+                                class="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto"
+                            >
+                                <button
+                                    v-for="c in sortedCountryCodes" 
+                                    :key="c.code"
+                                    type="button"
+                                    @click="selectedCountryCode = c.code; isCountryDropdownOpen = false"
+                                    class="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-teal-50 flex items-center gap-2 transition-colors"
+                                    :class="{ 'bg-teal-100 text-teal-700': selectedCountryCode === c.code }"
+                                >
+                                    <span class="text-lg">{{ c.flag }}</span>
+                                    <span>{{ c.name }}</span>
+                                    <span class="text-slate-400 ml-auto">+{{ c.code }}</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-span-12 md:col-span-7">
+                    <div class="col-span-12 md:col-span-8">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nomor WhatsApp</label>
                         <div class="relative group">
                             <input v-model="newGuest.phone" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 text-sm font-bold text-slate-700 transition-all" placeholder="81234567..." />
@@ -884,20 +905,37 @@ onMounted(loadData);
                     <input v-model="editForm.name" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" placeholder="Contoh: Bpk. Budi & Kel." />
                 </div>
                 <div class="grid grid-cols-12 gap-3">
-                    <div class="col-span-12 md:col-span-5">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                            Negara <span class="text-blue-500 font-black">+Kode</span>
-                        </label>
-                        <div class="relative group">
-                            <select v-model="selectedEditCountryCode" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none text-sm font-bold text-slate-700 transition-all cursor-pointer pr-10">
-                                <option v-for="c in sortedCountryCodes" :key="c.code" :value="c.code">
-                                    {{ c.name }} +{{ c.code }}
-                                </option>
-                            </select>
-                            <ChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-hover:text-blue-600 transition-colors" />
+                    <div class="col-span-12 md:col-span-4">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Kode Negara</label>
+                        <div class="relative">
+                            <button 
+                                type="button"
+                                @click="isEditCountryDropdownOpen = !isEditCountryDropdownOpen"
+                                class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm font-bold text-slate-700 transition-all cursor-pointer flex items-center justify-between"
+                            >
+                                <span>+{{ selectedEditCountryCode }}</span>
+                                <ChevronDown class="w-4 h-4 text-slate-400 transition-transform" :class="{ 'rotate-180': isEditCountryDropdownOpen }" />
+                            </button>
+                            <div 
+                                v-if="isEditCountryDropdownOpen" 
+                                class="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto"
+                            >
+                                <button
+                                    v-for="c in sortedCountryCodes" 
+                                    :key="c.code"
+                                    type="button"
+                                    @click="selectedEditCountryCode = c.code; isEditCountryDropdownOpen = false"
+                                    class="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-blue-50 flex items-center gap-2 transition-colors"
+                                    :class="{ 'bg-blue-100 text-blue-700': selectedEditCountryCode === c.code }"
+                                >
+                                    <span class="text-lg">{{ c.flag }}</span>
+                                    <span>{{ c.name }}</span>
+                                    <span class="text-slate-400 ml-auto">+{{ c.code }}</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-span-12 md:col-span-7">
+                    <div class="col-span-12 md:col-span-8">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nomor WhatsApp</label>
                         <div class="relative group">
                             <input v-model="editForm.phone" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm font-bold text-slate-700 transition-all" placeholder="81234567..." />
