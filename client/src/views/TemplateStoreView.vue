@@ -173,13 +173,6 @@ const previewTemplate = (templateId: string) => {
                                 :alt="template.name"
                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                             />
-                            
-                            <!-- Category Badge (Exactly like Dashboard) -->
-                            <div class="absolute top-4 left-4 z-20">
-                                <span class="px-2.5 py-1 bg-white/95 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-[0.1em] text-slate-900 shadow-md">
-                                    {{ template.category || 'Premium' }}
-                                </span>
-                            </div>
                         </div>
 
                         <!-- Info (Exactly like Dashboard p-5) -->
