@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useInvitationStore } from '@/stores/invitation';
 import { invitationsApi, type TemplateResponse } from '@/lib/api/invitations';
-import { LayoutTemplate, Eye, Check, Loader2, Sparkles, LogIn, UserPlus } from 'lucide-vue-next';
+import { Eye, Check, Loader2, Sparkles, LogIn, UserPlus, Search } from 'lucide-vue-next';
 import SafeImage from '@/components/ui/SafeImage.vue';
 import AppHeader from '@/components/layout/AppHeader.vue';
 import MainFooter from '@/components/layout/MainFooter.vue';
@@ -19,9 +19,31 @@ const masterTemplates = ref<TemplateResponse[]>([]);
 const isLoading = ref(true);
 const showAuthModal = ref(false);
 const pendingTemplateId = ref<string | null>(null);
+const searchQuery = ref('');
+const selectedCategory = ref('All');
+
+const categories = ['All', 'Wedding', 'Birthday', 'Event', 'Classic', 'Floral'];
 
 // Current selected template
 const currentTemplateId = computed(() => invitationStore.invitation.templateId);
+
+const filteredTemplates = computed(() => {
+    let templates = masterTemplates.value;
+    
+    if (selectedCategory.value !== 'All') {
+        templates = templates.filter(t => t.category === selectedCategory.value);
+    }
+    
+    if (searchQuery.value) {
+        const q = searchQuery.value.toLowerCase();
+        templates = templates.filter(t => 
+            t.name.toLowerCase().includes(q) || 
+            (t.category && t.category.toLowerCase().includes(q))
+        );
+    }
+    
+    return templates;
+});
 
 onMounted(async () => {
     try {
@@ -75,17 +97,51 @@ const previewTemplate = (templateId: string) => {
         </div>
 
         <div class="relative z-10 flex-1">
-            <!-- Hero Header -->
-            <header class="pt-20 pb-12">
-                <div class="max-w-7xl mx-auto px-8 text-center sm:text-left">
-                    <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-white/70 backdrop-blur-md border border-white/60 rounded-full shadow-sm mb-6 animate-in fade-in slide-in-from-top-4 duration-700">
+            <!-- Hero Header with Centered Search -->
+            <header class="pt-28 pb-10">
+                <div class="max-w-4xl mx-auto px-8 text-center">
+                    <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-white/70 backdrop-blur-md border border-white/60 rounded-full shadow-sm mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
                         <Sparkles class="w-3.5 h-3.5 text-teal-600" />
                         <span class="text-[10px] font-black uppercase tracking-[0.2em] text-teal-900">Koleksi Mahakarya Digital</span>
                     </div>
-                    <h1 class="text-4xl sm:text-5xl font-black text-slate-900 tracking-tighter font-outfit mb-4 animate-in fade-in slide-in-from-left-4 duration-700">Koleksi Template <span class="text-teal-600">Premium</span></h1>
-                    <p class="text-slate-500 font-medium max-w-2xl text-lg animate-in fade-in slide-in-from-left-6 duration-700 leading-relaxed">
-                        Pilih desain premium yang dikurasi khusus untuk momen tak terlupakan Anda. Mulai dalam hitungan menit dengan kualitas desain kelas dunia.
-                    </p>
+                    
+                    <h1 class="text-4xl sm:text-6xl font-black text-slate-900 tracking-tighter font-outfit mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        Cari Desain <span class="text-teal-600">Impian</span> Anda
+                    </h1>
+
+                    <!-- Professional Large Search Bar -->
+                    <div class="relative max-w-2xl mx-auto mb-12 group animate-in fade-in slide-in-from-bottom-6 duration-1000">
+                        <div class="absolute inset-0 bg-teal-500/20 rounded-[2rem] blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-700"></div>
+                        <div class="relative bg-white/80 backdrop-blur-xl border border-white rounded-[2rem] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.05)] overflow-hidden flex items-center p-2 focus-within:ring-4 focus-within:ring-teal-500/10 transition-all duration-500">
+                            <Search class="w-6 h-6 text-slate-400 ml-6" />
+                            <input 
+                                v-model="searchQuery"
+                                type="text" 
+                                placeholder="Cari berdasarkan nama atau kategori..." 
+                                class="flex-1 bg-transparent border-none focus:ring-0 px-6 py-4 text-lg font-medium text-slate-700 placeholder:text-slate-300"
+                            />
+                            <button class="bg-slate-900 text-white p-4 rounded-[1.5rem] hover:bg-teal-500 transition-colors shadow-lg">
+                                <Search class="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Category Filters -->
+                    <div class="flex flex-wrap justify-center gap-3 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+                        <button 
+                            v-for="cat in categories" 
+                            :key="cat"
+                            @click="selectedCategory = cat"
+                            :class="[
+                                'px-6 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-300 active:scale-95 border',
+                                selectedCategory === cat 
+                                    ? 'bg-slate-900 text-white border-slate-900 shadow-xl shadow-slate-900/10' 
+                                    : 'bg-white/60 backdrop-blur-md text-slate-500 border-white/80 hover:bg-white hover:text-slate-900 shadow-sm'
+                            ]"
+                        >
+                            {{ cat }}
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -96,17 +152,18 @@ const previewTemplate = (templateId: string) => {
             </div>
 
             <!-- Template Grid -->
-            <main v-else class="max-w-[1600px] mx-auto px-8 py-8 mb-20">
-                <div v-if="masterTemplates.length === 0" class="text-center py-32 bg-white/50 backdrop-blur-md rounded-[3rem] border border-white/60">
-                    <LayoutTemplate class="w-16 h-16 text-slate-200 mx-auto mb-6" />
-                    <p class="text-slate-500 font-bold">Belum ada template yang tersedia saat ini.</p>
+            <main v-else class="max-w-[1600px] mx-auto px-8 py-8 mb-20 animate-in fade-in duration-1000 delay-500">
+                <div v-if="filteredTemplates.length === 0" class="text-center py-32 bg-white/50 backdrop-blur-md rounded-[3rem] border border-white/60">
+                    <Search class="w-16 h-16 text-slate-200 mx-auto mb-6" />
+                    <h3 class="text-xl font-bold text-slate-900 mb-2 font-outfit">Pencarian Tidak Ditemukan</h3>
+                    <p class="text-slate-500 font-medium max-w-xs mx-auto">Kami tidak dapat menemukan template yang sesuai dengan kriteria Anda.</p>
                 </div>
 
                 <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
                     <div 
-                        v-for="template in masterTemplates" 
+                        v-for="template in filteredTemplates" 
                         :key="template.id"
-                        class="group bg-white rounded-3xl border border-white/60 overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] hover:-translate-y-2 transition-all duration-700"
+                        class="group bg-white rounded-[2rem] border border-white/60 overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] hover:shadow-[0_60px_100px_-30px_rgba(0,0,0,0.1)] hover:-translate-y-2 transition-all duration-700"
                         :class="currentTemplateId === template.id ? 'ring-2 ring-teal-500 ring-offset-4' : ''"
                     >
                         <!-- Thumbnail -->
@@ -117,42 +174,42 @@ const previewTemplate = (templateId: string) => {
                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                             />
                             
+                            <!-- Category Badge (Top Left - Exactly like Dashboard) -->
+                            <div class="absolute top-5 left-5 z-20">
+                                <span class="px-3.5 py-1.5 bg-white/95 backdrop-blur-md rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-slate-900 shadow-xl shadow-black/5">
+                                    {{ template.category || 'Premium' }}
+                                </span>
+                            </div>
+
                             <!-- Overlay -->
-                            <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center gap-4">
+                            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-[4px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center gap-4">
                                 <button 
                                     @click="previewTemplate(template.id)"
-                                    class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-90 shadow-xl"
+                                    class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-90 shadow-2xl"
                                     title="Preview Desain"
                                 >
-                                    <Eye class="w-6 h-6 text-slate-900" />
+                                    <Eye class="w-7 h-7 text-slate-900" />
                                 </button>
                                 <button 
                                     @click="handleSelect(template.id)"
-                                    class="w-14 h-14 bg-teal-500 rounded-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-90 shadow-xl"
+                                    class="w-16 h-16 bg-teal-500 rounded-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-90 shadow-2xl"
                                     title="Gunakan Template Ini"
                                 >
-                                    <Check class="w-6 h-6 text-slate-900" />
+                                    <Check class="w-7 h-7 text-slate-900" />
                                 </button>
-                            </div>
-
-                            <!-- Category Badge -->
-                            <div class="absolute top-4 left-4">
-                                <span class="px-3 py-1 bg-white/90 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-900 shadow-sm">
-                                    {{ template.category || 'Premium' }}
-                                </span>
                             </div>
                         </div>
 
                         <!-- Info -->
-                        <div class="p-6">
-                            <h3 class="font-bold text-slate-900 truncate mb-4 font-outfit text-lg">{{ template.name }}</h3>
+                        <div class="p-8">
+                            <h3 class="font-bold text-slate-900 truncate mb-6 font-outfit text-xl tracking-tight">{{ template.name }}</h3>
                             <button 
                                 @click="handleSelect(template.id)"
                                 :class="[
-                                    'w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all active:scale-95',
+                                    'w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95',
                                     currentTemplateId === template.id 
-                                        ? 'bg-slate-100 text-slate-400 cursor-default' 
-                                        : 'bg-slate-900 text-white hover:bg-teal-500 hover:shadow-lg hover:shadow-teal-500/20'
+                                        ? 'bg-slate-50 text-slate-300 cursor-default border border-slate-100' 
+                                        : 'bg-slate-900 text-white hover:bg-teal-500 hover:shadow-2xl hover:shadow-teal-500/20'
                                 ]"
                             >
                                 {{ currentTemplateId === template.id ? 'Terpilih' : 'Gunakan Desain' }}
