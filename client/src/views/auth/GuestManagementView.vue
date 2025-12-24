@@ -536,8 +536,8 @@ onMounted(loadData);
                                 <span v-if="guest.checkedInAt" class="px-2 py-1 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded-lg tracking-tight">HADIR</span>
                                 <span v-else class="px-2 py-1 bg-slate-100 text-slate-300 text-[9px] font-black rounded-lg tracking-tight uppercase">BELUM</span>
                             </td>
-                            <td class="col-send px-3 py-5 text-center">
-                                <div class="relative group mx-auto w-fit group-hover:z-50">
+                            <td class="col-send px-3 py-5 text-center relative hover:z-20">
+                                <div class="relative group mx-auto w-fit">
                                     <button 
                                         @click="shareWhatsApp(guest)"
                                         :class="[
@@ -833,18 +833,18 @@ tr:hover td {
   border-color: rgba(44, 95, 95, 0.1);
 }
 
-/* Proportional widths */
-.col-id { width: 5%; }
-.col-tier { width: 6%; }
-.col-name { width: 15%; }
+/* Proportional widths (Total: 100%) */
+.col-id { width: 4%; }
+.col-tier { width: 5%; }
+.col-name { width: 14%; }
 .col-phone { width: 10%; }
-.col-addr { width: 14%; }
-.col-count { width: 8%; }
+.col-addr { width: 12%; }
+.col-count { width: 7%; }
 .col-time { width: 6%; }
-.col-time-long { width: 8%; }
+.col-time-long { width: 7%; }
 .col-status { width: 7%; }
 .col-action { width: 3.5%; }
-.col-send { width: 4.5%; }
-.col-delete { width: 5%; }
+.col-send { width: 6%; }
+.col-delete { width: 4%; }
 
 </style>
