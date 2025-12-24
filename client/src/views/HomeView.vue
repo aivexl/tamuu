@@ -1,8 +1,23 @@
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from "vue";
 import { RouterLink } from "vue-router";
 import { ArrowRight, CheckCircle, Sparkles, Star, Zap, ShieldCheck } from "lucide-vue-next";
 import MainNavbar from "@/components/layout/MainNavbar.vue";
 import MainFooter from "@/components/layout/MainFooter.vue";
+
+const eventTypes = ["Pernikahan", "Ulang Tahun", "Sunatan", "Syukuran", "Aqiqah", "Khitanan", "Engagement"];
+const currentIndex = ref(0);
+let interval: any = null;
+
+onMounted(() => {
+  interval = setInterval(() => {
+    currentIndex.value = (currentIndex.value + 1) % eventTypes.length;
+  }, 2500);
+});
+
+onUnmounted(() => {
+  if (interval) clearInterval(interval);
+});
 
 const features = [
   {
@@ -93,8 +108,9 @@ const formatPrice = (price: number) => {
     <section class="relative pt-32 pb-20 overflow-hidden">
       <!-- Decor -->
       <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
-        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-500/10 blur-[120px] rounded-full"></div>
+        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/15 blur-[120px] rounded-full"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-teal-500/15 blur-[120px] rounded-full"></div>
+        <div class="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-purple-500/10 blur-[100px] rounded-full"></div>
       </div>
 
       <div class="max-w-7xl mx-auto px-6 relative">
@@ -106,20 +122,25 @@ const formatPrice = (price: number) => {
             <span class="text-xs font-bold text-indigo-700 uppercase tracking-widest">Platform Undangan Digital #1</span>
           </div>
 
-          <h1 class="text-6xl md:text-8xl font-black text-slate-900 leading-[1.1] tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
-            Rayakan Momen
-            <span class="relative inline-block">
-              Berharga 
-              <div class="absolute -bottom-2 left-0 w-full h-3 bg-indigo-200/50 -rotate-1 -z-10"></div>
-            </span>
+          <h1 class="text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 leading-[1.1] tracking-tighter animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
+            Platform Undangan
             <br />
-            <span class="bg-gradient-to-r from-indigo-600 via-indigo-500 to-teal-500 bg-clip-text text-transparent">
-              Tanpa Batas
-            </span>
+            <span class="text-indigo-600">Terbaik</span> Untuk 
+            <div class="relative h-[1.1em] overflow-hidden inline-flex flex-col align-bottom">
+              <div 
+                class="transition-transform duration-700 ease-in-out flex flex-col" 
+                :style="{ transform: `translateY(-${currentIndex * 100}%)` }"
+              >
+                <div v-for="event in eventTypes" :key="event" class="h-[1.1em] flex items-center bg-gradient-to-r from-indigo-600 via-indigo-500 to-teal-500 bg-clip-text text-transparent px-2">
+                  {{ event }}
+                </div>
+              </div>
+            </div>
           </h1>
 
-          <p class="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-700 delay-300">
-            Platform undangan online tercanggih untuk pernikahan, ulang tahun, dan acara spesial. Desain elegan, fitur premium, dan kemudahan dalam genggaman.
+          <p class="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-700 delay-300">
+            Platform undangan digital tercanggih dengan ratusan tema eksklusif. 
+            <span class="font-bold text-slate-900">Mewah, Praktis, & Berkesan.</span>
           </p>
 
           <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-500">
