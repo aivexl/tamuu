@@ -23,7 +23,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 // State
-const activeTab = ref('invitations');
+const activeTab = ref('dashboard');
 const searchQuery = ref('');
 const invitations = ref<TemplateResponse[]>([]);
 const totalGuests = ref(0);
