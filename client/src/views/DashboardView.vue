@@ -66,6 +66,10 @@ async function loadInvitations() {
     }
 }
 
+function handleNavClick(tabId: string) {
+    activeTab.value = tabId;
+}
+
 function handleLogout() {
     authStore.logout();
     router.push({ name: 'login' });
@@ -158,7 +162,7 @@ onMounted(() => {
             <button
                 v-for="item in menuItems"
                 :key="item.id"
-                @click="activeTab = item.id"
+                @click="handleNavClick(item.id)"
                 :class="[
                     'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
                     activeTab === item.id
@@ -428,6 +432,56 @@ onMounted(() => {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guests Tab -->
+            <div v-if="activeTab === 'guests'" class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Kelola Buku Tamu</h2>
+                        <p class="text-slate-500">Pilih undangan untuk mengelola daftar tamu Anda.</p>
+                    </div>
+                </div>
+
+                <div v-if="invitations.length === 0" class="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-slate-200">
+                    <div class="w-20 h-20 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                        <Users class="w-10 h-10 text-slate-400" />
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-800 mb-2">Belum Ada Undangan</h3>
+                    <p class="text-slate-500 text-center max-w-sm mb-6">
+                        Anda harus memiliki undangan terlebih dahulu untuk mengelola buku tamu.
+                    </p>
+                    <button 
+                        @click="createNewInvitation"
+                        class="flex items-center gap-2 px-6 py-3 bg-teal-600 text-white font-medium rounded-xl hover:bg-teal-700 transition-all"
+                    >
+                        <Plus class="w-5 h-5" /> Buat Undangan
+                    </button>
+                </div>
+
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div 
+                        v-for="inv in invitations"
+                        :key="inv.id"
+                        class="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-lg transition-all flex flex-col gap-4"
+                    >
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center">
+                                <Mail class="w-6 h-6 text-teal-600" />
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-bold text-slate-800 truncate">{{ inv.name }}</h3>
+                                <p class="text-xs text-slate-400">{{ inv.status.toUpperCase() }}</p>
+                            </div>
+                        </div>
+                        <button 
+                            @click="manageGuests(inv)"
+                            class="w-full py-2.5 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition-all"
+                        >
+                            Buka Buku Tamu
+                        </button>
                     </div>
                 </div>
             </div>
