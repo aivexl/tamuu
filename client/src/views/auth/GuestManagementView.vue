@@ -69,7 +69,9 @@ const stats = computed(() => {
     const total = guests.value.reduce((acc, g) => acc + (g.guestCount || 0), 0);
     const vip = guests.value.filter(g => g.tier === 'vip' || g.tier === 'vvip').length;
     const checkedIn = guests.value.filter(g => g.checkedInAt).length;
-    return { total, vip, checkedIn };
+    const waSent = guests.value.filter(g => g.sharedAt).length;
+    const checkedOut = guests.value.filter(g => g.checkedOutAt).length;
+    return { total, vip, checkedIn, waSent, checkedOut };
 });
 
 // Methods
@@ -415,18 +417,26 @@ onMounted(loadData);
                         </button>
                     </div>
                 </div>
-                <div class="w-full lg:w-72 grid grid-cols-1 gap-4">
-                    <div class="p-5 rounded-2xl bg-teal-50 border border-teal-100">
-                        <p class="text-xs text-teal-600 font-bold uppercase mb-1">Total Tamu</p>
-                        <p class="text-3xl font-black text-teal-900">{{ stats.total }}</p>
+                <div class="w-full lg:w-96 grid grid-cols-2 gap-3">
+                    <div class="p-4 rounded-2xl bg-teal-50 border border-teal-100 col-span-2">
+                        <p class="text-[10px] text-teal-600 font-bold uppercase mb-0.5">Total Tamu (Orang)</p>
+                        <p class="text-2xl font-black text-teal-900">{{ stats.total }}</p>
                     </div>
-                    <div class="p-5 rounded-2xl bg-amber-50 border border-amber-100">
-                        <p class="text-xs text-amber-600 font-bold uppercase mb-1">VIP & VVIP</p>
-                        <p class="text-3xl font-black text-amber-900">{{ stats.vip }}</p>
+                    <div class="p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
+                        <p class="text-[10px] text-indigo-600 font-bold uppercase mb-0.5">WA Terkirim</p>
+                        <p class="text-2xl font-black text-indigo-900">{{ stats.waSent }}</p>
                     </div>
-                    <div class="p-5 rounded-2xl bg-emerald-50 border border-emerald-100">
-                        <p class="text-xs text-emerald-600 font-bold uppercase mb-1">Sudah Check-in</p>
-                        <p class="text-3xl font-black text-emerald-900">{{ stats.checkedIn }}</p>
+                    <div class="p-4 rounded-2xl bg-amber-50 border border-amber-100">
+                        <p class="text-[10px] text-amber-600 font-bold uppercase mb-0.5">VIP & VVIP</p>
+                        <p class="text-2xl font-black text-amber-900">{{ stats.vip }}</p>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+                        <p class="text-[10px] text-emerald-600 font-bold uppercase mb-0.5">Sudah Check-in</p>
+                        <p class="text-2xl font-black text-emerald-900">{{ stats.checkedIn }}</p>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-rose-50 border border-rose-100">
+                        <p class="text-[10px] text-rose-600 font-bold uppercase mb-0.5">Sudah Check-out</p>
+                        <p class="text-2xl font-black text-rose-900">{{ stats.checkedOut }}</p>
                     </div>
                 </div>
             </div>
