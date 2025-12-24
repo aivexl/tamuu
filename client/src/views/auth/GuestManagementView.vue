@@ -47,19 +47,28 @@ const newGuest = ref({
 // Country Codes from countries-list library
 import { countries } from 'countries-list';
 
-// Helper function to convert ISO country code to emoji flag
-function isoToEmoji(isoCode: string): string {
-    return isoCode
-        .toUpperCase()
-        .split('')
-        .map(char => String.fromCodePoint(127397 + char.charCodeAt(0)))
-        .join('');
-}
+// Static mapping of ISO codes to emoji flags (ensures proper display)
+const flagMap: Record<string, string> = {
+    'ID': '🇮🇩', 'MY': '🇲🇾', 'SG': '🇸🇬', 'TH': '🇹🇭', 'BN': '🇧🇳', 'PH': '🇵🇭',
+    'VN': '🇻🇳', 'KH': '🇰🇭', 'LA': '🇱🇦', 'MM': '🇲🇲', 'AU': '🇦🇺', 'JP': '🇯🇵',
+    'KR': '🇰🇷', 'CN': '🇨🇳', 'TW': '🇹🇼', 'HK': '🇭🇰', 'IN': '🇮🇳', 'PK': '🇵🇰',
+    'SA': '🇸🇦', 'AE': '🇦🇪', 'TR': '🇹🇷', 'US': '🇺🇸', 'CA': '🇨🇦', 'GB': '🇬🇧',
+    'FR': '🇫🇷', 'DE': '🇩🇪', 'NL': '🇳🇱', 'CH': '🇨🇭', 'IT': '🇮🇹', 'ES': '🇪🇸',
+    'RU': '🇷🇺', 'BR': '🇧🇷', 'EG': '🇪🇬', 'ZA': '🇿🇦', 'NZ': '🇳🇿', 'BD': '🇧🇩',
+    'QA': '🇶🇦', 'KW': '🇰🇼', 'BH': '🇧🇭', 'OM': '🇴🇲', 'JO': '🇯🇴', 'LB': '🇱🇧',
+    'IQ': '🇮🇶', 'SY': '🇸🇾', 'YE': '🇾🇪', 'AF': '🇦🇫', 'IR': '🇮🇷', 'NP': '🇳🇵',
+    'LK': '🇱🇰', 'MV': '🇲🇻', 'BT': '🇧🇹', 'MN': '🇲🇳', 'KZ': '🇰🇿', 'UZ': '🇺🇿',
+    'PL': '🇵🇱', 'CZ': '🇨🇿', 'AT': '🇦🇹', 'HU': '🇭🇺', 'GR': '🇬🇷', 'PT': '🇵🇹',
+    'SE': '🇸🇪', 'NO': '🇳🇴', 'DK': '🇩🇰', 'FI': '🇫🇮', 'BE': '🇧🇪', 'IE': '🇮🇪',
+    'MX': '🇲🇽', 'AR': '🇦🇷', 'CL': '🇨🇱', 'CO': '🇨🇴', 'PE': '🇵🇪', 'VE': '🇻🇪',
+    'NG': '🇳🇬', 'KE': '🇰🇪', 'GH': '🇬🇭', 'TZ': '🇹🇿', 'UG': '🇺🇬', 'ET': '🇪🇹',
+    'MA': '🇲🇦', 'TN': '🇹🇳', 'DZ': '🇩🇿', 'LY': '🇱🇾', 'SD': '🇸🇩'
+};
 
-// Build country codes list from the library (without ISO in display)
+// Build country codes list from the library
 const allCountryCodes = Object.entries(countries).map(([iso, data]) => ({
     code: String(data.phone[0] || ''),
-    flag: isoToEmoji(iso),
+    flag: flagMap[iso] || '🏳️',
     name: data.name
 })).filter(c => c.code); // Filter out countries without phone codes
 
