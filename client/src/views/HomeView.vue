@@ -13,7 +13,7 @@ let interval: any = null;
 // Add first element to end for seamless looping
 const displayList = [...eventTypes, eventTypes[0]];
 
-const ITEM_HEIGHT_EM = 1.2; // Optimized for Outfit font
+const ITEM_HEIGHT_EM = 1.5; // Increased for descender safety (g, j, y)
 
 onMounted(() => {
   // CTO Standard: Reliable state machine for vertical sliding
