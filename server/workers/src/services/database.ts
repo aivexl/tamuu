@@ -1304,10 +1304,18 @@ export class DatabaseService {
 
         values.push(guestId);
 
-        await this.db
-            .prepare(`UPDATE guests SET ${sets.join(', ')} WHERE id = ?`)
-            .bind(...values)
-            .run();
+        console.log(`[DB SERVICE] Updating guest ${guestId}`, { sets, values });
+
+        try {
+            const result = await this.db
+                .prepare(`UPDATE guests SET ${sets.join(', ')} WHERE id = ?`)
+                .bind(...values)
+                .run();
+            console.log(`[DB SERVICE] Update result for ${guestId}:`, result);
+        } catch (err) {
+            console.error(`[DB SERVICE] Update FAILED for ${guestId}:`, err);
+            throw err;
+        }
     }
 
     /**

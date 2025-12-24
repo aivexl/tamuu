@@ -190,11 +190,27 @@ function cancelShareConfirm() {
 }
 
 async function markAsShared(guestId: string) {
+    console.log('--- START MARK AS SHARED ---');
+    console.log('Target Guest ID:', guestId);
     try {
-        await guestsApi.updateGuest(guestId, { sharedAt: new Date().toISOString() });
-        await loadData(); // Refresh list
+        const sharedAt = new Date().toISOString();
+        console.log('Sending update to API:', { sharedAt });
+        
+        await guestsApi.updateGuest(guestId, { sharedAt });
+        console.log('API update SUCCESS');
+        
+        console.log('Refreshing data...');
+        await loadData();
+        console.log('Data refresh COMPLETE');
+        
+        // Final check: did it actually update in the local state?
+        const guest = guests.value.find(g => g.id === guestId);
+        console.log('Guest state after refresh:', guest);
     } catch (e) {
-        console.error('Failed to mark as shared:', e);
+        console.error('FAILED to mark as shared:', e);
+        alert('Gagal menyimpan status kirim. Silakan coba lagi.');
+    } finally {
+        console.log('--- END MARK AS SHARED ---');
     }
 }
 
