@@ -455,16 +455,16 @@ onMounted(loadData);
                             <th class="col-name px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">NAMA TAMU</th>
                             <th class="col-phone px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">NO WHATSAPP</th>
                             <th class="col-addr px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">ALAMAT</th>
-                            <th class="col-count px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">JML</th>
+                            <th class="col-count px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">JUMLAH TAMU</th>
                             <th class="col-time px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">DATE</th>
-                            <th class="col-time px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">IN</th>
-                            <th class="col-time px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">OUT</th>
+                            <th class="col-time-long px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">CHECK-IN</th>
+                            <th class="col-time-long px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">CHECK-OUT</th>
                             <th class="col-status px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">KEHADIRAN</th>
                             <th class="col-send px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">SEND WA</th>
                             <th class="col-status px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">STATUS</th>
                             <th class="col-action px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">COPY</th>
                             <th class="col-action px-2 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">EDIT</th>
-                            <th class="col-action px-2 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">EXIT</th>
+                            <th class="col-delete px-2 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">DELETE</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -502,10 +502,10 @@ onMounted(loadData);
                             <td class="col-time px-3 py-5 text-[11px] text-slate-500 font-bold whitespace-nowrap">
                                 {{ guest.checkedInAt ? new Date(guest.checkedInAt).toLocaleDateString('id-ID', {day:'2-digit', month:'2-digit'}) : '-' }}
                             </td>
-                            <td class="col-time px-3 py-5 text-[11px] text-slate-500 font-bold tabular-nums">
+                            <td class="col-time-long px-3 py-5 text-[11px] text-slate-500 font-bold tabular-nums">
                                 {{ guest.checkedInAt ? new Date(guest.checkedInAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }) : '-' }}
                             </td>
-                            <td class="col-time px-3 py-5 text-[11px] text-slate-500 font-bold tabular-nums">
+                            <td class="col-time-long px-3 py-5 text-[11px] text-slate-500 font-bold tabular-nums">
                                 {{ guest.checkedOutAt ? new Date(guest.checkedOutAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }) : '-' }}
                             </td>
                             <td class="col-status px-3 py-5 text-center">
@@ -515,9 +515,13 @@ onMounted(loadData);
                             <td class="col-send px-3 py-5 text-center">
                                 <button 
                                     @click="shareWhatsApp(guest)"
-                                    class="p-2 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all hover:scale-110 shadow-sm"
+                                    :class="[
+                                        'p-2 rounded-xl transition-all hover:scale-110 shadow-sm flex items-center justify-center mx-auto',
+                                        guest.sharedAt ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                                    ]"
                                 >
-                                    <MessageSquare class="w-4 h-4" />
+                                    <Check v-if="guest.sharedAt" class="w-4 h-4" />
+                                    <MessageSquare v-else class="w-4 h-4" />
                                 </button>
                             </td>
                             <td class="col-status px-3 py-5 text-center">
@@ -534,7 +538,7 @@ onMounted(loadData);
                                     <Edit2 class="w-4 h-4" />
                                 </button>
                             </td>
-                            <td class="col-action px-2 py-5 text-center">
+                            <td class="col-delete px-2 py-5 text-center">
                                 <button @click="handleDeleteGuest(guest.id)" class="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all hover:scale-110">
                                     <Trash2 class="w-4 h-4" />
                                 </button>
@@ -757,11 +761,13 @@ tr:hover td {
 .col-tier { width: 6%; }
 .col-name { width: 15%; }
 .col-phone { width: 10%; }
-.col-addr { width: 15%; }
-.col-count { width: 4%; }
+.col-addr { width: 14%; }
+.col-count { width: 8%; }
 .col-time { width: 6%; }
+.col-time-long { width: 8%; }
 .col-status { width: 7%; }
 .col-action { width: 3.5%; }
 .col-send { width: 4.5%; }
+.col-delete { width: 5%; }
 
 </style>
