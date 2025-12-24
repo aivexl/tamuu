@@ -596,9 +596,9 @@ onMounted(loadData);
         </div>
 
         <!-- Guest List Table -->
-        <div class="rounded-3xl overflow-visible p-1">
-            <div class="w-full overflow-visible">
-                <table class="w-full text-left table-fixed border-separate border-spacing-0">
+        <div class="rounded-3xl overflow-hidden border border-slate-200 bg-white">
+            <div class="w-full overflow-x-auto">
+                <table class="w-full text-left border-separate border-spacing-0" style="min-width: 1400px;">
                     <thead>
                         <tr class="bg-[#2C5F5F] text-white">
                             <th class="col-id px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">ID TAMU</th>
