@@ -644,7 +644,7 @@ onMounted(loadData);
                             </td>
                             <td class="col-phone px-3 py-5 text-[12px] font-bold text-slate-700">
                                 <span class="flex items-center gap-1.5">
-                                    <span :class="['fi', 'fi-' + getIsoFromPhone(guest.phone)]" style="width: 16px; height: 12px;"></span>
+                                    <span :class="['fi', 'fis', 'fi-' + getIsoFromPhone(guest.phone)]" style="font-size: 1em;"></span>
                                     <span class="tabular-nums">+{{ guest.phone }}</span>
                                 </span>
                             </td>
@@ -728,44 +728,49 @@ onMounted(loadData);
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Nama Lengkap</label>
                     <input v-model="newGuest.name" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" placeholder="Contoh: Bpk. Budi & Kel." />
                 </div>
-                <div class="grid grid-cols-12 gap-3">
-                    <div class="col-span-12 md:col-span-4">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Kode Negara</label>
-                        <div class="relative">
-                            <button 
-                                type="button"
-                                @click="isCountryDropdownOpen = !isCountryDropdownOpen"
-                                class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 text-sm font-bold text-slate-700 transition-all cursor-pointer flex items-center justify-between gap-2"
-                            >
-                                <span class="flex items-center gap-2">
-                                    <span :class="['fi', 'fi-' + (sortedCountryCodes.find(c => c.code === selectedCountryCode)?.iso || 'id')]" style="width: 20px; height: 15px;"></span>
-                                    <span>+{{ selectedCountryCode }}</span>
-                                </span>
-                                <ChevronDown class="w-4 h-4 text-slate-400 transition-transform" :class="{ 'rotate-180': isCountryDropdownOpen }" />
-                            </button>
-                            <div 
-                                v-if="isCountryDropdownOpen" 
-                                class="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto"
-                            >
-                                <button
-                                    v-for="c in sortedCountryCodes" 
-                                    :key="c.code"
+                <div class="grid grid-cols-12 gap-4">
+                    <div class="col-span-12">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Kode Negara & Nomor WhatsApp</label>
+                        <div class="flex gap-2">
+                            <!-- Country Code Dropdown -->
+                            <div class="relative" style="min-width: 140px;">
+                                <button 
                                     type="button"
-                                    @click="selectedCountryCode = c.code; isCountryDropdownOpen = false"
-                                    class="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-teal-50 flex items-center gap-3 transition-colors"
-                                    :class="{ 'bg-teal-100 text-teal-700': selectedCountryCode === c.code }"
+                                    @click="isCountryDropdownOpen = !isCountryDropdownOpen"
+                                    class="w-full h-12 px-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 text-sm font-bold text-slate-700 transition-all cursor-pointer flex items-center justify-between gap-2"
                                 >
-                                    <span :class="['fi', 'fi-' + c.iso]" style="width: 20px; height: 15px;"></span>
-                                    <span class="flex-1">{{ c.name }}</span>
-                                    <span class="text-slate-400">+{{ c.code }}</span>
+                                    <span class="flex items-center gap-2">
+                                        <span :class="['fi', 'fis', 'fi-' + (sortedCountryCodes.find(c => c.code === selectedCountryCode)?.iso || 'id')]" style="font-size: 1.2em;"></span>
+                                        <span>+{{ selectedCountryCode }}</span>
+                                    </span>
+                                    <ChevronDown class="w-4 h-4 text-slate-400 transition-transform shrink-0" :class="{ 'rotate-180': isCountryDropdownOpen }" />
                                 </button>
+                                <!-- Dropdown Panel -->
+                                <div 
+                                    v-if="isCountryDropdownOpen" 
+                                    class="absolute z-[200] top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-72 overflow-y-auto"
+                                    style="min-width: 280px;"
+                                >
+                                    <div class="p-2">
+                                        <button
+                                            v-for="c in sortedCountryCodes" 
+                                            :key="c.code"
+                                            type="button"
+                                            @click="selectedCountryCode = c.code; isCountryDropdownOpen = false"
+                                            class="w-full px-3 py-2.5 text-left text-sm font-medium hover:bg-teal-50 rounded-lg flex items-center gap-3 transition-colors"
+                                            :class="{ 'bg-teal-100 text-teal-700': selectedCountryCode === c.code }"
+                                        >
+                                            <span :class="['fi', 'fis', 'fi-' + c.iso]" style="font-size: 1.4em;"></span>
+                                            <span class="flex-1 truncate">{{ c.name }}</span>
+                                            <span class="text-slate-400 text-xs font-bold">+{{ c.code }}</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="col-span-12 md:col-span-8">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nomor WhatsApp</label>
-                        <div class="relative group">
-                            <input v-model="newGuest.phone" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 text-sm font-bold text-slate-700 transition-all" placeholder="81234567..." />
+                            <!-- Phone Number Input -->
+                            <div class="flex-1">
+                                <input v-model="newGuest.phone" type="text" class="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 text-sm font-bold text-slate-700 transition-all" placeholder="81234567890" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -891,44 +896,49 @@ onMounted(loadData);
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Nama Lengkap</label>
                     <input v-model="editForm.name" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" placeholder="Contoh: Bpk. Budi & Kel." />
                 </div>
-                <div class="grid grid-cols-12 gap-3">
-                    <div class="col-span-12 md:col-span-4">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Kode Negara</label>
-                        <div class="relative">
-                            <button 
-                                type="button"
-                                @click="isEditCountryDropdownOpen = !isEditCountryDropdownOpen"
-                                class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm font-bold text-slate-700 transition-all cursor-pointer flex items-center justify-between gap-2"
-                            >
-                                <span class="flex items-center gap-2">
-                                    <span :class="['fi', 'fi-' + (sortedCountryCodes.find(c => c.code === selectedEditCountryCode)?.iso || 'id')]" style="width: 20px; height: 15px;"></span>
-                                    <span>+{{ selectedEditCountryCode }}</span>
-                                </span>
-                                <ChevronDown class="w-4 h-4 text-slate-400 transition-transform" :class="{ 'rotate-180': isEditCountryDropdownOpen }" />
-                            </button>
-                            <div 
-                                v-if="isEditCountryDropdownOpen" 
-                                class="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto"
-                            >
-                                <button
-                                    v-for="c in sortedCountryCodes" 
-                                    :key="c.code"
+                <div class="grid grid-cols-12 gap-4">
+                    <div class="col-span-12">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Kode Negara & Nomor WhatsApp</label>
+                        <div class="flex gap-2">
+                            <!-- Country Code Dropdown -->
+                            <div class="relative" style="min-width: 140px;">
+                                <button 
                                     type="button"
-                                    @click="selectedEditCountryCode = c.code; isEditCountryDropdownOpen = false"
-                                    class="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-blue-50 flex items-center gap-3 transition-colors"
-                                    :class="{ 'bg-blue-100 text-blue-700': selectedEditCountryCode === c.code }"
+                                    @click="isEditCountryDropdownOpen = !isEditCountryDropdownOpen"
+                                    class="w-full h-12 px-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm font-bold text-slate-700 transition-all cursor-pointer flex items-center justify-between gap-2"
                                 >
-                                    <span :class="['fi', 'fi-' + c.iso]" style="width: 20px; height: 15px;"></span>
-                                    <span class="flex-1">{{ c.name }}</span>
-                                    <span class="text-slate-400">+{{ c.code }}</span>
+                                    <span class="flex items-center gap-2">
+                                        <span :class="['fi', 'fis', 'fi-' + (sortedCountryCodes.find(c => c.code === selectedEditCountryCode)?.iso || 'id')]" style="font-size: 1.2em;"></span>
+                                        <span>+{{ selectedEditCountryCode }}</span>
+                                    </span>
+                                    <ChevronDown class="w-4 h-4 text-slate-400 transition-transform shrink-0" :class="{ 'rotate-180': isEditCountryDropdownOpen }" />
                                 </button>
+                                <!-- Dropdown Panel -->
+                                <div 
+                                    v-if="isEditCountryDropdownOpen" 
+                                    class="absolute z-[200] top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl max-h-72 overflow-y-auto"
+                                    style="min-width: 280px;"
+                                >
+                                    <div class="p-2">
+                                        <button
+                                            v-for="c in sortedCountryCodes" 
+                                            :key="c.code"
+                                            type="button"
+                                            @click="selectedEditCountryCode = c.code; isEditCountryDropdownOpen = false"
+                                            class="w-full px-3 py-2.5 text-left text-sm font-medium hover:bg-blue-50 rounded-lg flex items-center gap-3 transition-colors"
+                                            :class="{ 'bg-blue-100 text-blue-700': selectedEditCountryCode === c.code }"
+                                        >
+                                            <span :class="['fi', 'fis', 'fi-' + c.iso]" style="font-size: 1.4em;"></span>
+                                            <span class="flex-1 truncate">{{ c.name }}</span>
+                                            <span class="text-slate-400 text-xs font-bold">+{{ c.code }}</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="col-span-12 md:col-span-8">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nomor WhatsApp</label>
-                        <div class="relative group">
-                            <input v-model="editForm.phone" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm font-bold text-slate-700 transition-all" placeholder="81234567..." />
+                            <!-- Phone Number Input -->
+                            <div class="flex-1">
+                                <input v-model="editForm.phone" type="text" class="w-full h-12 px-4 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm font-bold text-slate-700 transition-all" placeholder="81234567890" />
+                            </div>
                         </div>
                     </div>
                 </div>
