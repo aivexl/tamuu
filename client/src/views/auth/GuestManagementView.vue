@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { 
-    Users, UserPlus, FileUp, FileDown, Copy, 
-    Share2, Search, Trash2, Edit2, Check, 
-    X, MoreHorizontal, MessageSquare, MapPin, 
-    ChevronDown, Download, AlertCircle, Info,
+    FileUp, FileDown, Copy, 
+    Search, Trash2, Edit2, Check, 
+    MessageSquare, 
+    ChevronDown, Download, Info,
     Plus, ArrowLeft, Loader2
 } from 'lucide-vue-next';
 import { guestsApi, type Guest } from '@/services/guests-api';
@@ -24,7 +24,7 @@ const loading = ref(true);
 const savingMessage = ref(false);
 const searchQuery = ref('');
 const isImportModalOpen = ref(false);
-const editingGuest = ref<string | null>(null);
+const showExportDropdown = ref(false);
 const invitationMessage = ref('');
 
 // Guest Form State
@@ -128,7 +128,7 @@ async function updateGuestField(guest: Guest, field: keyof Guest, value: any) {
     try {
         await guestsApi.updateGuest(guest.id, { [field]: value });
         const idx = guests.value.findIndex(g => g.id === guest.id);
-        if (idx !== -1) guests.value[idx] = { ...guests.value[idx], [field]: value };
+        if (idx !== -1) guests.value[idx] = { ...guests.value[idx], [field]: value } as Guest;
     } catch (e) {
         console.error('Update failed:', e);
     }
@@ -158,6 +158,15 @@ function shareWhatsApp(guest: Guest) {
     window.open(url, '_blank');
 }
 
+function handleExport(format: 'csv' | 'excel') {
+    if (format === 'csv') {
+        guestsApi.exportToCSV(guests.value);
+    } else {
+        guestsApi.exportToExcel(guests.value);
+    }
+    showExportDropdown.value = false;
+}
+
 function downloadImportFormat() {
     const csvContent = "Nama,WhatsApp,Alamat,Status,Jumlah Tamu\nJoni Saputra,08123456789,Bandung,vip,2\nSiti Aminah,08987654321,di tempat,reguler,1";
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -176,13 +185,13 @@ async function handleFileUpload(event: Event) {
     reader.onload = async (e) => {
         const text = e.target?.result as string;
         const lines = text.split('\n');
-        const header = lines[0].split(',');
+        if (lines.length < 2) return;
         
         const importedGuests = lines.slice(1).filter(l => l.trim()).map(line => {
             const cols = line.split(',');
             return {
                 name: cols[0]?.trim(),
-                phone: cols[1]?.trim(),
+                phone: cols[1]?.trim() || '',
                 address: cols[2]?.trim() || 'di tempat',
                 tier: (cols[3]?.trim().toLowerCase() || 'reguler') as 'reguler' | 'vip' | 'vvip',
                 guestCount: parseInt(cols[4]) || 1
@@ -290,9 +299,24 @@ onMounted(loadData);
                 <button @click="isImportModalOpen = true" class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all font-medium">
                     <FileUp class="w-4 h-4" /> Import Excel/CSV
                 </button>
-                <button @click="guestsApi.exportToCSV(guests)" class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all font-medium">
-                    <FileDown class="w-4 h-4" /> Export
-                </button>
+                
+                <div class="relative">
+                    <button 
+                        @click="showExportDropdown = !showExportDropdown" 
+                        class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-all font-medium"
+                    >
+                        <FileDown class="w-4 h-4" /> Export <ChevronDown class="w-4 h-4" />
+                    </button>
+                    
+                    <div v-if="showExportDropdown" class="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-30 py-2 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                        <button @click="handleExport('csv')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 text-sm text-slate-700 font-medium">
+                            <FileDown class="w-4 h-4 text-emerald-600" /> Export ke CSV
+                        </button>
+                        <button @click="handleExport('excel')" class="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 text-sm text-slate-700 font-medium">
+                            <Download class="w-4 h-4 text-teal-600" /> Export ke Excel
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 

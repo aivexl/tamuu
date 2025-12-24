@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 import { supabase } from '@/lib/supabase';
 
 const API_URL = "https://tamuu-api.shafania57.workers.dev/api";
@@ -117,5 +118,25 @@ export const guestsApi = {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    },
+
+    /**
+     * Export guests to Excel (.xlsx)
+     */
+    exportToExcel(guests: Guest[], filename = 'daftar-tamu.xlsx') {
+        const data = guests.map(g => ({
+            'Nama': g.name,
+            'WhatsApp': g.phone || '',
+            'Alamat': g.address,
+            'Status': g.tier.toUpperCase(),
+            'Jumlah Tamu': g.guestCount,
+            'Kode Check-in': g.checkInCode || '',
+            'Status Check-in': g.checkedInAt ? 'Sudah Masuk' : 'Belum Masuk'
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Daftar Tamu');
+        XLSX.writeFile(workbook, filename);
     }
 };

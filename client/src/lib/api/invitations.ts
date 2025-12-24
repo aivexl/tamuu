@@ -57,6 +57,7 @@ export interface TemplateResponse {
     status: string;
     userId?: string | null;
     sourceTemplateId?: string | null;
+    invitationMessage?: string;
     createdAt: string;
     updatedAt: string;
 }
