@@ -44,25 +44,63 @@ const newGuest = ref({
     guestCount: 1
 });
 
-// Country Codes
+// Country Codes (Comprehensive List)
 const countryCodes = [
     { code: '62', flag: '🇮🇩', name: 'Indonesia' },
-    { code: '65', flag: '🇸🇬', name: 'Singapore' },
     { code: '60', flag: '🇲🇾', name: 'Malaysia' },
+    { code: '65', flag: '🇸🇬', name: 'Singapore' },
+    { code: '66', flag: '🇹🇭', name: 'Thailand' },
+    { code: '673', flag: '🇧🇳', name: 'Brunei' },
+    { code: '63', flag: '🇵🇭', name: 'Philippines' },
+    { code: '84', flag: '🇻🇳', name: 'Vietnam' },
+    { code: '855', flag: '🇰🇭', name: 'Cambodia' },
+    { code: '856', flag: '🇱🇦', name: 'Laos' },
+    { code: '95', flag: '🇲🇲', name: 'Myanmar' },
     { code: '61', flag: '🇦🇺', name: 'Australia' },
     { code: '81', flag: '🇯🇵', name: 'Japan' },
     { code: '82', flag: '🇰🇷', name: 'South Korea' },
-    { code: '1', flag: '🇺🇸', name: 'USA' },
+    { code: '86', flag: '🇨🇳', name: 'China' },
+    { code: '886', flag: '🇹🇼', name: 'Taiwan' },
+    { code: '852', flag: '🇭🇰', name: 'Hong Kong' },
+    { code: '91', flag: '🇮🇳', name: 'India' },
+    { code: '92', flag: '🇵🇰', name: 'Pakistan' },
+    { code: '966', flag: '🇸🇦', name: 'Saudi Arabia' },
+    { code: '971', flag: '🇦🇪', name: 'UAE' },
+    { code: '90', flag: '🇹🇷', name: 'Turkey' },
+    { code: '1', flag: '🇺🇸', name: 'USA/Canada' },
     { code: '44', flag: '🇬🇧', name: 'UK' },
-];
+    { code: '33', flag: '🇫🇷', name: 'France' },
+    { code: '49', flag: '🇩🇪', name: 'Germany' },
+    { code: '31', flag: '🇳🇱', name: 'Netherlands' },
+    { code: '41', flag: '🇨🇭', name: 'Switzerland' },
+    { code: '39', flag: '🇮🇹', name: 'Italy' },
+    { code: '34', flag: '🇪🇸', name: 'Spain' },
+    { code: '7', flag: '🇷🇺', name: 'Russia' },
+    { code: '55', flag: '🇧🇷', name: 'Brazil' },
+    { code: '20', flag: '🇪🇬', name: 'Egypt' },
+    { code: '27', flag: '🇿🇦', name: 'South Africa' }
+].sort((a,b) => a.name.localeCompare(b.name));
+
+// Indonesia should always be at the top though
+const sortedCountryCodes = computed(() => {
+    const list = [...countryCodes];
+    const indoIdx = list.findIndex(c => c.code === '62');
+    if (indoIdx > -1) {
+        const indo = list.splice(indoIdx, 1)[0];
+        list.unshift(indo);
+    }
+    return list;
+});
 
 const selectedCountryCode = ref('62');
 const selectedEditCountryCode = ref('62');
 
 function getFlag(phone: string | null) {
     if (!phone) return '🇮🇩';
-    const match = countryCodes.find(c => phone.startsWith(c.code));
-    return match ? match.flag : '🌐';
+    // Sort codes by length descending to match longest possible prefix first (e.g. 673 before 6)
+    const sortedByLen = [...countryCodes].sort((a, b) => b.code.length - a.code.length);
+    const match = sortedByLen.find(c => phone.startsWith(c.code));
+    return match ? match.flag : ''; // Remove globe icon
 }
 
 function formatPhoneDisplay(phone: string | null) {
@@ -75,20 +113,22 @@ function sanitizePhoneNumber(phone: string, countryCode: string): string {
     let cleaned = phone.replace(/\D/g, '');
     if (!cleaned) return '';
     
-    // Check if user pasted a number with a country code already
-    // e.g. +628... or 628...
-    for (const c of countryCodes) {
+    // Check if user already entered a number with a valid country code
+    // Sort by length descending to avoid partial matches (e.g. 1 matching a number starting with 12)
+    const sortedByLen = [...countryCodes].sort((a, b) => b.code.length - a.code.length);
+    for (const c of sortedByLen) {
         if (cleaned.startsWith(c.code)) {
+            // Already starts with a valid international code, do not force 62 or anything else
             return cleaned; 
         }
     }
 
-    // If starts with 0 (traditional local format), strip it and add country code
+    // If starts with 0 (traditional local format), strip it and use the ACTIVE country code from dropdown
     if (cleaned.startsWith('0')) {
         return countryCode + cleaned.substring(1);
     }
     
-    // Otherwise just prepend country code if not present
+    // Otherwise, assume it's a local number without 0 and prepend active country code
     return countryCode + cleaned;
 }
 
@@ -223,7 +263,10 @@ function openEditModal(guest: Guest) {
     // Determine country code from phone
     let phoneStr = guest.phone || '';
     let foundCode = '62';
-    for (const c of countryCodes) {
+    
+    // Sort codes by length descending to match longest possible prefix first
+    const sortedByLen = [...countryCodes].sort((a, b) => b.code.length - a.code.length);
+    for (const c of sortedByLen) {
         if (phoneStr.startsWith(c.code)) {
             foundCode = c.code;
             phoneStr = phoneStr.substring(c.code.length);
@@ -424,10 +467,10 @@ async function processData(data: any, format: 'csv' | 'excel') {
             return {
                 tier: (cols[0]?.trim().toLowerCase() || 'reguler') as any,
                 name: cols[1]?.trim() || '',
-                phone: cols[2] ? sanitizePhoneNumber(cols[2].trim(), '62') : '',
+                phone: cols[2] ? sanitizePhoneNumber(cols[2].toString().trim(), selectedCountryCode.value) : '',
                 address: cols[3]?.trim() || 'di tempat',
                 guestCount: parseInt(cols[4] || '1') || 1,
-                tableNumber: cols[5]?.trim() || ''
+                tableNumber: cols[5]?.toString().trim() || ''
             };
         });
     } else {
@@ -435,7 +478,7 @@ async function processData(data: any, format: 'csv' | 'excel') {
         importedGuests = data.slice(1).map((cols: any) => ({
             tier: (String(cols[0] || '').trim().toLowerCase() || 'reguler') as any,
             name: String(cols[1] || '').trim(),
-            phone: cols[2] ? sanitizePhoneNumber(String(cols[2]).trim(), '62') : '',
+            phone: cols[2] ? sanitizePhoneNumber(String(cols[2]).trim(), selectedCountryCode.value) : '',
             address: String(cols[3] || '').trim() || 'di tempat',
             guestCount: parseInt(cols[4] || '1') || 1,
             tableNumber: String(cols[5] || '').trim() || ''
@@ -622,7 +665,7 @@ onMounted(loadData);
                             </td>
                             <td class="col-phone px-3 py-5 text-[12px] font-bold text-slate-700">
                                 <span class="flex items-center gap-1.5">
-                                    <span class="text-lg leading-none">{{ getFlag(guest.phone) }}</span>
+                                    <span v-if="getFlag(guest.phone)" class="text-lg leading-none">{{ getFlag(guest.phone) }}</span>
                                     <span class="tabular-nums">+{{ guest.phone }}</span>
                                 </span>
                             </td>
@@ -706,21 +749,25 @@ onMounted(loadData);
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Nama Lengkap</label>
                     <input v-model="newGuest.name" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" placeholder="Contoh: Bpk. Budi & Kel." />
                 </div>
-                <div class="grid grid-cols-3 gap-3">
-                    <div class="col-span-1">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Negara</label>
-                        <div class="relative">
-                            <select v-model="selectedCountryCode" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500 appearance-none text-sm font-bold">
-                                <option v-for="c in countryCodes" :key="c.code" :value="c.code">
-                                    {{ c.flag }} +{{ c.code }}
+                <div class="grid grid-cols-12 gap-3">
+                    <div class="col-span-12 md:col-span-5">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                            Negara <span class="text-indigo-500 font-black">+Kode</span>
+                        </label>
+                        <div class="relative group">
+                            <select v-model="selectedCountryCode" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 appearance-none text-sm font-bold text-slate-700 transition-all cursor-pointer pr-10">
+                                <option v-for="c in sortedCountryCodes" :key="c.code" :value="c.code">
+                                    {{ c.flag }} {{ c.name }} +{{ c.code }}
                                 </option>
                             </select>
-                            <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            <ChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-hover:text-teal-600 transition-colors" />
                         </div>
                     </div>
-                    <div class="col-span-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">WhatsApp</label>
-                        <input v-model="newGuest.phone" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" placeholder="8123..." />
+                    <div class="col-span-12 md:col-span-7">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nomor WhatsApp</label>
+                        <div class="relative group">
+                            <input v-model="newGuest.phone" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 text-sm font-bold text-slate-700 transition-all" placeholder="81234567..." />
+                        </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
@@ -845,21 +892,25 @@ onMounted(loadData);
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Nama Lengkap</label>
                     <input v-model="editForm.name" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" placeholder="Contoh: Bpk. Budi & Kel." />
                 </div>
-                <div class="grid grid-cols-3 gap-3">
-                    <div class="col-span-1">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Negara</label>
-                        <div class="relative">
-                            <select v-model="selectedEditCountryCode" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 appearance-none text-sm font-bold">
-                                <option v-for="c in countryCodes" :key="c.code" :value="c.code">
-                                    {{ c.flag }} +{{ c.code }}
+                <div class="grid grid-cols-12 gap-3">
+                    <div class="col-span-12 md:col-span-5">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                            Negara <span class="text-blue-500 font-black">+Kode</span>
+                        </label>
+                        <div class="relative group">
+                            <select v-model="selectedEditCountryCode" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none text-sm font-bold text-slate-700 transition-all cursor-pointer pr-10">
+                                <option v-for="c in sortedCountryCodes" :key="c.code" :value="c.code">
+                                    {{ c.flag }} {{ c.name }} +{{ c.code }}
                                 </option>
                             </select>
-                            <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            <ChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-hover:text-blue-600 transition-colors" />
                         </div>
                     </div>
-                    <div class="col-span-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">WhatsApp</label>
-                        <input v-model="editForm.phone" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500" placeholder="8123..." />
+                    <div class="col-span-12 md:col-span-7">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nomor WhatsApp</label>
+                        <div class="relative group">
+                            <input v-model="editForm.phone" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm font-bold text-slate-700 transition-all" placeholder="81234567..." />
+                        </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
