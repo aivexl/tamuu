@@ -145,12 +145,7 @@ onMounted(() => {
     >
         <!-- Logo Area -->
         <div class="h-20 flex items-center justify-between px-6">
-            <div v-if="sidebarOpen" class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-2xl bg-slate-900 flex items-center justify-center text-white font-black text-xl shadow-2xl shadow-slate-900/20">
-                    T
-                </div>
-                <span class="font-black text-2xl text-slate-900 tracking-tighter font-outfit uppercase">Tamuu</span>
-            </div>
+            <!-- Removed Redundant Logo Area -->
             <button 
                 @click="sidebarOpen = !sidebarOpen"
                 class="p-2.5 rounded-xl hover:bg-slate-100 text-slate-500 lg:hidden transition-all"
@@ -244,9 +239,7 @@ onMounted(() => {
                 >
                     <Menu class="w-6 h-6" />
                 </button>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900 font-outfit">
-                    {{ menuItems.find(m => m.id === activeTab)?.label || 'Dashboard' }}
-                </h1>
+                <!-- Title Removed for Minimalism -->
             </div>
             
             <div class="flex items-center gap-4">
@@ -347,11 +340,11 @@ onMounted(() => {
                             <button @click="createNewInvitation" class="px-6 py-3 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all">Buat Sekarang</button>
                         </div>
 
-                        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div 
-                                v-for="inv in invitations.slice(0, 2)"
+                                v-for="inv in invitations.slice(0, 3)"
                                 :key="inv.id"
-                                class="group bg-white rounded-3xl border border-slate-200/60 overflow-hidden hover:shadow-2xl hover:border-teal-400/30 transition-all duration-500"
+                                class="group bg-white rounded-2xl border border-slate-200/60 overflow-hidden hover:shadow-xl hover:border-teal-400/30 transition-all duration-500"
                             >
                                 <div class="aspect-video relative overflow-hidden">
                                     <SafeImage 
@@ -374,13 +367,13 @@ onMounted(() => {
                                         </div>
                                     </div>
                                 </div>
-                                <div class="p-6">
-                                    <h5 class="font-bold text-slate-900 truncate mb-1">{{ inv.name }}</h5>
-                                    <p class="text-sm text-slate-500 truncate mb-4">tamuu.pages.dev/{{ inv.slug }}</p>
+                                <div class="p-5">
+                                    <h5 class="font-bold text-slate-900 truncate mb-1 text-sm">{{ inv.name }}</h5>
+                                    <p class="text-[10px] text-slate-500 truncate mb-3 capitalize">tamuu.pages.dev/{{ inv.slug }}</p>
                                     <div class="flex items-center justify-between mt-auto">
-                                        <span class="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-teal-50 text-teal-600 rounded-lg">{{ inv.status }}</span>
-                                        <button @click="manageGuests(inv)" class="text-sm font-bold text-slate-900 hover:text-teal-600 transition-colors flex items-center gap-1.5">
-                                            <Users class="w-4 h-4" /> Tamu
+                                        <span class="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-teal-50 text-teal-600 rounded-md">{{ inv.status }}</span>
+                                        <button @click="manageGuests(inv)" class="text-xs font-bold text-slate-900 hover:text-teal-600 transition-colors flex items-center gap-1.5">
+                                            <Users class="w-3.5 h-3.5" /> Tamu
                                         </button>
                                     </div>
                                 </div>
@@ -445,11 +438,11 @@ onMounted(() => {
                     <button @click="createNewInvitation" class="px-10 py-4 bg-slate-900 text-white font-bold rounded-2xl hover:scale-105 transition-all shadow-2xl shadow-slate-900/10">Buat Baru</button>
                 </div>
 
-                <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div v-else class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                     <div 
                         v-for="inv in filteredInvitations"
                         :key="inv.id"
-                        class="group bg-white rounded-[2rem] border border-slate-200/60 overflow-hidden hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] hover:border-teal-400/30 transition-all duration-700"
+                        class="group bg-white rounded-2xl border border-slate-200/60 overflow-hidden hover:shadow-2xl hover:border-teal-400/30 transition-all duration-700"
                     >
                         <div class="aspect-[4/3] relative overflow-hidden">
                             <SafeImage 
@@ -481,21 +474,21 @@ onMounted(() => {
                                 </div>
                             </div>
                         </div>
-                        <div class="p-8">
+                        <div class="p-5">
                             <div class="flex items-start justify-between gap-4 mb-2">
-                                <h3 class="text-xl font-black text-slate-900 truncate tracking-tight">{{ inv.name }}</h3>
+                                <h3 class="text-base font-bold text-slate-900 truncate tracking-tight">{{ inv.name }}</h3>
                                 <div class="flex items-center gap-2">
-                                    <button class="p-2 text-slate-400 hover:text-rose-500 transition-colors">
-                                        <Trash2 class="w-4 h-4" />
+                                    <button class="p-1.5 text-slate-300 hover:text-rose-500 transition-colors">
+                                        <Trash2 class="w-3.5 h-3.5" />
                                     </button>
                                 </div>
                             </div>
-                            <p class="text-slate-400 text-sm font-medium mb-6 uppercase tracking-[0.2em]">tamuu.pages.dev/{{ inv.slug }}</p>
+                            <p class="text-slate-400 text-[10px] font-medium mb-4 uppercase tracking-[0.1em] truncate">tamuu.pages.dev/{{ inv.slug }}</p>
                             
-                            <div class="flex items-center justify-between pt-6 border-t border-slate-100">
+                            <div class="flex items-center justify-between pt-4 border-t border-slate-100">
                                 <span 
                                     :class="[
-                                        'text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-[10px]',
+                                        'text-[9px] font-black uppercase tracking-[0.1em] px-2 py-1 rounded-md',
                                         inv.status === 'published' 
                                             ? 'bg-emerald-50 text-emerald-600' 
                                             : 'bg-amber-50 text-amber-600'
@@ -503,14 +496,9 @@ onMounted(() => {
                                 >
                                     {{ inv.status }}
                                 </span>
-                                <div class="flex items-center gap-4">
-                                    <div class="flex -space-x-2">
-                                        <div v-for="i in 3" :key="i" class="w-6 h-6 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-slate-400">
-                                            {{ i }}
-                                        </div>
-                                    </div>
-                                    <span class="text-xs font-bold text-slate-400">88+ Views</span>
-                                </div>
+                                <button @click="manageGuests(inv)" class="text-[10px] font-black text-slate-400 hover:text-teal-600 flex items-center gap-1.5 transition-colors">
+                                    <Users class="w-3.5 h-3.5" /> Tamu
+                                </button>
                             </div>
                         </div>
                     </div>
