@@ -392,13 +392,21 @@ function handleExport(format: 'csv' | 'excel') {
 
 function downloadImportFormat() {
     const headers = ['TIER', 'NAMA TAMU', 'NO WHATSAPP', 'ALAMAT', 'JUMLAH TAMU', 'MEJA/KURSI/RUANGAN'];
-    // Use leading apostrophe for phone numbers to force text format in Excel
     const data = [
-        ['VIP', 'Joni Saputra', "'628123456789", 'Bandung', 2, 'Meja A1'],
-        ['REGULER', 'Siti Aminah', "'628987654321", 'di tempat', 1, 'Room 302']
+        ['VIP', 'Joni Saputra', '628123456789', 'Bandung', 2, 'Meja A1'],
+        ['REGULER', 'Siti Aminah', '628987654321', 'di tempat', 1, 'Room 302']
     ];
     
     const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    
+    // Force phone number cells (column C) to be text type to prevent scientific notation
+    // Row 2 and 3 (data rows), Column C (index 2)
+    ['C2', 'C3'].forEach(cell => {
+        if (worksheet[cell]) {
+            worksheet[cell].t = 's'; // Set type to string
+            worksheet[cell].v = String(worksheet[cell].v); // Ensure value is string
+        }
+    });
     
     // Set column widths for better readability
     worksheet['!cols'] = [
