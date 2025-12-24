@@ -5,7 +5,7 @@ import { ArrowRight, CheckCircle, Sparkles, Star, Zap, ShieldCheck } from "lucid
 import MainNavbar from "@/components/layout/MainNavbar.vue";
 import MainFooter from "@/components/layout/MainFooter.vue";
 
-const eventTypes = ["Pernikahan", "Ulang Tahun", "Sunatan", "Syukuran", "Aqiqah", "Khitanan", "Engagement"];
+const eventTypes = ["Pernikahan", "Ulang Tahun", "Sunatan", "Syukuran", "Aqiqah", "Tunangan", "Pertunangan"];
 const currentIndex = ref(0);
 const transitionEnabled = ref(true);
 let interval: any = null;
@@ -14,21 +14,24 @@ let interval: any = null;
 const displayList = [...eventTypes, eventTypes[0]];
 
 onMounted(() => {
+  // Use a longer interval for better readability (3.5 seconds)
   interval = setInterval(() => {
-    if (currentIndex.value >= eventTypes.length) {
-      // Snap back to 0 without transition
-      transitionEnabled.value = false;
-      currentIndex.value = 0;
-      
-      // Re-enable transition for the next slide
-      setTimeout(() => {
-        transitionEnabled.value = true;
-        currentIndex.value = 1;
-      }, 50);
-    } else {
+    if (currentIndex.value < eventTypes.length) {
       currentIndex.value++;
     }
-  }, 2500);
+    
+    // If we just moved to the clone (last index), wait for transition, then snap back
+    if (currentIndex.value === eventTypes.length) {
+      setTimeout(() => {
+        transitionEnabled.value = false;
+        currentIndex.value = 0;
+        // Small delay to ensure browser processed the instant jump
+        setTimeout(() => {
+          transitionEnabled.value = true;
+        }, 50);
+      }, 700); // Wait for the transition (700ms) to finish
+    }
+  }, 3500);
 });
 
 onUnmounted(() => {
@@ -142,9 +145,9 @@ const formatPrice = (price: number) => {
             Platform Undangan
             <br />
             <span class="text-indigo-600">Terbaik</span> Untuk 
-            <span class="relative h-[1.1em] overflow-hidden inline-flex flex-col align-bottom text-left min-w-[200px]">
+            <span class="relative h-[1.1em] overflow-hidden inline-flex flex-col align-bottom text-left min-w-[260px] md:min-w-[340px] lg:min-w-[400px]">
               <span 
-                class="flex flex-col w-full" 
+                class="flex flex-col w-full whitespace-nowrap" 
                 :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
                 :style="{ transform: `translateY(-${currentIndex * 100}%)` }"
               >
