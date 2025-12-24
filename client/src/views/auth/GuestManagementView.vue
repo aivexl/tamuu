@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { 
     FileUp, FileDown, Copy, 
     Search, Trash2, Edit2, Check, 
-    MessageSquare, 
+    MessageSquare, RefreshCw,
     ChevronDown, Download, Info,
     Plus, ArrowLeft, Loader2
 } from 'lucide-vue-next';
@@ -148,7 +148,7 @@ function copyGuestLink(guest: Guest) {
     alert(`Link untuk ${guest.name} disalin!`);
 }
 
-function shareWhatsApp(guest: Guest) {
+async function shareWhatsApp(guest: Guest) {
     if (!invitation.value?.slug) return;
     const phone = guest.phone ? guest.phone.replace(/\D/g, '') : '';
     const formattedPhone = phone.startsWith('0') ? '62' + phone.substring(1) : phone;
@@ -156,6 +156,23 @@ function shareWhatsApp(guest: Guest) {
     const message = `${invitationMessage.value}\n\nLink Undangan: https://tamuu.id/${invitation.value.slug}?to=${encodeURIComponent(guest.name)}`;
     const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
+    
+    // Show confirm dialog after returning from WhatsApp
+    setTimeout(async () => {
+        const confirmed = confirm(`Apakah pesan untuk "${guest.name}" berhasil dikirim?`);
+        if (confirmed) {
+            await markAsShared(guest.id);
+        }
+    }, 1000);
+}
+
+async function markAsShared(guestId: string) {
+    try {
+        await guestsApi.updateGuest(guestId, { sharedAt: new Date().toISOString() });
+        await loadData(); // Refresh list
+    } catch (e) {
+        console.error('Failed to mark as shared:', e);
+    }
 }
 
 function handleExport(format: 'csv' | 'excel') {
@@ -329,15 +346,16 @@ onMounted(loadData);
                             <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Nama Tamu</th>
                             <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">WhatsApp</th>
                             <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Alamat</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Tier</th>
                             <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Tamu</th>
+                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Share</th>
                             <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Check-in</th>
                             <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <tr v-if="filteredGuests.length === 0" class="hover:bg-slate-50/30">
-                            <td colspan="7" class="px-6 py-12 text-center text-slate-400 italic">
+                            <td colspan="8" class="px-6 py-12 text-center text-slate-400 italic">
                                 Belum ada data tamu. Klik "Tambah Tamu" atau "Import" untuk memulai.
                             </td>
                         </tr>
@@ -379,6 +397,12 @@ onMounted(loadData);
                                 {{ guest.guestCount }}
                             </td>
                             <td class="px-6 py-4">
+                                <span v-if="guest.sharedAt" class="flex items-center gap-1 text-emerald-600 text-xs font-bold">
+                                    <Check class="w-3 h-3" /> TERKIRIM
+                                </span>
+                                <span v-else class="text-slate-300 text-[10px] font-bold">BELUM</span>
+                            </td>
+                            <td class="px-6 py-4">
                                 <span v-if="guest.checkedInAt" class="flex items-center gap-1 text-emerald-600 text-xs font-bold">
                                     <Check class="w-3 h-3" /> HADIR
                                 </span>
@@ -388,10 +412,16 @@ onMounted(loadData);
                                 <div class="flex items-center justify-end gap-2">
                                     <button 
                                         @click="shareWhatsApp(guest)"
-                                        class="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors"
-                                        title="Kirim WA"
+                                        :class="[
+                                            'p-2 rounded-lg transition-colors flex items-center gap-1',
+                                            guest.sharedAt 
+                                                ? 'bg-slate-100 text-slate-500 hover:bg-slate-200' 
+                                                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                                        ]"
+                                        :title="guest.sharedAt ? 'Kirim Ulang WA' : 'Kirim WA'"
                                     >
-                                        <MessageSquare class="w-4 h-4" />
+                                        <RefreshCw v-if="guest.sharedAt" class="w-4 h-4" />
+                                        <MessageSquare v-else class="w-4 h-4" />
                                     </button>
                                     <button 
                                         @click="copyGuestLink(guest)"

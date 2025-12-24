@@ -26,6 +26,7 @@ export interface Guest {
     guestCount: number;
     checkInCode: string | null;
     checkedInAt: string | null;
+    sharedAt: string | null;
     createdAt: string;
     updatedAt: string;
 }
