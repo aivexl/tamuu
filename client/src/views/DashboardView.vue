@@ -60,12 +60,17 @@ const filteredInvitations = computed(() => {
 async function loadInvitations() {
     loading.value = true;
     try {
-        const [invDocs, guestStats] = await Promise.all([
-            invitationsApi.getMyInvitations(),
-            guestsApi.getGuestStats()
-        ]);
-        invitations.value = invDocs;
-        totalGuests.value = guestStats.totalGuests;
+        // Load invitations first as they are critical
+        invitations.value = await invitationsApi.getMyInvitations();
+        
+        // Load stats in background or separate try-catch
+        try {
+            const guestStats = await guestsApi.getGuestStats();
+            totalGuests.value = guestStats.totalGuests;
+        } catch (statsErr) {
+            console.warn('Failed to load guest stats:', statsErr);
+            totalGuests.value = 0; // Fallback
+        }
     } catch (e) {
         console.error('Failed to load invitations:', e);
     } finally {
