@@ -157,13 +157,20 @@ async function shareWhatsApp(guest: Guest) {
     const url = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
     
-    // Show confirm dialog after returning from WhatsApp
-    setTimeout(async () => {
-        const confirmed = confirm(`Apakah pesan untuk "${guest.name}" berhasil dikirim?`);
-        if (confirmed) {
-            await markAsShared(guest.id);
+    // Use visibilitychange event to detect when user returns from WhatsApp
+    const handleVisibilityChange = async () => {
+        if (document.visibilityState === 'visible') {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            // Small delay to ensure smooth UX
+            await new Promise(resolve => setTimeout(resolve, 500));
+            const confirmed = confirm(`Apakah pesan untuk "${guest.name}" berhasil dikirim?`);
+            if (confirmed) {
+                await markAsShared(guest.id);
+            }
         }
-    }, 1000);
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 }
 
 async function markAsShared(guestId: string) {
