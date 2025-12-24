@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { supabase } from '@/lib/supabase';
 
 const API_URL = "https://tamuu-api.shafania57.workers.dev/api";
