@@ -498,13 +498,18 @@ async function processData(data: any, format: 'csv' | 'excel') {
 // Confirm and save imported guests
 async function confirmImport() {
     if (pendingImportGuests.value.length === 0) return;
+    if (isImporting.value) return; // Prevent double-click
+    
+    const guestsToImport = [...pendingImportGuests.value]; // Copy before clearing
+    const count = guestsToImport.length;
     
     isImporting.value = true;
+    pendingImportGuests.value = []; // Clear immediately to prevent re-submit
+    
     try {
-        await guestsApi.bulkAddGuests(invitationId, pendingImportGuests.value);
+        await guestsApi.bulkAddGuests(invitationId, guestsToImport);
         await loadData();
-        showToast(`Berhasil mengimpor ${pendingImportGuests.value.length} tamu.`);
-        pendingImportGuests.value = [];
+        showToast(`Berhasil mengimpor ${count} tamu.`);
         isImportModalOpen.value = false;
     } catch (err) {
         showToast('Gagal mengimpor tamu. Periksa format file Anda.');
