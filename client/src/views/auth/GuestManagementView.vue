@@ -748,7 +748,7 @@ onMounted(loadData);
                         <div class="relative group">
                             <select v-model="selectedCountryCode" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 appearance-none text-sm font-bold text-slate-700 transition-all cursor-pointer pr-10">
                                 <option v-for="c in sortedCountryCodes" :key="c.code" :value="c.code">
-                                    {{ c.flag }} {{ c.name }} +{{ c.code }}
+                                    {{ c.name }} +{{ c.code }}
                                 </option>
                             </select>
                             <ChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-hover:text-teal-600 transition-colors" />
@@ -891,7 +891,7 @@ onMounted(loadData);
                         <div class="relative group">
                             <select v-model="selectedEditCountryCode" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none text-sm font-bold text-slate-700 transition-all cursor-pointer pr-10">
                                 <option v-for="c in sortedCountryCodes" :key="c.code" :value="c.code">
-                                    {{ c.flag }} {{ c.name }} +{{ c.code }}
+                                    {{ c.name }} +{{ c.code }}
                                 </option>
                             </select>
                             <ChevronDown class="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-hover:text-blue-600 transition-colors" />
