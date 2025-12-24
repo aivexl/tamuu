@@ -48,76 +48,32 @@ const newGuest = ref({
     guestCount: 1
 });
 
-// Curated Country Codes List (only countries with working emoji flags)
-const allCountryCodes = [
-    { code: '62', flag: '🇮🇩', name: 'Indonesia' },
-    { code: '60', flag: '🇲🇾', name: 'Malaysia' },
-    { code: '65', flag: '🇸🇬', name: 'Singapore' },
-    { code: '66', flag: '🇹🇭', name: 'Thailand' },
-    { code: '673', flag: '🇧🇳', name: 'Brunei' },
-    { code: '63', flag: '🇵🇭', name: 'Philippines' },
-    { code: '84', flag: '🇻🇳', name: 'Vietnam' },
-    { code: '855', flag: '🇰🇭', name: 'Cambodia' },
-    { code: '856', flag: '🇱🇦', name: 'Laos' },
-    { code: '95', flag: '🇲🇲', name: 'Myanmar' },
-    { code: '61', flag: '🇦🇺', name: 'Australia' },
-    { code: '64', flag: '🇳🇿', name: 'New Zealand' },
-    { code: '81', flag: '🇯🇵', name: 'Japan' },
-    { code: '82', flag: '🇰🇷', name: 'South Korea' },
-    { code: '86', flag: '🇨🇳', name: 'China' },
-    { code: '886', flag: '🇹🇼', name: 'Taiwan' },
-    { code: '852', flag: '🇭🇰', name: 'Hong Kong' },
-    { code: '91', flag: '🇮🇳', name: 'India' },
-    { code: '92', flag: '🇵🇰', name: 'Pakistan' },
-    { code: '880', flag: '🇧🇩', name: 'Bangladesh' },
-    { code: '94', flag: '🇱🇰', name: 'Sri Lanka' },
-    { code: '977', flag: '🇳🇵', name: 'Nepal' },
-    { code: '966', flag: '🇸🇦', name: 'Saudi Arabia' },
-    { code: '971', flag: '🇦🇪', name: 'UAE' },
-    { code: '974', flag: '🇶🇦', name: 'Qatar' },
-    { code: '965', flag: '🇰🇼', name: 'Kuwait' },
-    { code: '973', flag: '🇧🇭', name: 'Bahrain' },
-    { code: '968', flag: '🇴🇲', name: 'Oman' },
-    { code: '90', flag: '🇹🇷', name: 'Turkey' },
-    { code: '1', flag: '🇺🇸', name: 'USA/Canada' },
-    { code: '44', flag: '🇬🇧', name: 'UK' },
-    { code: '33', flag: '🇫🇷', name: 'France' },
-    { code: '49', flag: '🇩🇪', name: 'Germany' },
-    { code: '31', flag: '🇳🇱', name: 'Netherlands' },
-    { code: '32', flag: '🇧🇪', name: 'Belgium' },
-    { code: '41', flag: '🇨🇭', name: 'Switzerland' },
-    { code: '43', flag: '🇦🇹', name: 'Austria' },
-    { code: '39', flag: '🇮🇹', name: 'Italy' },
-    { code: '34', flag: '🇪🇸', name: 'Spain' },
-    { code: '351', flag: '🇵🇹', name: 'Portugal' },
-    { code: '7', flag: '🇷🇺', name: 'Russia' },
-    { code: '55', flag: '🇧🇷', name: 'Brazil' },
-    { code: '52', flag: '🇲🇽', name: 'Mexico' },
-    { code: '54', flag: '🇦🇷', name: 'Argentina' }
-];
+// Country Codes from countries-list library
+import { countries } from 'countries-list';
+
+// Build country codes list from the library (name + phone code only, no flags)
+const allCountryCodes = Object.entries(countries).map(([_iso, data]) => ({
+    code: String(data.phone[0] || ''),
+    name: data.name
+})).filter(c => c.code); // Filter out countries without phone codes
 
 // Indonesia at the top, then sort alphabetically
 const sortedCountryCodes = computed(() => {
-    const list = [...allCountryCodes];
+    const list = [...allCountryCodes].sort((a, b) => a.name.localeCompare(b.name));
     const indoIdx = list.findIndex(c => c.code === '62');
-    if (indoIdx > 0) {
+    if (indoIdx > -1) {
         const indo = list.splice(indoIdx, 1)[0];
         list.unshift(indo);
     }
-    // Sort the rest alphabetically (excluding Indonesia at index 0)
-    const rest = list.slice(1).sort((a, b) => a.name.localeCompare(b.name));
-    return [list[0], ...rest];
+    return list;
 });
 
 const selectedCountryCode = ref('62');
 const selectedEditCountryCode = ref('62');
 
-function getFlag(phone: string | null) {
-    if (!phone) return '🇮🇩';
-    // Sort codes by length descending to match longest possible prefix first (e.g. 673 before 6)
-    const sortedByLen = [...allCountryCodes].sort((a, b) => b.code.length - a.code.length);
-    const match = sortedByLen.find(c => phone.startsWith(c.code));
-    return match ? match.flag : ''; // Remove globe icon
+// No flags - just return empty string
+function getFlag(_phone: string | null) {
+    return '';
 }
 
 function formatPhoneDisplay(phone: string | null) {
@@ -787,12 +743,11 @@ onMounted(loadData);
                                     :key="c.code"
                                     type="button"
                                     @click="selectedCountryCode = c.code; isCountryDropdownOpen = false"
-                                    class="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-teal-50 flex items-center gap-2 transition-colors"
+                                    class="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-teal-50 flex items-center justify-between transition-colors"
                                     :class="{ 'bg-teal-100 text-teal-700': selectedCountryCode === c.code }"
                                 >
-                                    <span class="text-lg">{{ c.flag }}</span>
                                     <span>{{ c.name }}</span>
-                                    <span class="text-slate-400 ml-auto">+{{ c.code }}</span>
+                                    <span class="text-slate-400">+{{ c.code }}</span>
                                 </button>
                             </div>
                         </div>
@@ -947,12 +902,11 @@ onMounted(loadData);
                                     :key="c.code"
                                     type="button"
                                     @click="selectedEditCountryCode = c.code; isEditCountryDropdownOpen = false"
-                                    class="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-blue-50 flex items-center gap-2 transition-colors"
+                                    class="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-blue-50 flex items-center justify-between transition-colors"
                                     :class="{ 'bg-blue-100 text-blue-700': selectedEditCountryCode === c.code }"
                                 >
-                                    <span class="text-lg">{{ c.flag }}</span>
                                     <span>{{ c.name }}</span>
-                                    <span class="text-slate-400 ml-auto">+{{ c.code }}</span>
+                                    <span class="text-slate-400">+{{ c.code }}</span>
                                 </button>
                             </div>
                         </div>
