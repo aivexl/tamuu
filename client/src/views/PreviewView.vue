@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useTemplateStore } from '@/stores/template';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '@/lib/constants';
 import AnimatedElement from '@/components/AnimatedElement.vue';
-import { ArrowLeft, Maximize2, Minimize2 } from 'lucide-vue-next';
+import { Maximize2, Minimize2 } from 'lucide-vue-next';
 import { iconPaths } from '@/lib/icon-paths';
 import { shapePaths } from '@/lib/shape-paths';
 import { getProxiedImageUrl } from "@/lib/image-utils";
@@ -1054,7 +1054,7 @@ const checkSectionActive = (index: number) => {
     return ['REVEALING', 'HANDOFF', 'DONE'].includes(transitionStage.value);
 };
 
-const goBack = () => router.push(`/editor/${templateId.value}`);
+
 
 </script>
 
@@ -1093,8 +1093,7 @@ const goBack = () => router.push(`/editor/${templateId.value}`);
                 >
 
                 <!-- Controls -->
-                <div v-if="!isFullscreen" class="absolute top-6 left-0 w-full px-6 flex justify-between z-[500] pointer-events-none" :style="{ transform: `scale(${1/scaleFactor})`, transformOrigin: 'top center' }">
-                    <button class="p-4 bg-black/50 text-white rounded-full backdrop-blur-3xl pointer-events-auto border border-white/20 shadow-2xl" @click="goBack"><ArrowLeft class="w-7 h-7" /></button>
+                <div v-if="!isFullscreen" class="absolute top-6 left-0 w-full px-6 flex justify-end z-[500] pointer-events-none" :style="{ transform: `scale(${1/scaleFactor})`, transformOrigin: 'top center' }">
                     <button class="p-4 bg-black/50 text-white rounded-full backdrop-blur-3xl pointer-events-auto border border-white/20 shadow-2xl" @click="toggleFullscreen"><Maximize2 class="w-7 h-7" /></button>
                 </div>
 
