@@ -26,6 +26,8 @@ const loading = ref(true);
 const savingMessage = ref(false);
 const searchQuery = ref('');
 const isImportModalOpen = ref(false);
+const pendingImportGuests = ref<any[]>([]); // Guests parsed from file, waiting for user to confirm
+const isImporting = ref(false); // Loading state for import save
 const showExportDropdown = ref(false);
 const invitationMessage = ref('');
 
@@ -485,18 +487,36 @@ async function processData(data: any, format: 'csv' | 'excel') {
         }));
     }
 
-    importedGuests = importedGuests.filter((g: any) => g.name);
-
-    if (importedGuests.length > 0) {
-        try {
-            await guestsApi.bulkAddGuests(invitationId, importedGuests);
-            await loadData();
-            isImportModalOpen.value = false;
-            showToast(`Berhasil mengimpor ${importedGuests.length} tamu.`);
-        } catch (err) {
-            showToast('Gagal mengimpor tamu. Periksa format file Anda.');
-        }
+    // Filter out empty entries and store for preview
+    pendingImportGuests.value = importedGuests.filter((g: any) => g.name);
+    
+    if (pendingImportGuests.value.length === 0) {
+        showToast('Tidak ada data tamu yang valid dalam file.');
     }
+}
+
+// Confirm and save imported guests
+async function confirmImport() {
+    if (pendingImportGuests.value.length === 0) return;
+    
+    isImporting.value = true;
+    try {
+        await guestsApi.bulkAddGuests(invitationId, pendingImportGuests.value);
+        await loadData();
+        showToast(`Berhasil mengimpor ${pendingImportGuests.value.length} tamu.`);
+        pendingImportGuests.value = [];
+        isImportModalOpen.value = false;
+    } catch (err) {
+        showToast('Gagal mengimpor tamu. Periksa format file Anda.');
+    } finally {
+        isImporting.value = false;
+    }
+}
+
+// Cancel import and clear pending data
+function cancelImport() {
+    pendingImportGuests.value = [];
+    isImportModalOpen.value = false;
 }
 
 onMounted(loadData);
@@ -840,13 +860,14 @@ onMounted(loadData);
 
     <!-- Modal: Import -->
     <div v-if="isImportModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="isImportModalOpen = false" />
-        <div class="relative bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl overflow-hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="cancelImport" />
+        <div class="relative bg-white w-full max-w-2xl rounded-3xl p-8 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-teal-500 to-emerald-500" />
             <h2 class="text-2xl font-black text-slate-900 mb-2">Import Daftar Tamu</h2>
             <p class="text-slate-500 mb-6 font-medium">Unggah file CSV atau Excel untuk menambahkan tamu massal secara kilat.</p>
             
-            <div class="p-6 bg-amber-50 rounded-2xl border border-amber-100 mb-6 flex gap-4">
+            <!-- Info box - only show if no pending data -->
+            <div v-if="pendingImportGuests.length === 0" class="p-6 bg-amber-50 rounded-2xl border border-amber-100 mb-6 flex gap-4">
                 <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
                     <Info class="w-5 h-5 text-amber-600" />
                 </div>
@@ -857,7 +878,8 @@ onMounted(loadData);
                 </div>
             </div>
 
-            <div class="border-2 border-dashed border-slate-200 rounded-3xl p-10 flex flex-col items-center justify-center hover:border-teal-500 hover:bg-teal-50/30 transition-all cursor-pointer relative group">
+            <!-- Upload area - only show if no pending data -->
+            <div v-if="pendingImportGuests.length === 0" class="border-2 border-dashed border-slate-200 rounded-3xl p-10 flex flex-col items-center justify-center hover:border-teal-500 hover:bg-teal-50/30 transition-all cursor-pointer relative group">
                 <input type="file" @change="handleFileUpload" class="absolute inset-0 opacity-0 cursor-pointer" accept=".csv,.xlsx" />
                 <div class="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-teal-100 group-hover:text-teal-600 transition-colors mb-4">
                     <FileUp class="w-8 h-8" />
@@ -866,8 +888,65 @@ onMounted(loadData);
                 <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest font-bold text-center">Maksimal 5MB | Format .csv, .xlsx</p>
             </div>
 
-            <div class="mt-8 flex justify-end">
-                <button @click="isImportModalOpen = false" class="px-6 py-3 text-slate-500 font-bold hover:text-slate-800">Tutup</button>
+            <!-- Preview table - show when there's pending data -->
+            <div v-if="pendingImportGuests.length > 0" class="flex-1 overflow-hidden flex flex-col">
+                <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 mb-4 flex items-center gap-3">
+                    <Check class="w-5 h-5 text-emerald-600" />
+                    <span class="font-bold text-emerald-800 text-sm">{{ pendingImportGuests.length }} tamu siap diimpor</span>
+                </div>
+                
+                <div class="flex-1 overflow-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-100 sticky top-0">
+                            <tr>
+                                <th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">#</th>
+                                <th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Nama</th>
+                                <th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">No WhatsApp</th>
+                                <th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Tier</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(g, idx) in pendingImportGuests.slice(0, 20)" :key="idx" class="border-t border-slate-100">
+                                <td class="px-3 py-2 text-slate-400">{{ idx + 1 }}</td>
+                                <td class="px-3 py-2 font-medium text-slate-700">{{ g.name }}</td>
+                                <td class="px-3 py-2 text-slate-600">+{{ g.phone }}</td>
+                                <td class="px-3 py-2">
+                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase" 
+                                        :class="{
+                                            'bg-amber-100 text-amber-700': g.tier === 'vip',
+                                            'bg-purple-100 text-purple-700': g.tier === 'vvip',
+                                            'bg-slate-100 text-slate-600': g.tier === 'reguler'
+                                        }">
+                                        {{ g.tier }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div v-if="pendingImportGuests.length > 20" class="p-3 text-center text-xs text-slate-400 bg-slate-50">
+                        ...dan {{ pendingImportGuests.length - 20 }} tamu lainnya
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer buttons -->
+            <div class="mt-6 flex gap-3 justify-end">
+                <button 
+                    @click="cancelImport" 
+                    :disabled="isImporting"
+                    class="px-6 py-3 text-slate-500 font-bold hover:text-slate-800 disabled:opacity-50"
+                >
+                    {{ pendingImportGuests.length > 0 ? 'Batal' : 'Tutup' }}
+                </button>
+                <button 
+                    v-if="pendingImportGuests.length > 0"
+                    @click="confirmImport" 
+                    :disabled="isImporting"
+                    class="px-8 py-3 bg-teal-600 text-white font-bold rounded-xl shadow-lg shadow-teal-600/20 hover:bg-teal-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                    <Loader2 v-if="isImporting" class="w-4 h-4 animate-spin" />
+                    Simpan {{ pendingImportGuests.length }} Tamu
+                </button>
             </div>
         </div>
     </div>
