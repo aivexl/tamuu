@@ -30,6 +30,11 @@ const router = createRouter({
             name: "template-store",
             component: TemplateStoreView,
         },
+        {
+            path: "/preview/:id",
+            name: "public-preview",
+            component: PreviewView,
+        },
 
         // Authentication group
         {

@@ -455,7 +455,17 @@ onMounted(async () => {
 
     if (templateId.value) {
         if (!currentTemplate.value) {
-            await store.fetchTemplate(templateId.value);
+            // Try regular fetch first (might be an admin)
+            try {
+                await store.fetchTemplate(templateId.value);
+            } catch (e) {
+                // Fail silently and try public fetch
+            }
+            
+            // If still not found, try public endpoint
+            if (!currentTemplate.value) {
+                await store.fetchPublicTemplate(templateId.value);
+            }
         }
     } else {
         const slug = route.params.slug as string;

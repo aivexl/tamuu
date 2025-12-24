@@ -86,6 +86,15 @@ export async function getTemplate(id: string, fresh: boolean = false): Promise<T
     }
 }
 
+export async function getPublicTemplate(id: string): Promise<Template | null> {
+    try {
+        return await request<Template>(`/api/templates/public/${id}`);
+    } catch (error) {
+        console.error("Failed to fetch public template:", error);
+        return null;
+    }
+}
+
 export async function getPublicTemplateBySlug(slug: string): Promise<Template | null> {
     try {
         return await request<Template>(`/api/templates/public/slug/${encodeURIComponent(slug)}`);
