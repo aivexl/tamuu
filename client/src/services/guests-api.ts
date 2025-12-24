@@ -1,6 +1,18 @@
-import axios from 'axios';
+import { supabase } from '@/lib/supabase';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
+const API_URL = "https://tamuu-api.shafania57.workers.dev/api";
+
+/**
+ * Helper to get auth headers
+ */
+async function getAuthHeaders() {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    return {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    };
+}
 
 export interface Guest {
     id: string;
@@ -21,7 +33,11 @@ export const guestsApi = {
      * Get all guests for an invitation
      */
     async getGuests(invitationId: string): Promise<Guest[]> {
-        const response = await axios.get(`${API_URL}/guests/${invitationId}`, { withCredentials: true });
+        const headers = await getAuthHeaders();
+        const response = await axios.get(`${API_URL}/guests/${invitationId}`, {
+            headers,
+            withCredentials: true
+        });
         return response.data.guests;
     },
 
@@ -29,7 +45,11 @@ export const guestsApi = {
      * Add a single guest
      */
     async addGuest(invitationId: string, guest: Partial<Guest>): Promise<Guest> {
-        const response = await axios.post(`${API_URL}/guests/${invitationId}`, guest, { withCredentials: true });
+        const headers = await getAuthHeaders();
+        const response = await axios.post(`${API_URL}/guests/${invitationId}`, guest, {
+            headers,
+            withCredentials: true
+        });
         return response.data.guest;
     },
 
@@ -37,21 +57,33 @@ export const guestsApi = {
      * Update guest details
      */
     async updateGuest(guestId: string, updates: Partial<Guest>): Promise<void> {
-        await axios.put(`${API_URL}/guests/${guestId}`, updates, { withCredentials: true });
+        const headers = await getAuthHeaders();
+        await axios.put(`${API_URL}/guests/${guestId}`, updates, {
+            headers,
+            withCredentials: true
+        });
     },
 
     /**
      * Delete guest
      */
     async deleteGuest(guestId: string): Promise<void> {
-        await axios.delete(`${API_URL}/guests/${guestId}`, { withCredentials: true });
+        const headers = await getAuthHeaders();
+        await axios.delete(`${API_URL}/guests/${guestId}`, {
+            headers,
+            withCredentials: true
+        });
     },
 
     /**
      * Bulk add guests
      */
     async bulkAddGuests(invitationId: string, guests: Partial<Guest>[]): Promise<{ count: number }> {
-        const response = await axios.post(`${API_URL}/guests/${invitationId}/bulk`, { guests }, { withCredentials: true });
+        const headers = await getAuthHeaders();
+        const response = await axios.post(`${API_URL}/guests/${invitationId}/bulk`, { guests }, {
+            headers,
+            withCredentials: true
+        });
         return response.data;
     },
 

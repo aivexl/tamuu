@@ -213,7 +213,7 @@ invitationsRouter.get('/by-slug/:slug', async (c) => {
 
 // GET /api/invitations/:id - Get user's invitation by ID (protected)
 invitationsRouter.get('/:id', async (c) => {
-    const user = await getAuthUser(c);
+    const user = await AuthService.getAuthUser(c);
     if (!user) {
         return c.json({ error: 'Unauthorized' }, 401);
     }
@@ -231,7 +231,7 @@ invitationsRouter.get('/:id', async (c) => {
 
 // PUT /api/invitations/:id - Update user's invitation
 invitationsRouter.put('/:id', async (c) => {
-    const user = await getAuthUser(c);
+    const user = await AuthService.getAuthUser(c);
     if (!user) {
         return c.json({ error: 'Unauthorized' }, 401);
     }
