@@ -131,13 +131,25 @@ async function handleAddGuest() {
     }
 }
 
-async function handleDeleteGuest(id: string) {
-    if (!confirm('Hapus tamu ini?')) return;
+const showDeleteConfirm = ref(false);
+const guestToDelete = ref<Guest | null>(null);
+
+function handleDeleteGuest(guest: Guest) {
+    guestToDelete.value = guest;
+    showDeleteConfirm.value = true;
+}
+
+async function confirmDelete() {
+    if (!guestToDelete.value) return;
     try {
-        await guestsApi.deleteGuest(id);
-        guests.value = guests.value.filter(g => g.id !== id);
+        await guestsApi.deleteGuest(guestToDelete.value.id);
+        guests.value = guests.value.filter(g => g.id !== guestToDelete.value!.id);
+        showDeleteConfirm.value = false;
+        guestToDelete.value = null;
+        showToast('Tamu berhasil dihapus');
     } catch (e) {
         console.error('Delete failed:', e);
+        showToast('Gagal menghapus tamu');
     }
 }
 
@@ -170,18 +182,30 @@ async function handleUpdateGuest() {
     }
 }
 
+const toast = ref({ show: false, message: '' });
+let toastTimeout: any = null;
+
+function showToast(message: string) {
+    toast.value.message = message;
+    toast.value.show = true;
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+        toast.value.show = false;
+    }, 3000);
+}
+
 function copyGeneralLink() {
     if (!invitation.value?.slug) return;
     const url = `https://tamuu.id/${invitation.value.slug}`;
     navigator.clipboard.writeText(url);
-    alert('Link General disalin!');
+    showToast('Link General disalin!');
 }
 
 function copyGuestLink(guest: Guest) {
     if (!invitation.value?.slug) return;
     const url = `https://tamuu.id/${invitation.value.slug}?to=${encodeURIComponent(guest.name)}`;
     navigator.clipboard.writeText(url);
-    alert(`Link untuk ${guest.name} disalin!`);
+    showToast(`Link untuk ${guest.name} disalin!`);
 }
 
 async function shareWhatsApp(guest: Guest) {
@@ -328,9 +352,9 @@ async function processData(data: any, format: 'csv' | 'excel') {
             await guestsApi.bulkAddGuests(invitationId, importedGuests);
             await loadData();
             isImportModalOpen.value = false;
-            alert(`Berhasil mengimpor ${importedGuests.length} tamu.`);
+            showToast(`Berhasil mengimpor ${importedGuests.length} tamu.`);
         } catch (err) {
-            alert('Gagal mengimpor tamu. Periksa format file Anda.');
+            showToast('Gagal mengimpor tamu. Periksa format file Anda.');
         }
     }
 }
@@ -549,7 +573,7 @@ onMounted(loadData);
                                 </button>
                             </td>
                             <td class="col-delete px-2 py-5 text-center">
-                                <button @click="handleDeleteGuest(guest.id)" class="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all hover:scale-110">
+                                <button @click="handleDeleteGuest(guest)" class="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all hover:scale-110">
                                     <Trash2 class="w-4 h-4" />
                                 </button>
                             </td>
@@ -709,6 +733,49 @@ onMounted(loadData);
         </div>
     </div>
   </div>
+    <!-- Modal: Konfirmasi Hapus -->
+    <div v-if="showDeleteConfirm" class="fixed inset-0 z-[100] flex items-center justify-center p-4 min-h-screen">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showDeleteConfirm = false" />
+        <div class="relative bg-white w-full max-w-sm rounded-[32px] p-8 shadow-2xl animate-in zoom-in duration-300 text-center">
+            <div class="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Trash2 class="w-10 h-10" />
+            </div>
+            <h3 class="text-xl font-black text-slate-900 mb-2">Hapus Tamu?</h3>
+            <p class="text-slate-500 text-sm mb-8">Data <b>{{ guestToDelete?.name }}</b> yang dihapus tidak dapat dikembalikan.</p>
+            
+            <div class="flex flex-col gap-3">
+                <button 
+                    @click="confirmDelete"
+                    class="w-full py-4 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl transition-all shadow-lg shadow-red-200"
+                >
+                    Hapus Sekarang
+                </button>
+                <button 
+                    @click="showDeleteConfirm = false"
+                    class="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all"
+                >
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <Transition
+        enter-active-class="transform transition ease-out duration-300"
+        enter-from-class="translate-y-10 opacity-0"
+        enter-to-class="translate-y-0 opacity-100"
+        leave-active-class="transition ease-in duration-200"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+    >
+        <div v-if="toast.show" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200]">
+            <div class="bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 ring-1 ring-white/10">
+                <Check class="w-4 h-4 text-emerald-400" />
+                <span class="text-sm font-bold tracking-tight">{{ toast.message }}</span>
+            </div>
+        </div>
+    </Transition>
 </template>
 
 <style scoped>
