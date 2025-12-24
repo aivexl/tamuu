@@ -13,7 +13,7 @@ let interval: any = null;
 // Add first element to end for seamless looping
 const displayList = [...eventTypes, eventTypes[0]];
 
-const ITEM_HEIGHT_EM = 2.4; // Maximum safety for any font height
+const ITEM_HEIGHT_EM = 1.2; // Optimized for Outfit font
 
 onMounted(() => {
   // CTO Standard: Reliable state machine for vertical sliding
@@ -130,7 +130,7 @@ const formatPrice = (price: number) => {
     <MainNavbar />
 
     <!-- Hero Section -->
-    <section class="relative pt-32 pb-20 overflow-hidden font-bodoni">
+    <section class="relative pt-32 pb-20 overflow-hidden font-outfit">
       <!-- Decor -->
       <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
         <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full"></div>
@@ -147,21 +147,19 @@ const formatPrice = (price: number) => {
             <span class="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
           </div>
 
-          <h1 class="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-slate-900 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-3 md:gap-6 w-full px-2">
+          <h1 class="text-3xl sm:text-5xl md:text-7xl lg:text-9xl font-black text-slate-900 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-2 md:gap-4 w-full px-2 tracking-tighter leading-tight">
             <span class="break-words max-w-full">Platform Undangan Premium</span>
-            <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 md:gap-6 leading-none overflow-visible">
-              <span class="italic font-normal text-slate-500 shrink-0">Untuk</span> 
-              <span class="relative h-[2.4em] overflow-hidden inline-flex flex-col items-start min-w-[100px] sm:min-w-[150px]">
+            <div class="flex items-center justify-center leading-none overflow-visible">
+              <span class="relative h-[1.2em] overflow-hidden inline-flex flex-col items-center min-w-[200px] sm:min-w-[300px] md:min-w-[400px]">
                 <span 
-                  class="flex flex-col w-full whitespace-nowrap pt-1" 
+                  class="flex flex-col w-full whitespace-nowrap" 
                   :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
-                  :style="{ transform: `translateY(-${currentIndex * ITEM_HEIGHT_EM}em)` }"
+                  :style="{ transform: `translateY(-${currentIndex * 1.2}em)` }"
                 >
                   <span 
                     v-for="(event, i) in displayList" 
                     :key="i" 
-                    class="flex items-center bg-gradient-to-r from-indigo-600 via-indigo-500 to-teal-500 bg-clip-text text-transparent px-2"
-                    :style="{ height: `${ITEM_HEIGHT_EM}em` }"
+                    class="flex items-center justify-center bg-gradient-to-r from-indigo-600 via-indigo-500 to-teal-500 bg-clip-text text-transparent px-2 h-[1.2em]"
                   >
                     {{ event }}
                   </span>
