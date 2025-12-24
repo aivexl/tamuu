@@ -39,9 +39,58 @@ const newGuest = ref({
     name: '',
     phone: '',
     address: 'di tempat',
+    tableNumber: '',
     tier: 'reguler' as const,
     guestCount: 1
 });
+
+// Country Codes
+const countryCodes = [
+    { code: '62', flag: '🇮🇩', name: 'Indonesia' },
+    { code: '65', flag: '🇸🇬', name: 'Singapore' },
+    { code: '60', flag: '🇲🇾', name: 'Malaysia' },
+    { code: '61', flag: '🇦🇺', name: 'Australia' },
+    { code: '81', flag: '🇯🇵', name: 'Japan' },
+    { code: '82', flag: '🇰🇷', name: 'South Korea' },
+    { code: '1', flag: '🇺🇸', name: 'USA' },
+    { code: '44', flag: '🇬🇧', name: 'UK' },
+];
+
+const selectedCountryCode = ref('62');
+const selectedEditCountryCode = ref('62');
+
+function getFlag(phone: string | null) {
+    if (!phone) return '🇮🇩';
+    const match = countryCodes.find(c => phone.startsWith(c.code));
+    return match ? match.flag : '🌐';
+}
+
+function formatPhoneDisplay(phone: string | null) {
+    if (!phone) return '-';
+    // Just show the number, the flag will be next to it
+    return '+' + phone;
+}
+
+function sanitizePhoneNumber(phone: string, countryCode: string): string {
+    let cleaned = phone.replace(/\D/g, '');
+    if (!cleaned) return '';
+    
+    // Check if user pasted a number with a country code already
+    // e.g. +628... or 628...
+    for (const c of countryCodes) {
+        if (cleaned.startsWith(c.code)) {
+            return cleaned; 
+        }
+    }
+
+    // If starts with 0 (traditional local format), strip it and add country code
+    if (cleaned.startsWith('0')) {
+        return countryCode + cleaned.substring(1);
+    }
+    
+    // Otherwise just prepend country code if not present
+    return countryCode + cleaned;
+}
 
 // Edit Guest State
 const showEditForm = ref(false);
@@ -51,6 +100,7 @@ const editForm = ref({
     name: '',
     phone: '',
     address: '',
+    tableNumber: '',
     tier: 'reguler' as Guest['tier'],
     guestCount: 1
 });
@@ -127,10 +177,14 @@ async function handleAddGuest() {
     if (!newGuest.value.name || isSubmittingAdd.value) return;
     isSubmittingAdd.value = true;
     try {
-        const created = await guestsApi.addGuest(invitationId, newGuest.value);
+        const sanitizedData = {
+            ...newGuest.value,
+            phone: newGuest.value.phone ? sanitizePhoneNumber(newGuest.value.phone, selectedCountryCode.value) : null
+        };
+        const created = await guestsApi.addGuest(invitationId, sanitizedData);
         guests.value.unshift(created);
         showAddForm.value = false;
-        newGuest.value = { name: '', phone: '', address: 'di tempat', tier: 'reguler', guestCount: 1 };
+        newGuest.value = { name: '', phone: '', address: 'di tempat', tableNumber: '', tier: 'reguler', guestCount: 1 };
         showToast('Tamu berhasil ditambahkan');
     } catch (e) {
         console.error('Add guest failed:', e);
@@ -165,10 +219,24 @@ async function confirmDelete() {
 
 function openEditModal(guest: Guest) {
     editingGuest.value = guest;
+    
+    // Determine country code from phone
+    let phoneStr = guest.phone || '';
+    let foundCode = '62';
+    for (const c of countryCodes) {
+        if (phoneStr.startsWith(c.code)) {
+            foundCode = c.code;
+            phoneStr = phoneStr.substring(c.code.length);
+            break;
+        }
+    }
+    selectedEditCountryCode.value = foundCode;
+
     editForm.value = {
         name: guest.name,
-        phone: guest.phone || '',
+        phone: phoneStr,
         address: guest.address,
+        tableNumber: guest.tableNumber || '',
         tier: guest.tier,
         guestCount: guest.guestCount
     };
@@ -180,16 +248,22 @@ async function handleUpdateGuest() {
     
     // Capture the ID and data to prevent race conditions if modal is closed
     const guestId = editingGuest.value.id;
-    const updateData = { ...editForm.value };
+    const updateData = { 
+        ...editForm.value,
+        phone: editForm.value.phone ? sanitizePhoneNumber(editForm.value.phone, selectedEditCountryCode.value) : null
+    };
     
     isSubmittingEdit.value = true;
     try {
         await guestsApi.updateGuest(guestId, updateData);
         
-        // Update local state using captured ID
+        // Update local state using captured ID and sanitized data
         const idx = guests.value.findIndex(g => g.id === guestId);
         if (idx !== -1) {
-            guests.value[idx] = { ...guests.value[idx], ...updateData } as Guest;
+            guests.value[idx] = { 
+                ...guests.value[idx], 
+                ...updateData
+            } as Guest;
         }
         
         showEditForm.value = false;
@@ -295,10 +369,10 @@ function handleExport(format: 'csv' | 'excel') {
 }
 
 function downloadImportFormat() {
-    const headers = ['TIER', 'NAMA TAMU', 'NO WHATSAPP', 'ALAMAT', 'JUMLAH TAMU'];
+    const headers = ['TIER', 'NAMA TAMU', 'NO WHATSAPP', 'ALAMAT', 'JUMLAH TAMU', 'MEJA/KURSI/RUANGAN'];
     const data = [
-        ['VIP', 'Joni Saputra', '08123456789', 'Bandung', 2],
-        ['REGULER', 'Siti Aminah', '08987654321', 'di tempat', 1]
+        ['VIP', 'Joni Saputra', '628123456789', 'Bandung', 2, 'Meja A1'],
+        ['REGULER', 'Siti Aminah', '628987654321', 'di tempat', 1, 'Room 302']
     ];
     
     const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
@@ -350,9 +424,10 @@ async function processData(data: any, format: 'csv' | 'excel') {
             return {
                 tier: (cols[0]?.trim().toLowerCase() || 'reguler') as any,
                 name: cols[1]?.trim() || '',
-                phone: cols[2]?.trim() || '',
+                phone: cols[2] ? sanitizePhoneNumber(cols[2].trim(), '62') : '',
                 address: cols[3]?.trim() || 'di tempat',
-                guestCount: parseInt(cols[4] || '1') || 1
+                guestCount: parseInt(cols[4] || '1') || 1,
+                tableNumber: cols[5]?.trim() || ''
             };
         });
     } else {
@@ -360,9 +435,10 @@ async function processData(data: any, format: 'csv' | 'excel') {
         importedGuests = data.slice(1).map((cols: any) => ({
             tier: (String(cols[0] || '').trim().toLowerCase() || 'reguler') as any,
             name: String(cols[1] || '').trim(),
-            phone: String(cols[2] || '').trim(),
+            phone: cols[2] ? sanitizePhoneNumber(String(cols[2]).trim(), '62') : '',
             address: String(cols[3] || '').trim() || 'di tempat',
-            guestCount: parseInt(cols[4] || '1') || 1
+            guestCount: parseInt(cols[4] || '1') || 1,
+            tableNumber: String(cols[5] || '').trim() || ''
         }));
     }
 
@@ -505,9 +581,10 @@ onMounted(loadData);
                         <tr class="bg-[#2C5F5F] text-white">
                             <th class="col-id px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">ID TAMU</th>
                             <th class="col-tier px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">TIER</th>
-                            <th class="col-name px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">NAMA TAMU</th>
-                            <th class="col-phone px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">NO WHATSAPP</th>
+                            <th class="col-name px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap w-[150px]">NAMA TAMU</th>
+                            <th class="col-phone px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap w-[120px]">NO WHATSAPP</th>
                             <th class="col-addr px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">ALAMAT</th>
+                            <th class="col-table px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">MEJA/KURSI/RUANGAN</th>
                             <th class="col-count px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">JUMLAH TAMU</th>
                             <th class="col-time px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">DATE</th>
                             <th class="col-time-long px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">CHECK-IN</th>
@@ -522,7 +599,7 @@ onMounted(loadData);
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <tr v-if="filteredGuests.length === 0" class="hover:bg-slate-50/30">
-                            <td colspan="15" class="px-6 py-12 text-center text-slate-400 italic">
+                            <td colspan="16" class="px-6 py-12 text-center text-slate-400 italic">
                                 Belum ada data tamu. Klik "Tambah Tamu" atau "Import" untuk memulai.
                             </td>
                         </tr>
@@ -543,11 +620,17 @@ onMounted(loadData);
                             <td class="col-name px-3 py-5">
                                 <span class="text-[12px] font-black text-slate-800 truncate block">{{ guest.name }}</span>
                             </td>
-                            <td class="col-phone px-3 py-5 text-[12px] text-slate-700 font-bold tabular-nums">
-                                {{ guest.phone || '-' }}
+                            <td class="col-phone px-3 py-5 text-[12px] font-bold text-slate-700">
+                                <span class="flex items-center gap-1.5">
+                                    <span class="text-lg leading-none">{{ getFlag(guest.phone) }}</span>
+                                    <span class="tabular-nums">+{{ guest.phone }}</span>
+                                </span>
                             </td>
-                            <td class="col-addr px-3 py-5 text-[12px] text-slate-600 truncate font-medium">
+                            <td class="col-addr px-3 py-5 text-[12px] text-slate-600 truncate font-medium max-w-[120px]">
                                 {{ guest.address }}
+                            </td>
+                            <td class="col-table px-3 py-5 text-[12px] font-black text-indigo-600 truncate animate-in slide-in-from-left-2 duration-500">
+                                {{ guest.tableNumber || '-' }}
                             </td>
                             <td class="col-count px-3 py-5 text-center text-[13px] font-black text-[#2C5F5F]">
                                 {{ guest.guestCount }}
@@ -623,13 +706,26 @@ onMounted(loadData);
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Nama Lengkap</label>
                     <input v-model="newGuest.name" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" placeholder="Contoh: Bpk. Budi & Kel." />
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">WhatsApp (Opsional)</label>
-                    <input v-model="newGuest.phone" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" placeholder="Contoh: 0812..." />
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="col-span-1">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Negara</label>
+                        <div class="relative">
+                            <select v-model="selectedCountryCode" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500 appearance-none text-sm font-bold">
+                                <option v-for="c in countryCodes" :key="c.code" :value="c.code">
+                                    {{ c.flag }} +{{ c.code }}
+                                </option>
+                            </select>
+                            <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        </div>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">WhatsApp</label>
+                        <input v-model="newGuest.phone" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" placeholder="8123..." />
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Alamat/Meja</label>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Alamat</label>
                         <input v-model="newGuest.address" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" placeholder="Contoh: Jakarta" />
                     </div>
                     <div>
@@ -640,6 +736,10 @@ onMounted(loadData);
                             <option value="vvip">VVIP</option>
                         </select>
                     </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Meja / Kursi / Ruangan (Opsional)</label>
+                    <input v-model="newGuest.tableNumber" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500" placeholder="Contoh: Meja A1, Room 302, dsb." />
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Jumlah Tamu</label>
@@ -745,13 +845,26 @@ onMounted(loadData);
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Nama Lengkap</label>
                     <input v-model="editForm.name" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" placeholder="Contoh: Bpk. Budi & Kel." />
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">WhatsApp</label>
-                    <input v-model="editForm.phone" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" placeholder="Contoh: 0812..." />
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="col-span-1">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Negara</label>
+                        <div class="relative">
+                            <select v-model="selectedEditCountryCode" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 appearance-none text-sm font-bold">
+                                <option v-for="c in countryCodes" :key="c.code" :value="c.code">
+                                    {{ c.flag }} +{{ c.code }}
+                                </option>
+                            </select>
+                            <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        </div>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">WhatsApp</label>
+                        <input v-model="editForm.phone" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500" placeholder="8123..." />
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Alamat/Meja</label>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Alamat</label>
                         <input v-model="editForm.address" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" />
                     </div>
                     <div>
@@ -762,6 +875,10 @@ onMounted(loadData);
                             <option value="vvip">VVIP</option>
                         </select>
                     </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Meja / Kursi / Ruangan (Opsional)</label>
+                    <input v-model="editForm.tableNumber" type="text" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500" placeholder="Contoh: Meja A1, Room 302, dsb." />
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Jumlah Tamu</label>
@@ -889,17 +1006,18 @@ tr:hover td {
 }
 
 /* Proportional widths (Total: 100%) */
-.col-id { width: 4%; }
-.col-tier { width: 5%; }
+.col-id { width: 4.5%; }
+.col-tier { width: 4.5%; }
 .col-name { width: 14%; }
-.col-phone { width: 10%; }
-.col-addr { width: 12%; }
-.col-count { width: 7%; }
-.col-time { width: 6%; }
-.col-time-long { width: 7%; }
-.col-status { width: 7%; }
-.col-action { width: 3.5%; }
-.col-send { width: 6%; }
-.col-delete { width: 4%; }
+.col-phone { width: 11%; }
+.col-addr { width: 10%; }
+.col-table { width: 10%; }
+.col-count { width: 5%; }
+.col-time { width: 5%; }
+.col-time-long { width: 5%; } /* Two columns: 10% total */
+.col-status { width: 5%; }    /* Two columns: 10% total */
+.col-send { width: 5%; }
+.col-action { width: 3%; }    /* Two columns: 6% total */
+.col-delete { width: 5%; }
 
 </style>

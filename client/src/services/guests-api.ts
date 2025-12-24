@@ -28,8 +28,26 @@ export interface Guest {
     checkedInAt: string | null;
     checkedOutAt: string | null;
     sharedAt: string | null;
+    tableNumber: string | null;
     createdAt: string;
     updatedAt: string;
+}
+
+/**
+ * Format phone number for export (ensure it starts with international code)
+ */
+function formatPhoneNumberInternational(phone: string | null): string {
+    if (!phone) return '-';
+    // Remove non-digits
+    let cleaned = phone.replace(/\D/g, '');
+    if (!cleaned) return '-';
+
+    // If starts with 0, replace with 62
+    if (cleaned.startsWith('0')) {
+        return '62' + cleaned.substring(1);
+    }
+
+    return cleaned;
 }
 
 export const guestsApi = {
@@ -108,7 +126,7 @@ export const guestsApi = {
      */
     exportToCSV(guests: Guest[], filename = 'daftar-tamu.csv') {
         const headers = [
-            'ID TAMU', 'TIER', 'NAMA TAMU', 'NO WHATSAPP', 'ALAMAT', 'JUMLAH TAMU',
+            'ID TAMU', 'TIER', 'NAMA TAMU', 'NO WHATSAPP', 'ALAMAT', 'MEJA/KURSI/RUANGAN', 'JUMLAH TAMU',
             'DATES CHECK IN', 'CHECK-IN', 'CHECK-OUT', 'KEHADIRAN', 'SEND WA', 'STATUS'
         ];
 
@@ -121,8 +139,9 @@ export const guestsApi = {
                 g.checkInCode || '-',
                 g.tier.toUpperCase(),
                 g.name,
-                g.phone || '-',
+                formatPhoneNumberInternational(g.phone),
                 g.address,
+                g.tableNumber || '-',
                 g.guestCount,
                 checkInDate,
                 checkInTime,
@@ -154,7 +173,7 @@ export const guestsApi = {
      */
     exportToExcel(guests: Guest[], filename = 'daftar-tamu.xlsx') {
         const headers = [
-            'ID TAMU', 'TIER', 'NAMA TAMU', 'NO WHATSAPP', 'ALAMAT', 'JUMLAH TAMU',
+            'ID TAMU', 'TIER', 'NAMA TAMU', 'NO WHATSAPP', 'ALAMAT', 'MEJA/KURSI/RUANGAN', 'JUMLAH TAMU',
             'DATES CHECK IN', 'CHECK-IN', 'CHECK-OUT', 'KEHADIRAN', 'SEND WA', 'STATUS'
         ];
 
@@ -167,8 +186,9 @@ export const guestsApi = {
                 'ID TAMU': g.checkInCode || '-',
                 'TIER': g.tier.toUpperCase(),
                 'NAMA TAMU': g.name,
-                'NO WHATSAPP': g.phone || '-',
+                'NO WHATSAPP': formatPhoneNumberInternational(g.phone),
                 'ALAMAT': g.address,
+                'MEJA/KURSI/RUANGAN': g.tableNumber || '-',
                 'JUMLAH TAMU': g.guestCount,
                 'DATES CHECK IN': checkInDate,
                 'CHECK-IN': checkInTime,

@@ -77,6 +77,7 @@ export interface DBGuest {
     checked_in_at: string | null;
     checked_out_at: string | null;
     shared_at: string | null;
+    table_number: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -236,6 +237,7 @@ export interface GuestResponse {
     checkedInAt: string | null;
     checkedOutAt: string | null;
     sharedAt: string | null;
+    tableNumber: string | null;
     createdAt: string;
     updatedAt: string;
 }

@@ -1214,6 +1214,7 @@ export class DatabaseService {
             checkedInAt: g.checked_in_at,
             checkedOutAt: g.checked_out_at,
             sharedAt: g.shared_at,
+            tableNumber: g.table_number,
             createdAt: g.created_at,
             updatedAt: g.updated_at
         };
@@ -1241,8 +1242,8 @@ export class DatabaseService {
 
         await this.db
             .prepare(`
-                INSERT INTO guests (id, invitation_id, name, phone, address, tier, guest_count, check_in_code, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO guests (id, invitation_id, name, phone, address, tier, guest_count, check_in_code, table_number, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `)
             .bind(
                 id,
@@ -1253,6 +1254,7 @@ export class DatabaseService {
                 data.tier || 'reguler',
                 data.guestCount || 1,
                 checkInCode,
+                data.tableNumber || null,
                 now,
                 now
             )
@@ -1306,6 +1308,10 @@ export class DatabaseService {
             sets.push('shared_at = ?');
             values.push(updates.sharedAt);
         }
+        if (updates.tableNumber !== undefined) {
+            sets.push('table_number = ?');
+            values.push(updates.tableNumber);
+        }
 
         values.push(guestId);
 
@@ -1337,8 +1343,8 @@ export class DatabaseService {
             const id = generateUUID();
             const checkInCode = Math.random().toString(36).substring(2, 8).toUpperCase();
             return this.db.prepare(`
-                INSERT INTO guests (id, invitation_id, name, phone, address, tier, guest_count, check_in_code, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO guests (id, invitation_id, name, phone, address, tier, guest_count, check_in_code, table_number, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).bind(
                 id,
                 invitationId,
@@ -1348,6 +1354,7 @@ export class DatabaseService {
                 g.tier || 'reguler',
                 g.guestCount || 1,
                 checkInCode,
+                g.tableNumber || null,
                 now,
                 now
             );
