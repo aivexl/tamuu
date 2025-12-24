@@ -13,7 +13,7 @@ let interval: any = null;
 // Add first element to end for seamless looping
 const displayList = [...eventTypes, eventTypes[0]];
 
-const ITEM_HEIGHT_EM = 1.6; // Further increased to 1.6em for total safety with Bodoni
+const ITEM_HEIGHT_EM = 2.0; // Significant height to ensure no clipping of descenders
 
 onMounted(() => {
   // CTO Standard: Reliable state machine for vertical sliding
@@ -147,26 +147,27 @@ const formatPrice = (price: number) => {
             <span class="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
           </div>
 
-          <h1 class="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-slate-900 leading-[1.4] tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
+          <h1 class="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-slate-900 tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-2 md:gap-4">
             <span class="whitespace-nowrap">Platform Undangan Premium</span>
-            <br />
-            <span class="italic font-normal text-slate-500">Untuk</span> 
-            <span class="relative h-[1.6em] overflow-hidden inline-flex flex-col items-start min-w-[160px] sm:min-w-[200px] md:min-w-[300px] lg:min-w-[420px] align-bottom">
-              <span 
-                class="flex flex-col w-full whitespace-nowrap pt-2" 
-                :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
-                :style="{ transform: `translateY(-${currentIndex * ITEM_HEIGHT_EM}em)` }"
-              >
+            <div class="flex items-center justify-center gap-3 md:gap-5 leading-none">
+              <span class="italic font-normal text-slate-500 shrink-0">Untuk</span> 
+              <span class="relative h-[2.0em] overflow-hidden inline-flex flex-col items-start min-w-[160px] sm:min-w-[200px] md:min-w-[300px] lg:min-w-[420px]">
                 <span 
-                  v-for="(event, i) in displayList" 
-                  :key="i" 
-                  class="flex items-center bg-gradient-to-r from-indigo-600 via-indigo-500 to-teal-500 bg-clip-text text-transparent px-2"
-                  :style="{ height: `${ITEM_HEIGHT_EM}em` }"
+                  class="flex flex-col w-full whitespace-nowrap" 
+                  :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
+                  :style="{ transform: `translateY(-${currentIndex * ITEM_HEIGHT_EM}em)` }"
                 >
-                  {{ event }}
+                  <span 
+                    v-for="(event, i) in displayList" 
+                    :key="i" 
+                    class="flex items-center bg-gradient-to-r from-indigo-600 via-indigo-500 to-teal-500 bg-clip-text text-transparent px-2"
+                    :style="{ height: `${ITEM_HEIGHT_EM}em` }"
+                  >
+                    {{ event }}
+                  </span>
                 </span>
               </span>
-            </span>
+            </div>
           </h1>
 
           <p class="text-lg md:text-xl text-slate-500 max-w-xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-700 delay-300 font-sans tracking-wide">
