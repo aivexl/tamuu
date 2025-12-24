@@ -13,8 +13,7 @@ import { invitationsApi } from '@/lib/api/invitations';
 import type { TemplateResponse } from '@/lib/api/invitations';
 import * as XLSX from 'xlsx';
 import AppHeader from '@/components/layout/AppHeader.vue';
-import Vue3CountryIntl from 'vue3-country-intl';
-import 'vue3-country-intl/lib/vue3-country-intl.css';
+
 
 const route = useRoute();
 const router = useRouter();
@@ -727,15 +726,14 @@ onMounted(loadData);
                 <div class="grid grid-cols-12 gap-3">
                     <div class="col-span-12 md:col-span-4">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Kode Negara</label>
-                        <Vue3CountryIntl
-                            v-model="selectedCountryCode"
-                            schema="sortCountryCode"
-                            type="phone"
-                            placeholder="Pilih negara"
-                            :showLabelImg="true"
-                            :showLabelCode="true"
-                            class="country-intl-picker"
-                        />
+                        <select 
+                            v-model="selectedCountryCode" 
+                            class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 text-sm font-bold text-slate-700 transition-all cursor-pointer"
+                        >
+                            <option v-for="c in sortedCountryCodes" :key="c.code" :value="c.code">
+                                {{ c.name }} +{{ c.code }}
+                            </option>
+                        </select>
                     </div>
                     <div class="col-span-12 md:col-span-8">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nomor WhatsApp</label>
@@ -869,15 +867,14 @@ onMounted(loadData);
                 <div class="grid grid-cols-12 gap-3">
                     <div class="col-span-12 md:col-span-4">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Kode Negara</label>
-                        <Vue3CountryIntl
-                            v-model="selectedEditCountryCode"
-                            schema="sortCountryCode"
-                            type="phone"
-                            placeholder="Pilih negara"
-                            :showLabelImg="true"
-                            :showLabelCode="true"
-                            class="country-intl-picker"
-                        />
+                        <select 
+                            v-model="selectedEditCountryCode" 
+                            class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm font-bold text-slate-700 transition-all cursor-pointer"
+                        >
+                            <option v-for="c in sortedCountryCodes" :key="c.code" :value="c.code">
+                                {{ c.name }} +{{ c.code }}
+                            </option>
+                        </select>
                     </div>
                     <div class="col-span-12 md:col-span-8">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nomor WhatsApp</label>
