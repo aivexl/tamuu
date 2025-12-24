@@ -445,26 +445,26 @@ onMounted(loadData);
         </div>
 
         <!-- Guest List Table -->
-        <div class="bg-white rounded-3xl border border-slate-200 overflow-visible shadow-sm">
+        <div class="rounded-3xl overflow-visible p-1">
             <div class="w-full overflow-visible">
                 <table class="w-full text-left table-fixed border-separate border-spacing-0">
                     <thead>
                         <tr class="bg-[#2C5F5F] text-white">
-                            <th class="col-id px-3 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap">ID TAMU</th>
-                            <th class="col-tier px-3 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap">TIER</th>
-                            <th class="col-name px-3 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap">NAMA TAMU</th>
-                            <th class="col-phone px-3 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap">NO WHATSAPP</th>
-                            <th class="col-addr px-3 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap">ALAMAT</th>
-                            <th class="col-count px-3 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap text-center">JML</th>
-                            <th class="col-time px-3 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap">DATE</th>
-                            <th class="col-time px-3 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap">IN</th>
-                            <th class="col-time px-3 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap">OUT</th>
-                            <th class="col-status px-3 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap text-center">KEHADIRAN</th>
-                            <th class="col-action px-3 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap text-center">SEND WA</th>
-                            <th class="col-status px-3 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap text-center">STATUS</th>
-                            <th class="col-action px-3 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap text-center">COPY</th>
-                            <th class="col-action px-2 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap text-center">EDIT</th>
-                            <th class="col-action px-2 py-4 text-[9px] font-black uppercase tracking-tighter whitespace-nowrap text-center">EXIT</th>
+                            <th class="col-id px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">ID TAMU</th>
+                            <th class="col-tier px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">TIER</th>
+                            <th class="col-name px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">NAMA TAMU</th>
+                            <th class="col-phone px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">NO WHATSAPP</th>
+                            <th class="col-addr px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">ALAMAT</th>
+                            <th class="col-count px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">JML</th>
+                            <th class="col-time px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">DATE</th>
+                            <th class="col-time px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">IN</th>
+                            <th class="col-time px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap">OUT</th>
+                            <th class="col-status px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">KEHADIRAN</th>
+                            <th class="col-send px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">SEND WA</th>
+                            <th class="col-status px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">STATUS</th>
+                            <th class="col-action px-3 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">COPY</th>
+                            <th class="col-action px-2 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">EDIT</th>
+                            <th class="col-action px-2 py-4 text-[11px] font-black uppercase tracking-tight whitespace-nowrap text-center">EXIT</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -473,13 +473,13 @@ onMounted(loadData);
                                 Belum ada data tamu. Klik "Tambah Tamu" atau "Import" untuk memulai.
                             </td>
                         </tr>
-                        <tr v-for="guest in filteredGuests" :key="guest.id" class="hover:bg-slate-50 transition-colors">
-                            <td class="col-id px-3 py-4 text-[10px] font-mono text-slate-500 uppercase font-black tracking-tighter">
+                        <tr v-for="guest in filteredGuests" :key="guest.id" class="hover:bg-slate-50 transition-all duration-200">
+                            <td class="col-id px-3 py-5 text-[12px] font-mono text-slate-500 uppercase font-bold tracking-tight">
                                 {{ guest.checkInCode }}
                             </td>
-                            <td class="col-tier px-3 py-4">
+                            <td class="col-tier px-3 py-5 text-center">
                                 <span :class="[
-                                    'text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full ring-1 ring-inset',
+                                    'text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ring-1 ring-inset',
                                     guest.tier === 'vvip' ? 'bg-purple-50 text-purple-700 ring-purple-100' :
                                     guest.tier === 'vip' ? 'bg-amber-50 text-amber-700 ring-amber-100' :
                                     'bg-slate-50 text-slate-600 ring-slate-100'
@@ -487,56 +487,56 @@ onMounted(loadData);
                                     {{ guest.tier === 'reguler' ? 'REG' : guest.tier.toUpperCase() }}
                                 </span>
                             </td>
-                            <td class="col-name px-3 py-4">
-                                <span class="text-[10px] font-bold text-slate-800 truncate block">{{ guest.name }}</span>
+                            <td class="col-name px-3 py-5">
+                                <span class="text-[12px] font-black text-slate-800 truncate block">{{ guest.name }}</span>
                             </td>
-                            <td class="col-phone px-3 py-4 text-[10px] text-slate-600 tabular-nums">
+                            <td class="col-phone px-3 py-5 text-[12px] text-slate-700 font-bold tabular-nums">
                                 {{ guest.phone || '-' }}
                             </td>
-                            <td class="col-addr px-3 py-4 text-[10px] text-slate-600 truncate">
+                            <td class="col-addr px-3 py-5 text-[12px] text-slate-600 truncate font-medium">
                                 {{ guest.address }}
                             </td>
-                            <td class="col-count px-3 py-4 text-center text-[10px] font-black text-[#2C5F5F]">
+                            <td class="col-count px-3 py-5 text-center text-[13px] font-black text-[#2C5F5F]">
                                 {{ guest.guestCount }}
                             </td>
-                            <td class="col-time px-3 py-4 text-[9px] text-slate-500 font-bold whitespace-nowrap">
+                            <td class="col-time px-3 py-5 text-[11px] text-slate-500 font-bold whitespace-nowrap">
                                 {{ guest.checkedInAt ? new Date(guest.checkedInAt).toLocaleDateString('id-ID', {day:'2-digit', month:'2-digit'}) : '-' }}
                             </td>
-                            <td class="col-time px-3 py-4 text-[9px] text-slate-500 font-bold tabular-nums">
+                            <td class="col-time px-3 py-5 text-[11px] text-slate-500 font-bold tabular-nums">
                                 {{ guest.checkedInAt ? new Date(guest.checkedInAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }) : '-' }}
                             </td>
-                            <td class="col-time px-3 py-4 text-[9px] text-slate-500 font-bold tabular-nums">
+                            <td class="col-time px-3 py-5 text-[11px] text-slate-500 font-bold tabular-nums">
                                 {{ guest.checkedOutAt ? new Date(guest.checkedOutAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }) : '-' }}
                             </td>
-                            <td class="col-status px-3 py-4 text-center">
-                                <span v-if="guest.checkedInAt" class="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-black rounded tracking-tighter">HADIR</span>
-                                <span v-else class="px-1.5 py-0.5 bg-slate-100 text-slate-300 text-[8px] font-black rounded tracking-tighter uppercase">BELUM</span>
+                            <td class="col-status px-3 py-5 text-center">
+                                <span v-if="guest.checkedInAt" class="px-2 py-1 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded-lg tracking-tight">HADIR</span>
+                                <span v-else class="px-2 py-1 bg-slate-100 text-slate-300 text-[9px] font-black rounded-lg tracking-tight uppercase">BELUM</span>
                             </td>
-                            <td class="col-action px-3 py-4 text-center">
+                            <td class="col-send px-3 py-5 text-center">
                                 <button 
                                     @click="shareWhatsApp(guest)"
-                                    class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all scale-90 hover:scale-100"
+                                    class="p-2 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all hover:scale-110 shadow-sm"
                                 >
-                                    <MessageSquare class="w-3.5 h-3.5" />
+                                    <MessageSquare class="w-4 h-4" />
                                 </button>
                             </td>
-                            <td class="col-status px-3 py-4 text-center">
-                                <span v-if="guest.sharedAt" class="text-emerald-500 text-[8px] font-black tracking-tighter">TERKIRIM</span>
-                                <span v-else class="text-slate-300 text-[8px] font-black tracking-tighter">BELUM</span>
+                            <td class="col-status px-3 py-5 text-center">
+                                <span v-if="guest.sharedAt" class="text-emerald-500 text-[10px] font-black tracking-tight">TERKIRIM</span>
+                                <span v-else class="text-slate-300 text-[10px] font-black tracking-tight uppercase">BELUM</span>
                             </td>
-                            <td class="col-action px-3 py-4 text-center">
-                                <button @click="copyGuestLink(guest)" class="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-all">
-                                    <Copy class="w-3.5 h-3.5" />
+                            <td class="col-action px-3 py-5 text-center">
+                                <button @click="copyGuestLink(guest)" class="p-2 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all hover:scale-110">
+                                    <Copy class="w-4 h-4" />
                                 </button>
                             </td>
-                            <td class="col-action px-2 py-4 text-center border-l-2 border-slate-50">
-                                <button @click="openEditModal(guest)" class="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-all">
-                                    <Edit2 class="w-3.5 h-3.5" />
+                            <td class="col-action px-2 py-5 text-center border-l border-slate-100">
+                                <button @click="openEditModal(guest)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all hover:scale-110">
+                                    <Edit2 class="w-4 h-4" />
                                 </button>
                             </td>
-                            <td class="col-action px-2 py-4 text-center">
-                                <button @click="handleDeleteGuest(guest.id)" class="p-1.5 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
-                                    <Trash2 class="w-3.5 h-3.5" />
+                            <td class="col-action px-2 py-5 text-center">
+                                <button @click="handleDeleteGuest(guest.id)" class="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all hover:scale-110">
+                                    <Trash2 class="w-4 h-4" />
                                 </button>
                             </td>
                         </tr>
@@ -707,42 +707,61 @@ select {
 /* Custom Table Styles */
 table {
   border-collapse: separate;
-  border-spacing: 0;
-}
-
-th, td {
-  border-right: 1px solid rgba(0,0,0,0.03);
-  position: relative;
-}
-
-th:last-child, td:last-child {
-  border-right: none;
-}
-
-/* Column Shadow effect */
-td {
-  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-}
-
-tr:hover td {
-  background-color: rgba(248, 250, 252, 0.8);
+  border-spacing: 0 12px; /* Row gap */
 }
 
 th {
   background-color: #2C5F5F;
+  border-radius: 0;
   box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.1);
 }
 
-/* Proportional widths for key columns */
-.col-id { width: 60px; }
-.col-tier { width: 70px; }
-.col-name { width: 160px; }
-.col-phone { width: 120px; }
-.col-addr { width: 160px; }
-.col-count { width: 60px; }
-.col-time { width: 80px; }
-.col-status { width: 70px; }
-.col-action { width: 50px; }
+/* Header rounding */
+thead tr th:first-child { border-radius: 16px 0 0 16px; }
+thead tr th:last-child { border-radius: 0 16px 16px 0; }
+
+td {
+  background: white;
+  border-top: 1px solid rgba(0,0,0,0.03);
+  border-bottom: 1px solid rgba(0,0,0,0.03);
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02); /* Very subtle bottom shadow */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Column vertical shadow divider */
+td {
+  border-right: 1px solid rgba(0,0,0,0.04);
+}
+
+/* Row card feeling */
+td:first-child {
+  border-left: 1px solid rgba(0,0,0,0.03);
+  border-radius: 16px 0 0 16px;
+}
+
+td:last-child {
+  border-right: none;
+  border-radius: 0 16px 16px 0;
+}
+
+tr:hover td {
+  background-color: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border-color: rgba(44, 95, 95, 0.1);
+}
+
+/* Proportional widths */
+.col-id { width: 5%; }
+.col-tier { width: 6%; }
+.col-name { width: 15%; }
+.col-phone { width: 10%; }
+.col-addr { width: 15%; }
+.col-count { width: 4%; }
+.col-time { width: 6%; }
+.col-status { width: 7%; }
+.col-action { width: 3.5%; }
+.col-send { width: 4.5%; }
 
 </style>
