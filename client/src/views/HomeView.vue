@@ -13,7 +13,7 @@ let interval: any = null;
 // Add first element to end for seamless looping
 const displayList = [...eventTypes, eventTypes[0]];
 
-const ITEM_HEIGHT_EM = 1.2; // Fixed height per item in em
+const ITEM_HEIGHT_EM = 1.4; // Increased to 1.4em to prevent top/bottom clipping
 
 onMounted(() => {
   // CTO Standard: Reliable state machine for vertical sliding
@@ -147,13 +147,13 @@ const formatPrice = (price: number) => {
             <span class="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
           </div>
 
-          <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold text-slate-900 leading-[1.2] tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
+          <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold text-slate-900 leading-[1.3] tracking-tight animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
             Platform Undangan Premium
             <br />
             <span class="italic font-normal text-slate-500">Untuk</span> 
-            <span class="relative h-[1.2em] overflow-hidden inline-flex flex-col items-start min-w-[200px] md:min-w-[300px] lg:min-w-[400px] align-bottom">
+            <span class="relative h-[1.4em] overflow-hidden inline-flex flex-col items-start min-w-[200px] md:min-w-[300px] lg:min-w-[420px] align-bottom">
               <span 
-                class="flex flex-col w-full whitespace-nowrap" 
+                class="flex flex-col w-full whitespace-nowrap pt-1" 
                 :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
                 :style="{ transform: `translateY(-${currentIndex * ITEM_HEIGHT_EM}em)` }"
               >
