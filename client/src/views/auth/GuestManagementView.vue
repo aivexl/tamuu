@@ -13,6 +13,8 @@ import { invitationsApi } from '@/lib/api/invitations';
 import type { TemplateResponse } from '@/lib/api/invitations';
 import * as XLSX from 'xlsx';
 import AppHeader from '@/components/layout/AppHeader.vue';
+import Vue3CountryIntl from 'vue3-country-intl';
+import 'vue3-country-intl/lib/vue3-country-intl.css';
 
 const route = useRoute();
 const router = useRouter();
@@ -725,32 +727,15 @@ onMounted(loadData);
                 <div class="grid grid-cols-12 gap-3">
                     <div class="col-span-12 md:col-span-4">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Kode Negara</label>
-                        <div class="relative">
-                            <button 
-                                type="button"
-                                @click="isCountryDropdownOpen = !isCountryDropdownOpen"
-                                class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 text-sm font-bold text-slate-700 transition-all cursor-pointer flex items-center justify-between"
-                            >
-                                <span>+{{ selectedCountryCode }}</span>
-                                <ChevronDown class="w-4 h-4 text-slate-400 transition-transform" :class="{ 'rotate-180': isCountryDropdownOpen }" />
-                            </button>
-                            <div 
-                                v-if="isCountryDropdownOpen" 
-                                class="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto"
-                            >
-                                <button
-                                    v-for="c in sortedCountryCodes" 
-                                    :key="c.code"
-                                    type="button"
-                                    @click="selectedCountryCode = c.code; isCountryDropdownOpen = false"
-                                    class="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-teal-50 flex items-center justify-between transition-colors"
-                                    :class="{ 'bg-teal-100 text-teal-700': selectedCountryCode === c.code }"
-                                >
-                                    <span>{{ c.name }}</span>
-                                    <span class="text-slate-400">+{{ c.code }}</span>
-                                </button>
-                            </div>
-                        </div>
+                        <Vue3CountryIntl
+                            v-model="selectedCountryCode"
+                            schema="sortCountryCode"
+                            type="phone"
+                            placeholder="Pilih negara"
+                            :showLabelImg="true"
+                            :showLabelCode="true"
+                            class="country-intl-picker"
+                        />
                     </div>
                     <div class="col-span-12 md:col-span-8">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nomor WhatsApp</label>
@@ -884,32 +869,15 @@ onMounted(loadData);
                 <div class="grid grid-cols-12 gap-3">
                     <div class="col-span-12 md:col-span-4">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Kode Negara</label>
-                        <div class="relative">
-                            <button 
-                                type="button"
-                                @click="isEditCountryDropdownOpen = !isEditCountryDropdownOpen"
-                                class="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 text-sm font-bold text-slate-700 transition-all cursor-pointer flex items-center justify-between"
-                            >
-                                <span>+{{ selectedEditCountryCode }}</span>
-                                <ChevronDown class="w-4 h-4 text-slate-400 transition-transform" :class="{ 'rotate-180': isEditCountryDropdownOpen }" />
-                            </button>
-                            <div 
-                                v-if="isEditCountryDropdownOpen" 
-                                class="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto"
-                            >
-                                <button
-                                    v-for="c in sortedCountryCodes" 
-                                    :key="c.code"
-                                    type="button"
-                                    @click="selectedEditCountryCode = c.code; isEditCountryDropdownOpen = false"
-                                    class="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-blue-50 flex items-center justify-between transition-colors"
-                                    :class="{ 'bg-blue-100 text-blue-700': selectedEditCountryCode === c.code }"
-                                >
-                                    <span>{{ c.name }}</span>
-                                    <span class="text-slate-400">+{{ c.code }}</span>
-                                </button>
-                            </div>
-                        </div>
+                        <Vue3CountryIntl
+                            v-model="selectedEditCountryCode"
+                            schema="sortCountryCode"
+                            type="phone"
+                            placeholder="Pilih negara"
+                            :showLabelImg="true"
+                            :showLabelCode="true"
+                            class="country-intl-picker"
+                        />
                     </div>
                     <div class="col-span-12 md:col-span-8">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nomor WhatsApp</label>
