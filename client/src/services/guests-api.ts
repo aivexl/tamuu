@@ -35,6 +35,7 @@ export interface Guest {
 
 /**
  * Format phone number for export (ensure it starts with international code)
+ * Uses leading apostrophe to force Excel to treat as text (prevents scientific notation)
  */
 function formatPhoneNumberInternational(phone: string | null): string {
     if (!phone) return '-';
@@ -44,10 +45,11 @@ function formatPhoneNumberInternational(phone: string | null): string {
 
     // If starts with 0, replace with 62
     if (cleaned.startsWith('0')) {
-        return '62' + cleaned.substring(1);
+        cleaned = '62' + cleaned.substring(1);
     }
 
-    return cleaned;
+    // Return with + prefix for proper international format
+    return '+' + cleaned;
 }
 
 export const guestsApi = {

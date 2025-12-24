@@ -392,17 +392,23 @@ function handleExport(format: 'csv' | 'excel') {
 
 function downloadImportFormat() {
     const headers = ['TIER', 'NAMA TAMU', 'NO WHATSAPP', 'ALAMAT', 'JUMLAH TAMU', 'MEJA/KURSI/RUANGAN'];
+    // Use leading apostrophe for phone numbers to force text format in Excel
     const data = [
-        ['VIP', 'Joni Saputra', '628123456789', 'Bandung', 2, 'Meja A1'],
-        ['REGULER', 'Siti Aminah', '628987654321', 'di tempat', 1, 'Room 302']
+        ['VIP', 'Joni Saputra', "'628123456789", 'Bandung', 2, 'Meja A1'],
+        ['REGULER', 'Siti Aminah', "'628987654321", 'di tempat', 1, 'Room 302']
     ];
     
     const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
     
-    // Add dropdown validation for TIER column (A2:A100)
-    if (!worksheet['!dataValidation']) worksheet['!dataValidation'] = [];
-    // Note: Standard XLSX library doesn't support data validation easily WITHOUT extra plugins or manual XML manipulation.
-    // For now, I'll provide a clean Excel file with instructions.
+    // Set column widths for better readability
+    worksheet['!cols'] = [
+        { wch: 10 },  // TIER
+        { wch: 25 },  // NAMA TAMU
+        { wch: 20 },  // NO WHATSAPP
+        { wch: 20 },  // ALAMAT
+        { wch: 12 },  // JUMLAH TAMU
+        { wch: 20 }   // MEJA/KURSI/RUANGAN
+    ];
     
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Format Import');
