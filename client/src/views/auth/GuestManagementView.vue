@@ -513,16 +513,26 @@ onMounted(loadData);
                                 <span v-else class="px-2 py-1 bg-slate-100 text-slate-300 text-[9px] font-black rounded-lg tracking-tight uppercase">BELUM</span>
                             </td>
                             <td class="col-send px-3 py-5 text-center">
-                                <button 
-                                    @click="shareWhatsApp(guest)"
-                                    :class="[
-                                        'p-2 rounded-xl transition-all hover:scale-110 shadow-sm flex items-center justify-center mx-auto',
-                                        guest.sharedAt ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                                    ]"
-                                >
-                                    <Check v-if="guest.sharedAt" class="w-4 h-4" />
-                                    <MessageSquare v-else class="w-4 h-4" />
-                                </button>
+                                <div class="relative group mx-auto w-fit">
+                                    <button 
+                                        @click="shareWhatsApp(guest)"
+                                        :class="[
+                                            'p-2 rounded-xl transition-all hover:scale-110 shadow-sm flex items-center justify-center',
+                                            guest.sharedAt ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                                        ]"
+                                    >
+                                        <Check v-if="guest.sharedAt" class="w-4 h-4" />
+                                        <MessageSquare v-else class="w-4 h-4" />
+                                    </button>
+                                    
+                                    <!-- Tooltip -->
+                                    <div v-if="guest.sharedAt" class="absolute invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-2 z-10">
+                                        <div class="bg-slate-800 text-white text-[9px] font-bold py-1 px-2 rounded whitespace-nowrap shadow-lg">
+                                            Kirim Ulang WA
+                                            <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 w-2 h-2 bg-slate-800 rotate-45"></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
                             <td class="col-status px-3 py-5 text-center">
                                 <span v-if="guest.sharedAt" class="text-emerald-500 text-[10px] font-black tracking-tight">TERKIRIM</span>
