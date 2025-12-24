@@ -7,11 +7,27 @@ import MainFooter from "@/components/layout/MainFooter.vue";
 
 const eventTypes = ["Pernikahan", "Ulang Tahun", "Sunatan", "Syukuran", "Aqiqah", "Khitanan", "Engagement"];
 const currentIndex = ref(0);
+const transitionEnabled = ref(true);
 let interval: any = null;
+
+// Add first element to end for seamless looping
+const displayList = [...eventTypes, eventTypes[0]];
 
 onMounted(() => {
   interval = setInterval(() => {
-    currentIndex.value = (currentIndex.value + 1) % eventTypes.length;
+    if (currentIndex.value >= eventTypes.length) {
+      // Snap back to 0 without transition
+      transitionEnabled.value = false;
+      currentIndex.value = 0;
+      
+      // Re-enable transition for the next slide
+      setTimeout(() => {
+        transitionEnabled.value = true;
+        currentIndex.value = 1;
+      }, 50);
+    } else {
+      currentIndex.value++;
+    }
   }, 2500);
 });
 
@@ -126,16 +142,17 @@ const formatPrice = (price: number) => {
             Platform Undangan
             <br />
             <span class="text-indigo-600">Terbaik</span> Untuk 
-            <div class="relative h-[1.1em] overflow-hidden inline-flex flex-col align-bottom">
-              <div 
-                class="transition-transform duration-700 ease-in-out flex flex-col" 
+            <span class="relative h-[1.1em] overflow-hidden inline-flex flex-col align-bottom text-left min-w-[200px]">
+              <span 
+                class="flex flex-col w-full" 
+                :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
                 :style="{ transform: `translateY(-${currentIndex * 100}%)` }"
               >
-                <div v-for="event in eventTypes" :key="event" class="h-[1.1em] flex items-center bg-gradient-to-r from-indigo-600 via-indigo-500 to-teal-500 bg-clip-text text-transparent px-2">
+                <span v-for="(event, i) in displayList" :key="i" class="h-[1.1em] flex items-center bg-gradient-to-r from-indigo-600 via-indigo-500 to-teal-500 bg-clip-text text-transparent px-2">
                   {{ event }}
-                </div>
-              </div>
-            </div>
+                </span>
+              </span>
+            </span>
           </h1>
 
           <p class="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-700 delay-300">
