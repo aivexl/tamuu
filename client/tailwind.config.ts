@@ -49,7 +49,8 @@ const config: Config = {
                 },
             },
             fontFamily: {
-                sans: ['Inter', 'system-ui', 'sans-serif'],
+                sans: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+                outfit: ['Outfit', 'sans-serif'],
                 display: ['Playfair Display', 'Georgia', 'serif'],
                 elegant: ['Cormorant Garamond', 'Georgia', 'serif'],
                 cinzel: ['Cinzel', 'serif'],

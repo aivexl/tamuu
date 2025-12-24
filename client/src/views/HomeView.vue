@@ -13,25 +13,31 @@ let interval: any = null;
 // Add first element to end for seamless looping
 const displayList = [...eventTypes, eventTypes[0]];
 
+const ITEM_HEIGHT_EM = 1.2; // Fixed height per item in em
+
 onMounted(() => {
-  // Use a longer interval for better readability (3.5 seconds)
+  // CTO Standard: Reliable state machine for vertical sliding
   interval = setInterval(() => {
+    // 1. Move to next item
     if (currentIndex.value < eventTypes.length) {
       currentIndex.value++;
     }
     
-    // If we just moved to the clone (last index), wait for transition, then snap back
+    // 2. If reached the clone, wait for transition, then snap back
     if (currentIndex.value === eventTypes.length) {
       setTimeout(() => {
         transitionEnabled.value = false;
         currentIndex.value = 0;
-        // Small delay to ensure browser processed the instant jump
-        setTimeout(() => {
-          transitionEnabled.value = true;
-        }, 50);
-      }, 700); // Wait for the transition (700ms) to finish
+        
+        // Force browser to acknowledge the state change before re-enabling transition
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            transitionEnabled.value = true;
+          }, 50);
+        });
+      }, 800); // Slightly more than duration (700ms)
     }
-  }, 3500);
+  }, 4000); // Slower interval (4s) for premium feel
 });
 
 onUnmounted(() => {
@@ -124,16 +130,16 @@ const formatPrice = (price: number) => {
     <MainNavbar />
 
     <!-- Hero Section -->
-    <section class="relative pt-32 pb-20 overflow-hidden">
+    <section class="relative pt-32 pb-20 overflow-hidden font-outfit">
       <!-- Decor -->
       <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
-        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/15 blur-[120px] rounded-full"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-teal-500/15 blur-[120px] rounded-full"></div>
-        <div class="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-purple-500/10 blur-[100px] rounded-full"></div>
+        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/20 blur-[120px] rounded-full"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-teal-500/20 blur-[120px] rounded-full"></div>
+        <div class="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-purple-500/15 blur-[100px] rounded-full"></div>
       </div>
 
       <div class="max-w-7xl mx-auto px-6 relative">
-        <div class="text-center space-y-10 max-w-4xl mx-auto">
+        <div class="text-center space-y-10 max-w-5xl mx-auto">
           <div
             class="inline-flex items-center gap-2 px-5 py-2 bg-indigo-50 border border-indigo-100 rounded-full shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700"
           >
@@ -141,17 +147,22 @@ const formatPrice = (price: number) => {
             <span class="text-xs font-bold text-indigo-700 uppercase tracking-widest">Platform Undangan Digital #1</span>
           </div>
 
-          <h1 class="text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 leading-[1.1] tracking-tighter animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
+          <h1 class="text-5xl md:text-7xl lg:text-9xl font-black text-slate-900 leading-[1.05] tracking-tighter animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
             Platform Undangan
             <br />
             <span class="text-indigo-600">Terbaik</span> Untuk 
-            <span class="relative h-[1.1em] overflow-hidden inline-flex flex-col align-bottom text-left min-w-[260px] md:min-w-[340px] lg:min-w-[400px]">
+            <span class="relative h-[1.2em] overflow-hidden inline-flex flex-col items-start min-w-[260px] md:min-w-[340px] lg:min-w-[400px]">
               <span 
                 class="flex flex-col w-full whitespace-nowrap" 
                 :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
-                :style="{ transform: `translateY(-${currentIndex * 100}%)` }"
+                :style="{ transform: `translateY(-${currentIndex * ITEM_HEIGHT_EM}em)` }"
               >
-                <span v-for="(event, i) in displayList" :key="i" class="h-[1.1em] flex items-center bg-gradient-to-r from-indigo-600 via-indigo-500 to-teal-500 bg-clip-text text-transparent px-2">
+                <span 
+                  v-for="(event, i) in displayList" 
+                  :key="i" 
+                  class="flex items-center bg-gradient-to-r from-indigo-600 via-indigo-500 to-teal-500 bg-clip-text text-transparent px-2"
+                  :style="{ height: `${ITEM_HEIGHT_EM}em` }"
+                >
                   {{ event }}
                 </span>
               </span>
