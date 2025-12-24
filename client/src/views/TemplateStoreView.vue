@@ -163,10 +163,10 @@ const previewTemplate = (templateId: string) => {
                     <div 
                         v-for="template in filteredTemplates" 
                         :key="template.id"
-                        class="group bg-white rounded-[2rem] border border-white/60 overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] hover:shadow-[0_60px_100px_-30px_rgba(0,0,0,0.1)] hover:-translate-y-2 transition-all duration-700"
+                        class="group bg-white rounded-2xl border border-white/60 overflow-hidden shadow-[0_20px_40px_-15px_rgba(0,0,0,0.03)] hover:shadow-xl hover:-translate-y-1 transition-all duration-500"
                         :class="currentTemplateId === template.id ? 'ring-2 ring-teal-500 ring-offset-4' : ''"
                     >
-                        <!-- Thumbnail -->
+                        <!-- Thumbnail (Exactly like Dashboard) -->
                         <div class="aspect-[4/5] bg-slate-50 relative overflow-hidden">
                             <SafeImage 
                                 :src="template.thumbnail" 
@@ -174,46 +174,40 @@ const previewTemplate = (templateId: string) => {
                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                             />
                             
-                            <!-- Category Badge (Top Left - Exactly like Dashboard) -->
-                            <div class="absolute top-5 left-5 z-20">
-                                <span class="px-3.5 py-1.5 bg-white/95 backdrop-blur-md rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-slate-900 shadow-xl shadow-black/5">
+                            <!-- Category Badge (Exactly like Dashboard) -->
+                            <div class="absolute top-4 left-4 z-20">
+                                <span class="px-2.5 py-1 bg-white/95 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-[0.1em] text-slate-900 shadow-md">
                                     {{ template.category || 'Premium' }}
                                 </span>
                             </div>
-
-                            <!-- Overlay -->
-                            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-[4px] opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center gap-4">
-                                <button 
-                                    @click="previewTemplate(template.id)"
-                                    class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-90 shadow-2xl"
-                                    title="Preview Desain"
-                                >
-                                    <Eye class="w-7 h-7 text-slate-900" />
-                                </button>
-                                <button 
-                                    @click="handleSelect(template.id)"
-                                    class="w-16 h-16 bg-teal-500 rounded-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-90 shadow-2xl"
-                                    title="Gunakan Template Ini"
-                                >
-                                    <Check class="w-7 h-7 text-slate-900" />
-                                </button>
-                            </div>
                         </div>
 
-                        <!-- Info -->
-                        <div class="p-8">
-                            <h3 class="font-bold text-slate-900 truncate mb-6 font-outfit text-xl tracking-tight">{{ template.name }}</h3>
-                            <button 
-                                @click="handleSelect(template.id)"
-                                :class="[
-                                    'w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95',
-                                    currentTemplateId === template.id 
-                                        ? 'bg-slate-50 text-slate-300 cursor-default border border-slate-100' 
-                                        : 'bg-slate-900 text-white hover:bg-teal-500 hover:shadow-2xl hover:shadow-teal-500/20'
-                                ]"
-                            >
-                                {{ currentTemplateId === template.id ? 'Terpilih' : 'Gunakan Desain' }}
-                            </button>
+                        <!-- Info (Exactly like Dashboard p-5) -->
+                        <div class="p-5 flex flex-col h-full">
+                            <h3 class="text-sm font-bold text-slate-900 truncate mb-1 font-outfit">{{ template.name }}</h3>
+                            <p class="text-[10px] text-slate-400 mb-4 uppercase tracking-widest">{{ template.category || 'Premium' }}</p>
+                            
+                            <!-- Actions (Always Visible, Below Title) -->
+                            <div class="mt-auto space-y-2">
+                                <button 
+                                    @click="handleSelect(template.id)"
+                                    :class="[
+                                        'w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-sm',
+                                        currentTemplateId === template.id 
+                                            ? 'bg-slate-50 text-slate-300 cursor-default border border-slate-100' 
+                                            : 'bg-slate-900 text-white hover:bg-teal-500 hover:shadow-lg hover:shadow-teal-500/10'
+                                    ]"
+                                >
+                                    {{ currentTemplateId === template.id ? 'Terpilih' : 'Gunakan Desain' }}
+                                </button>
+                                
+                                <button 
+                                    @click="previewTemplate(template.id)"
+                                    class="w-full py-2.5 rounded-xl text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Eye class="w-3.5 h-3.5" /> Preview
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
