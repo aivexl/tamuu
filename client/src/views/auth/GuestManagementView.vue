@@ -44,46 +44,29 @@ const newGuest = ref({
     guestCount: 1
 });
 
-// Country Codes (Comprehensive List)
-const countryCodes = [
-    { code: '62', flag: '🇮🇩', name: 'Indonesia' },
-    { code: '60', flag: '🇲🇾', name: 'Malaysia' },
-    { code: '65', flag: '🇸🇬', name: 'Singapore' },
-    { code: '66', flag: '🇹🇭', name: 'Thailand' },
-    { code: '673', flag: '🇧🇳', name: 'Brunei' },
-    { code: '63', flag: '🇵🇭', name: 'Philippines' },
-    { code: '84', flag: '🇻🇳', name: 'Vietnam' },
-    { code: '855', flag: '🇰🇭', name: 'Cambodia' },
-    { code: '856', flag: '🇱🇦', name: 'Laos' },
-    { code: '95', flag: '🇲🇲', name: 'Myanmar' },
-    { code: '61', flag: '🇦🇺', name: 'Australia' },
-    { code: '81', flag: '🇯🇵', name: 'Japan' },
-    { code: '82', flag: '🇰🇷', name: 'South Korea' },
-    { code: '86', flag: '🇨🇳', name: 'China' },
-    { code: '886', flag: '🇹🇼', name: 'Taiwan' },
-    { code: '852', flag: '🇭🇰', name: 'Hong Kong' },
-    { code: '91', flag: '🇮🇳', name: 'India' },
-    { code: '92', flag: '🇵🇰', name: 'Pakistan' },
-    { code: '966', flag: '🇸🇦', name: 'Saudi Arabia' },
-    { code: '971', flag: '🇦🇪', name: 'UAE' },
-    { code: '90', flag: '🇹🇷', name: 'Turkey' },
-    { code: '1', flag: '🇺🇸', name: 'USA/Canada' },
-    { code: '44', flag: '🇬🇧', name: 'UK' },
-    { code: '33', flag: '🇫🇷', name: 'France' },
-    { code: '49', flag: '🇩🇪', name: 'Germany' },
-    { code: '31', flag: '🇳🇱', name: 'Netherlands' },
-    { code: '41', flag: '🇨🇭', name: 'Switzerland' },
-    { code: '39', flag: '🇮🇹', name: 'Italy' },
-    { code: '34', flag: '🇪🇸', name: 'Spain' },
-    { code: '7', flag: '🇷🇺', name: 'Russia' },
-    { code: '55', flag: '🇧🇷', name: 'Brazil' },
-    { code: '20', flag: '🇪🇬', name: 'Egypt' },
-    { code: '27', flag: '🇿🇦', name: 'South Africa' }
-].sort((a,b) => a.name.localeCompare(b.name));
+// Country Codes from countries-list library
+import { countries } from 'countries-list';
 
-// Indonesia should always be at the top though
+// Helper function to convert ISO country code to emoji flag
+function isoToEmoji(isoCode: string): string {
+    return isoCode
+        .toUpperCase()
+        .split('')
+        .map(char => String.fromCodePoint(127397 + char.charCodeAt(0)))
+        .join('');
+}
+
+// Build country codes list from the library
+const allCountryCodes = Object.entries(countries).map(([iso, data]) => ({
+    code: String(data.phone[0] || ''),
+    flag: isoToEmoji(iso),
+    name: data.name,
+    iso
+})).filter(c => c.code); // Filter out countries without phone codes
+
+// Indonesia should always be at the top, then sort alphabetically
 const sortedCountryCodes = computed(() => {
-    const list = [...countryCodes];
+    const list = [...allCountryCodes].sort((a, b) => a.name.localeCompare(b.name));
     const indoIdx = list.findIndex(c => c.code === '62');
     if (indoIdx > -1) {
         const indo = list.splice(indoIdx, 1)[0];
@@ -98,7 +81,7 @@ const selectedEditCountryCode = ref('62');
 function getFlag(phone: string | null) {
     if (!phone) return '🇮🇩';
     // Sort codes by length descending to match longest possible prefix first (e.g. 673 before 6)
-    const sortedByLen = [...countryCodes].sort((a, b) => b.code.length - a.code.length);
+    const sortedByLen = [...allCountryCodes].sort((a, b) => b.code.length - a.code.length);
     const match = sortedByLen.find(c => phone.startsWith(c.code));
     return match ? match.flag : ''; // Remove globe icon
 }
@@ -115,7 +98,7 @@ function sanitizePhoneNumber(phone: string, countryCode: string): string {
     
     // Check if user already entered a number with a valid country code
     // Sort by length descending to avoid partial matches (e.g. 1 matching a number starting with 12)
-    const sortedByLen = [...countryCodes].sort((a, b) => b.code.length - a.code.length);
+    const sortedByLen = [...allCountryCodes].sort((a, b) => b.code.length - a.code.length);
     for (const c of sortedByLen) {
         if (cleaned.startsWith(c.code)) {
             // Already starts with a valid international code, do not force 62 or anything else
@@ -265,7 +248,7 @@ function openEditModal(guest: Guest) {
     let foundCode = '62';
     
     // Sort codes by length descending to match longest possible prefix first
-    const sortedByLen = [...countryCodes].sort((a, b) => b.code.length - a.code.length);
+    const sortedByLen = [...allCountryCodes].sort((a, b) => b.code.length - a.code.length);
     for (const c of sortedByLen) {
         if (phoneStr.startsWith(c.code)) {
             foundCode = c.code;
