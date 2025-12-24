@@ -34,6 +34,7 @@ const pendingShareGuest = ref<Guest | null>(null);
 
 // Guest Form State
 const showAddForm = ref(false);
+const isSubmittingAdd = ref(false);
 const newGuest = ref({
     name: '',
     phone: '',
@@ -44,6 +45,7 @@ const newGuest = ref({
 
 // Edit Guest State
 const showEditForm = ref(false);
+const isSubmittingEdit = ref(false);
 const editingGuest = ref<Guest | null>(null);
 const editForm = ref({
     name: '',
@@ -122,14 +124,19 @@ async function saveMessage() {
 }
 
 async function handleAddGuest() {
-    if (!newGuest.value.name) return;
+    if (!newGuest.value.name || isSubmittingAdd.value) return;
+    isSubmittingAdd.value = true;
     try {
         const created = await guestsApi.addGuest(invitationId, newGuest.value);
         guests.value.unshift(created);
         showAddForm.value = false;
         newGuest.value = { name: '', phone: '', address: 'di tempat', tier: 'reguler', guestCount: 1 };
+        showToast('Tamu berhasil ditambahkan');
     } catch (e) {
         console.error('Add guest failed:', e);
+        showToast('Gagal menambahkan tamu');
+    } finally {
+        isSubmittingAdd.value = false;
     }
 }
 
@@ -169,18 +176,30 @@ function openEditModal(guest: Guest) {
 }
 
 async function handleUpdateGuest() {
-    if (!editingGuest.value) return;
+    if (!editingGuest.value || isSubmittingEdit.value) return;
+    
+    // Capture the ID and data to prevent race conditions if modal is closed
+    const guestId = editingGuest.value.id;
+    const updateData = { ...editForm.value };
+    
+    isSubmittingEdit.value = true;
     try {
-        await guestsApi.updateGuest(editingGuest.value.id, editForm.value);
-        const idx = guests.value.findIndex(g => g.id === editingGuest.value!.id);
+        await guestsApi.updateGuest(guestId, updateData);
+        
+        // Update local state using captured ID
+        const idx = guests.value.findIndex(g => g.id === guestId);
         if (idx !== -1) {
-            guests.value[idx] = { ...guests.value[idx], ...editForm.value } as Guest;
+            guests.value[idx] = { ...guests.value[idx], ...updateData } as Guest;
         }
+        
         showEditForm.value = false;
         editingGuest.value = null;
+        showToast('Data tamu diperbarui');
     } catch (e) {
         console.error('Update guest failed:', e);
-        alert('Gagal memperbarui data tamu.');
+        showToast('Gagal memperbarui data tamu');
+    } finally {
+        isSubmittingEdit.value = false;
     }
 }
 
@@ -628,8 +647,21 @@ onMounted(loadData);
                 </div>
             </div>
             <div class="mt-8 flex gap-3">
-                <button @click="showAddForm = false" class="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-50 rounded-xl">Batal</button>
-                <button @click="handleAddGuest" class="flex-1 py-3 bg-teal-600 text-white font-bold rounded-xl shadow-lg shadow-teal-600/20 hover:bg-teal-700">Simpan Tamu</button>
+                <button 
+                    @click="showAddForm = false" 
+                    :disabled="isSubmittingAdd"
+                    class="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-50 rounded-xl disabled:opacity-50"
+                >
+                    Batal
+                </button>
+                <button 
+                    @click="handleAddGuest" 
+                    :disabled="isSubmittingAdd"
+                    class="flex-1 py-3 bg-teal-600 text-white font-bold rounded-xl shadow-lg shadow-teal-600/20 hover:bg-teal-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                    <Loader2 v-if="isSubmittingAdd" class="w-4 h-4 animate-spin" />
+                    Simpan Tamu
+                </button>
             </div>
         </div>
     </div>
@@ -733,12 +765,25 @@ onMounted(loadData);
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Jumlah Tamu</label>
-                    <input v-model="editForm.guestCount" type="number" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" />
+                    <input v-model="editForm.guestCount" type="number" min="1" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-teal-500" />
                 </div>
             </div>
             <div class="mt-8 flex gap-3">
-                <button @click="showEditForm = false" class="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-50 rounded-xl">Batal</button>
-                <button @click="handleUpdateGuest" class="flex-1 py-3 bg-teal-600 text-white font-bold rounded-xl shadow-lg shadow-teal-600/20 hover:bg-teal-700 font-black">Simpan Perubahan</button>
+                <button 
+                    @click="showEditForm = false" 
+                    :disabled="isSubmittingEdit"
+                    class="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-50 rounded-xl disabled:opacity-50"
+                >
+                    Batal
+                </button>
+                <button 
+                    @click="handleUpdateGuest" 
+                    :disabled="isSubmittingEdit"
+                    class="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                    <Loader2 v-if="isSubmittingEdit" class="w-4 h-4 animate-spin" />
+                    Simpan Perubahan
+                </button>
             </div>
         </div>
     </div>
