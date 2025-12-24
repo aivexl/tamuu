@@ -9,6 +9,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { invitationsApi, type TemplateResponse } from '@/lib/api/invitations';
+import { guestsApi } from '@/services/guests-api';
 import SafeImage from '@/components/ui/SafeImage.vue';
 import AppHeader from '@/components/layout/AppHeader.vue';
 import { 
@@ -25,6 +26,7 @@ const authStore = useAuthStore();
 const activeTab = ref('invitations');
 const searchQuery = ref('');
 const invitations = ref<TemplateResponse[]>([]);
+const totalGuests = ref(0);
 const loading = ref(true);
 const sidebarOpen = ref(true);
 
@@ -58,7 +60,12 @@ const filteredInvitations = computed(() => {
 async function loadInvitations() {
     loading.value = true;
     try {
-        invitations.value = await invitationsApi.getMyInvitations();
+        const [invDocs, guestStats] = await Promise.all([
+            invitationsApi.getMyInvitations(),
+            guestsApi.getGuestStats()
+        ]);
+        invitations.value = invDocs;
+        totalGuests.value = guestStats.totalGuests;
     } catch (e) {
         console.error('Failed to load invitations:', e);
     } finally {
@@ -239,7 +246,7 @@ onMounted(() => {
             <!-- Dashboard Tab -->
             <div v-if="activeTab === 'dashboard'" class="space-y-6">
                 <!-- Stats Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
                         <div class="flex items-center justify-between">
                             <div>
@@ -248,6 +255,17 @@ onMounted(() => {
                             </div>
                             <div class="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center">
                                 <Mail class="w-6 h-6 text-teal-600" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-500">Total Tamu</p>
+                                <p class="text-3xl font-bold text-slate-800">{{ totalGuests }}</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center">
+                                <Users class="w-6 h-6 text-emerald-600" />
                             </div>
                         </div>
                     </div>

@@ -1178,6 +1178,22 @@ export class DatabaseService {
         return newTemplate;
     }
 
+    /**
+     * Get guest statistics for a user across all invitations
+     */
+    async getUserGuestStats(userId: string): Promise<{ totalGuests: number }> {
+        const result = await this.db
+            .prepare(`
+                SELECT SUM(guest_count) as total
+                FROM guests
+                WHERE invitation_id IN (SELECT id FROM templates WHERE user_id = ?)
+            `)
+            .bind(userId)
+            .first<{ total: number | null }>();
+
+        return { totalGuests: Number(result?.total || 0) };
+    }
+
     // ============================================
     // GUESTS (Buku Tamu)
     // ============================================

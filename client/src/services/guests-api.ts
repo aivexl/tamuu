@@ -44,6 +44,18 @@ export const guestsApi = {
     },
 
     /**
+     * Get summary stats for all guests
+     */
+    async getGuestStats(): Promise<{ totalGuests: number }> {
+        const headers = await getAuthHeaders();
+        const response = await axios.get(`${API_URL}/guests/stats/summary`, {
+            headers,
+            withCredentials: true
+        });
+        return response.data;
+    },
+
+    /**
      * Add a single guest
      */
     async addGuest(invitationId: string, guest: Partial<Guest>): Promise<Guest> {

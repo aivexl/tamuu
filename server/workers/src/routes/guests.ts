@@ -9,6 +9,22 @@ const guests = new Hono<{ Bindings: Env; Variables: { userId: string; userRole: 
 guests.use('*', authMiddleware);
 
 /**
+ * GET /api/guests/stats/summary
+ * Get total guest statistics for current user
+ */
+guests.get('/stats/summary', async (c) => {
+    const userId = c.get('userId');
+    const db = new DatabaseService(c.env.DB);
+
+    try {
+        const stats = await db.getUserGuestStats(userId);
+        return c.json(stats);
+    } catch (err: any) {
+        return c.json({ error: err.message }, 500);
+    }
+});
+
+/**
  * GET /api/guests/:invitationId
  * Fetch all guests for a specific invitation
  */
