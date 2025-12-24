@@ -1212,6 +1212,7 @@ export class DatabaseService {
             guestCount: g.guest_count,
             checkInCode: g.check_in_code,
             checkedInAt: g.checked_in_at,
+            checkedOutAt: g.checked_out_at,
             sharedAt: g.shared_at,
             createdAt: g.created_at,
             updatedAt: g.updated_at
@@ -1296,6 +1297,10 @@ export class DatabaseService {
         if (updates.checkedInAt !== undefined) {
             sets.push('checked_in_at = ?');
             values.push(updates.checkedInAt);
+        }
+        if (updates.checkedOutAt !== undefined) {
+            sets.push('checked_out_at = ?');
+            values.push(updates.checkedOutAt);
         }
         if (updates.sharedAt !== undefined) {
             sets.push('shared_at = ?');

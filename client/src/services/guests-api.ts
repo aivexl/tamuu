@@ -26,6 +26,7 @@ export interface Guest {
     guestCount: number;
     checkInCode: string | null;
     checkedInAt: string | null;
+    checkedOutAt: string | null;
     sharedAt: string | null;
     createdAt: string;
     updatedAt: string;
@@ -106,16 +107,31 @@ export const guestsApi = {
      * Export guests to CSV
      */
     exportToCSV(guests: Guest[], filename = 'daftar-tamu.csv') {
-        const headers = ['Nama', 'WhatsApp', 'Alamat', 'Status', 'Jumlah Tamu', 'Kode Check-in', 'Status Check-in'];
-        const rows = guests.map(g => [
-            g.name,
-            g.phone || '',
-            g.address,
-            g.tier.toUpperCase(),
-            g.guestCount,
-            g.checkInCode || '',
-            g.checkedInAt ? 'Sudah Masuk' : 'Belum Masuk'
-        ]);
+        const headers = [
+            'ID TAMU', 'TIER', 'NAMA TAMU', 'NO WHATSAPP', 'ALAMAT', 'JUMLAH TAMU',
+            'DATES CHECK IN', 'CHECK-IN', 'CHECK-OUT', 'KEHADIRAN', 'SEND WA', 'STATUS'
+        ];
+
+        const rows = guests.map(g => {
+            const checkInDate = g.checkedInAt ? new Date(g.checkedInAt).toLocaleDateString('id-ID') : '-';
+            const checkInTime = g.checkedInAt ? new Date(g.checkedInAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '-';
+            const checkOutTime = g.checkedOutAt ? new Date(g.checkedOutAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '-';
+
+            return [
+                g.checkInCode || '-',
+                g.tier.toUpperCase(),
+                g.name,
+                g.phone || '-',
+                g.address,
+                g.guestCount,
+                checkInDate,
+                checkInTime,
+                checkOutTime,
+                g.checkedInAt ? 'HADIR' : 'BELUM HADIR',
+                g.sharedAt ? 'SUDAH' : 'BELUM',
+                g.sharedAt ? 'TERKIRIM' : 'BELUM'
+            ];
+        });
 
         const content = [
             headers.join(','),
@@ -137,19 +153,44 @@ export const guestsApi = {
      * Export guests to Excel (.xlsx)
      */
     exportToExcel(guests: Guest[], filename = 'daftar-tamu.xlsx') {
-        const data = guests.map(g => ({
-            'Nama': g.name,
-            'WhatsApp': g.phone || '',
-            'Alamat': g.address,
-            'Status': g.tier.toUpperCase(),
-            'Jumlah Tamu': g.guestCount,
-            'Kode Check-in': g.checkInCode || '',
-            'Status Check-in': g.checkedInAt ? 'Sudah Masuk' : 'Belum Masuk'
-        }));
+        const headers = [
+            'ID TAMU', 'TIER', 'NAMA TAMU', 'NO WHATSAPP', 'ALAMAT', 'JUMLAH TAMU',
+            'DATES CHECK IN', 'CHECK-IN', 'CHECK-OUT', 'KEHADIRAN', 'SEND WA', 'STATUS'
+        ];
 
-        const worksheet = XLSX.utils.json_to_sheet(data);
+        const data = guests.map(g => {
+            const checkInDate = g.checkedInAt ? new Date(g.checkedInAt).toLocaleDateString('id-ID') : '-';
+            const checkInTime = g.checkedInAt ? new Date(g.checkedInAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '-';
+            const checkOutTime = g.checkedOutAt ? new Date(g.checkedOutAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '-';
+
+            return {
+                'ID TAMU': g.checkInCode || '-',
+                'TIER': g.tier.toUpperCase(),
+                'NAMA TAMU': g.name,
+                'NO WHATSAPP': g.phone || '-',
+                'ALAMAT': g.address,
+                'JUMLAH TAMU': g.guestCount,
+                'DATES CHECK IN': checkInDate,
+                'CHECK-IN': checkInTime,
+                'CHECK-OUT': checkOutTime,
+                'KEHADIRAN': g.checkedInAt ? 'HADIR' : 'BELUM HADIR',
+                'SEND WA': g.sharedAt ? 'SUDAH' : 'BELUM',
+                'STATUS': g.sharedAt ? 'TERKIRIM' : 'BELUM'
+            };
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(data, { header: headers });
+
+        // Autofit columns
+        const colWidths = headers.map(header => {
+            const lengths = [header.length, ...data.map(row => String((row as any)[header] || '').length)];
+            return { wch: Math.max(...lengths) + 2 };
+        });
+        worksheet['!cols'] = colWidths;
+
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Daftar Tamu');
+
         XLSX.writeFile(workbook, filename);
     }
 };

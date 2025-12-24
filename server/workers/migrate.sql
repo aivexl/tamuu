@@ -39,3 +39,4 @@ ALTER TABLE template_elements ADD COLUMN lottie_config TEXT;
 
 -- WhatsApp Share Tracking
 ALTER TABLE guests ADD COLUMN shared_at TEXT;
+ALTER TABLE guests ADD COLUMN checked_out_at TEXT;

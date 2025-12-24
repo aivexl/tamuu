@@ -11,6 +11,7 @@ import {
 import { guestsApi, type Guest } from '@/services/guests-api';
 import { invitationsApi } from '@/lib/api/invitations';
 import type { TemplateResponse } from '@/lib/api/invitations';
+import * as XLSX from 'xlsx';
 import AppHeader from '@/components/layout/AppHeader.vue';
 
 const route = useRoute();
@@ -48,7 +49,8 @@ const filteredGuests = computed(() => {
     return guests.value.filter(g => 
         g.name.toLowerCase().includes(q) || 
         g.phone?.includes(q) || 
-        g.address?.toLowerCase().includes(q)
+        g.address?.toLowerCase().includes(q) ||
+        g.checkInCode?.toLowerCase().includes(q)
     );
 });
 
@@ -218,47 +220,87 @@ function handleExport(format: 'csv' | 'excel') {
 }
 
 function downloadImportFormat() {
-    const csvContent = "Nama,WhatsApp,Alamat,Status,Jumlah Tamu\nJoni Saputra,08123456789,Bandung,vip,2\nSiti Aminah,08987654321,di tempat,reguler,1";
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'format-import-tamu-tamuu.csv';
-    a.click();
+    const headers = ['TIER', 'NAMA TAMU', 'NO WHATSAPP', 'ALAMAT', 'JUMLAH TAMU'];
+    const data = [
+        ['VIP', 'Joni Saputra', '08123456789', 'Bandung', 2],
+        ['REGULER', 'Siti Aminah', '08987654321', 'di tempat', 1]
+    ];
+    
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    
+    // Add dropdown validation for TIER column (A2:A100)
+    if (!worksheet['!dataValidation']) worksheet['!dataValidation'] = [];
+    // Note: Standard XLSX library doesn't support data validation easily WITHOUT extra plugins or manual XML manipulation.
+    // For now, I'll provide a clean Excel file with instructions.
+    
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Format Import');
+    XLSX.writeFile(workbook, 'format-import-tamu.xlsx');
 }
 
 async function handleFileUpload(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        const text = e.target?.result as string;
-        const lines = text.split('\n');
-        if (lines.length < 2) return;
-        
-        const importedGuests = lines.slice(1).filter(l => l.trim()).map(line => {
+    if (file.name.endsWith('.csv')) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target?.result as string;
+            processData(text, 'csv');
+        };
+        reader.readAsText(file);
+    } else {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            processData(json, 'excel');
+        };
+        reader.readAsArrayBuffer(file);
+    }
+}
+
+async function processData(data: any, format: 'csv' | 'excel') {
+    let importedGuests = [];
+    
+    if (format === 'csv') {
+        const lines = data.split('\n');
+        importedGuests = lines.slice(1).filter((l: string) => l.trim()).map((line: string) => {
             const cols = line.split(',');
             return {
-                name: cols[0]?.trim() || '',
-                phone: cols[1]?.trim() || '',
-                address: cols[2]?.trim() || 'di tempat',
-                tier: (cols[3]?.trim().toLowerCase() || 'reguler') as 'reguler' | 'vip' | 'vvip',
+                tier: (cols[0]?.trim().toLowerCase() || 'reguler') as any,
+                name: cols[1]?.trim() || '',
+                phone: cols[2]?.trim() || '',
+                address: cols[3]?.trim() || 'di tempat',
                 guestCount: parseInt(cols[4] || '1') || 1
             };
-        }).filter(g => g.name);
+        });
+    } else {
+        // Excel data is array of arrays
+        importedGuests = data.slice(1).map((cols: any) => ({
+            tier: (String(cols[0] || '').trim().toLowerCase() || 'reguler') as any,
+            name: String(cols[1] || '').trim(),
+            phone: String(cols[2] || '').trim(),
+            address: String(cols[3] || '').trim() || 'di tempat',
+            guestCount: parseInt(cols[4] || '1') || 1
+        }));
+    }
 
-        if (importedGuests.length > 0) {
-            try {
-                await guestsApi.bulkAddGuests(invitationId, importedGuests);
-                await loadData();
-                isImportModalOpen.value = false;
-            } catch (err) {
-                alert('Gagal mengimpor tamu. Periksa format file Anda.');
-            }
+    importedGuests = importedGuests.filter(g => g.name);
+
+    if (importedGuests.length > 0) {
+        try {
+            await guestsApi.bulkAddGuests(invitationId, importedGuests);
+            await loadData();
+            isImportModalOpen.value = false;
+            alert(`Berhasil mengimpor ${importedGuests.length} tamu.`);
+        } catch (err) {
+            alert('Gagal mengimpor tamu. Periksa format file Anda.');
         }
-    };
-    reader.readAsText(file);
+    }
 }
 
 onMounted(loadData);
@@ -375,42 +417,35 @@ onMounted(loadData);
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
                     <thead>
-                        <tr class="bg-slate-50/50 border-b border-slate-100">
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Nama Tamu</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">WhatsApp</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Alamat</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Tier</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Tamu</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Share</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Check-in</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Aksi</th>
+                        <tr class="bg-[#2C5F5F] text-white">
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap">ID TAMU</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap">TIER</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap">NAMA TAMU</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap">NO WHATSAPP</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap">ALAMAT</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap">JUMLAH TAMU</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap">DATES CHECK IN</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap">CHECK-IN</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap">CHECK-OUT</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap">KEHADIRAN</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap text-center">SEND WA</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap text-center">STATUS</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap text-center">COPY</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap text-center">EDIT</th>
+                            <th class="px-4 py-4 text-[10px] font-black uppercase tracking-tighter whitespace-nowrap text-center">HAPUS</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <tr v-if="filteredGuests.length === 0" class="hover:bg-slate-50/30">
-                            <td colspan="8" class="px-6 py-12 text-center text-slate-400 italic">
+                            <td colspan="15" class="px-6 py-12 text-center text-slate-400 italic">
                                 Belum ada data tamu. Klik "Tambah Tamu" atau "Import" untuk memulai.
                             </td>
                         </tr>
                         <tr v-for="guest in filteredGuests" :key="guest.id" class="hover:bg-slate-50/50 transition-colors group">
-                            <td class="px-6 py-4">
-                                <span class="font-semibold text-slate-800 block">{{ guest.name }}</span>
-                                <span class="text-[10px] text-slate-400 font-mono uppercase tracking-tighter">{{ guest.checkInCode }}</span>
+                            <td class="px-4 py-4 text-[11px] font-mono text-slate-500 uppercase font-black tracking-tighter">
+                                {{ guest.checkInCode }}
                             </td>
-                            <td class="px-6 py-4 text-slate-600 tabular-nums">
-                                {{ guest.phone || '-' }}
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-1 group/addr">
-                                    <input 
-                                        :value="guest.address" 
-                                        @blur="updateGuestField(guest, 'address', ($event.target as HTMLInputElement).value)"
-                                        class="bg-transparent border-none p-0 text-sm text-slate-600 focus:ring-0 w-32 outline-none border-b border-transparent hover:border-slate-200 focus:border-teal-500"
-                                    />
-                                    <Edit2 class="w-3 h-3 text-slate-300 opacity-0 group-hover/addr:opacity-100" />
-                                </div>
-                            </td>
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-4">
                                 <select 
                                     :value="guest.tier" 
                                     @change="updateGuestField(guest, 'tier', ($event.target as HTMLSelectElement).value)"
@@ -426,51 +461,92 @@ onMounted(loadData);
                                     <option value="vvip">VVIP</option>
                                 </select>
                             </td>
-                            <td class="px-6 py-4 text-center text-slate-600 font-medium">
-                                {{ guest.guestCount }}
-                            </td>
-                            <td class="px-6 py-4">
-                                <span v-if="guest.sharedAt" class="flex items-center gap-1 text-emerald-600 text-xs font-bold">
-                                    <Check class="w-3 h-3" /> TERKIRIM
-                                </span>
-                                <span v-else class="text-slate-300 text-[10px] font-bold">BELUM</span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span v-if="guest.checkedInAt" class="flex items-center gap-1 text-emerald-600 text-xs font-bold">
-                                    <Check class="w-3 h-3" /> HADIR
-                                </span>
-                                <span v-else class="text-slate-300 text-[10px] font-bold">BELUM HADIR</span>
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <div class="flex items-center justify-end gap-2">
-                                    <button 
-                                        @click="shareWhatsApp(guest)"
-                                        :class="[
-                                            'p-2 rounded-lg transition-colors flex items-center gap-1',
-                                            guest.sharedAt 
-                                                ? 'bg-slate-100 text-slate-500 hover:bg-slate-200' 
-                                                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                                        ]"
-                                        :title="guest.sharedAt ? 'Kirim Ulang WA' : 'Kirim WA'"
-                                    >
-                                        <RefreshCw v-if="guest.sharedAt" class="w-4 h-4" />
-                                        <MessageSquare v-else class="w-4 h-4" />
-                                    </button>
-                                    <button 
-                                        @click="copyGuestLink(guest)"
-                                        class="p-2 bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-100 transition-colors"
-                                        title="Copy Link"
-                                    >
-                                        <Copy class="w-4 h-4" />
-                                    </button>
-                                    <button 
-                                        @click="handleDeleteGuest(guest.id)"
-                                        class="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors"
-                                        title="Hapus"
-                                    >
-                                        <Trash2 class="w-4 h-4" />
-                                    </button>
+                            <td class="px-4 py-4">
+                                <div class="flex items-center gap-1 group/name">
+                                    <input 
+                                        :value="guest.name" 
+                                        @blur="updateGuestField(guest, 'name', ($event.target as HTMLInputElement).value)"
+                                        class="bg-transparent border-none p-0 text-xs font-semibold text-slate-800 focus:ring-0 w-32 outline-none border-b border-transparent hover:border-slate-200 focus:border-teal-500"
+                                    />
+                                    <Edit2 class="w-3 h-3 text-slate-300 opacity-0 group-hover/name:opacity-100" />
                                 </div>
+                            </td>
+                            <td class="px-4 py-4">
+                                <div class="flex items-center gap-1 group/phone tabular-nums">
+                                    <input 
+                                        :value="guest.phone" 
+                                        @blur="updateGuestField(guest, 'phone', ($event.target as HTMLInputElement).value)"
+                                        class="bg-transparent border-none p-0 text-xs text-slate-600 focus:ring-0 w-24 outline-none border-b border-transparent hover:border-slate-200 focus:border-teal-500"
+                                        placeholder="-"
+                                    />
+                                    <Edit2 class="w-3 h-3 text-slate-300 opacity-0 group-hover/phone:opacity-100" />
+                                </div>
+                            </td>
+                            <td class="px-4 py-4">
+                                <div class="flex items-center gap-1 group/addr">
+                                    <input 
+                                        :value="guest.address" 
+                                        @blur="updateGuestField(guest, 'address', ($event.target as HTMLInputElement).value)"
+                                        class="bg-transparent border-none p-0 text-xs text-slate-600 focus:ring-0 w-32 outline-none border-b border-transparent hover:border-slate-200 focus:border-teal-500"
+                                    />
+                                    <Edit2 class="w-3 h-3 text-slate-300 opacity-0 group-hover/addr:opacity-100" />
+                                </div>
+                            </td>
+                            <td class="px-4 py-4">
+                                <div class="flex items-center gap-1 group/count justify-center">
+                                    <input 
+                                        type="number"
+                                        :value="guest.guestCount" 
+                                        @blur="updateGuestField(guest, 'guestCount', parseInt(($event.target as HTMLInputElement).value))"
+                                        class="bg-transparent border-none p-0 text-xs font-bold text-slate-700 focus:ring-0 w-8 text-center outline-none border-b border-transparent hover:border-slate-200 focus:border-teal-500"
+                                    />
+                                </div>
+                            </td>
+                            <td class="px-4 py-4 text-[10px] text-slate-500 font-bold">
+                                {{ guest.checkedInAt ? new Date(guest.checkedInAt).toLocaleDateString('id-ID') : '-' }}
+                            </td>
+                            <td class="px-4 py-4 text-[10px] text-slate-500 font-bold tabular-nums">
+                                {{ guest.checkedInAt ? new Date(guest.checkedInAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '-' }}
+                            </td>
+                            <td class="px-4 py-4 text-[10px] text-slate-500 font-bold tabular-nums">
+                                {{ guest.checkedOutAt ? new Date(guest.checkedOutAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '-' }}
+                            </td>
+                            <td class="px-4 py-4">
+                                <span v-if="guest.checkedInAt" class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded uppercase">HADIR</span>
+                                <span v-else class="px-2 py-0.5 bg-slate-100 text-slate-400 text-[9px] font-black rounded uppercase">BELUM</span>
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <button 
+                                    @click="shareWhatsApp(guest)"
+                                    :class="[
+                                        'p-2 rounded-lg transition-colors inline-flex items-center justify-center',
+                                        guest.sharedAt 
+                                            ? 'bg-slate-100 text-slate-500 hover:bg-slate-200' 
+                                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                                    ]"
+                                >
+                                    <RefreshCw v-if="guest.sharedAt" class="w-3 h-3" />
+                                    <MessageSquare v-else class="w-3 h-3" />
+                                </button>
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <span v-if="guest.sharedAt" class="text-emerald-600 text-[9px] font-black uppercase tracking-tighter">TERKIRIM</span>
+                                <span v-else class="text-slate-300 text-[9px] font-black uppercase tracking-tighter">BELUM</span>
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <button @click="copyGuestLink(guest)" class="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors">
+                                    <Copy class="w-3 h-3" />
+                                </button>
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <button class="p-2 text-slate-400 hover:bg-slate-50 rounded-lg transition-colors cursor-default">
+                                    <Edit2 class="w-3 h-3" />
+                                </button>
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <button @click="handleDeleteGuest(guest.id)" class="p-2 text-red-400 hover:bg-red-50 rounded-lg transition-colors">
+                                    <Trash2 class="w-3 h-3" />
+                                </button>
                             </td>
                         </tr>
                     </tbody>
@@ -535,12 +611,12 @@ onMounted(loadData);
             </div>
 
             <div class="border-2 border-dashed border-slate-200 rounded-3xl p-10 flex flex-col items-center justify-center hover:border-teal-500 hover:bg-teal-50/30 transition-all cursor-pointer relative group">
-                <input type="file" @change="handleFileUpload" class="absolute inset-0 opacity-0 cursor-pointer" accept=".csv" />
+                <input type="file" @change="handleFileUpload" class="absolute inset-0 opacity-0 cursor-pointer" accept=".csv,.xlsx" />
                 <div class="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-teal-100 group-hover:text-teal-600 transition-colors mb-4">
                     <FileUp class="w-8 h-8" />
                 </div>
-                <p class="font-bold text-slate-700">Klik atau seret file CSV ke sini</p>
-                <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest font-bold">Maksimal 5MB | Format .csv</p>
+                <p class="font-bold text-slate-700 text-center">Klik atau seret file CSV/Excel ke sini</p>
+                <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest font-bold text-center">Maksimal 5MB | Format .csv, .xlsx</p>
             </div>
 
             <div class="mt-8 flex justify-end">
