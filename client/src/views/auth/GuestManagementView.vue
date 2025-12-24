@@ -27,6 +27,10 @@ const isImportModalOpen = ref(false);
 const showExportDropdown = ref(false);
 const invitationMessage = ref('');
 
+// Share Confirm Modal State
+const showShareConfirm = ref(false);
+const pendingShareGuest = ref<Guest | null>(null);
+
 // Guest Form State
 const showAddForm = ref(false);
 const newGuest = ref({
@@ -162,15 +166,27 @@ async function shareWhatsApp(guest: Guest) {
         if (document.visibilityState === 'visible') {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             // Small delay to ensure smooth UX
-            await new Promise(resolve => setTimeout(resolve, 500));
-            const confirmed = confirm(`Apakah pesan untuk "${guest.name}" berhasil dikirim?`);
-            if (confirmed) {
-                await markAsShared(guest.id);
-            }
+            await new Promise(resolve => setTimeout(resolve, 300));
+            // Show professional modal
+            pendingShareGuest.value = guest;
+            showShareConfirm.value = true;
         }
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
+}
+
+async function confirmShareSuccess() {
+    if (pendingShareGuest.value) {
+        await markAsShared(pendingShareGuest.value.id);
+    }
+    showShareConfirm.value = false;
+    pendingShareGuest.value = null;
+}
+
+function cancelShareConfirm() {
+    showShareConfirm.value = false;
+    pendingShareGuest.value = null;
 }
 
 async function markAsShared(guestId: string) {
@@ -519,6 +535,41 @@ onMounted(loadData);
 
             <div class="mt-8 flex justify-end">
                 <button @click="isImportModalOpen = false" class="px-6 py-3 text-slate-500 font-bold hover:text-slate-800">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Share Confirmation -->
+    <div v-if="showShareConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="cancelShareConfirm" />
+        <div class="relative bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl animate-in zoom-in duration-200 overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+            
+            <!-- Icon -->
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-50 flex items-center justify-center">
+                <MessageSquare class="w-8 h-8 text-emerald-600" />
+            </div>
+            
+            <!-- Content -->
+            <h3 class="text-xl font-black text-slate-900 text-center mb-2">Konfirmasi Pengiriman</h3>
+            <p class="text-slate-500 text-center mb-6">
+                Apakah pesan untuk <span class="font-bold text-slate-800">"{{ pendingShareGuest?.name }}"</span> berhasil dikirim via WhatsApp?
+            </p>
+            
+            <!-- Buttons -->
+            <div class="flex gap-3">
+                <button 
+                    @click="cancelShareConfirm"
+                    class="flex-1 py-3 px-4 text-slate-600 font-bold rounded-xl hover:bg-slate-100 transition-colors"
+                >
+                    Belum
+                </button>
+                <button 
+                    @click="confirmShareSuccess"
+                    class="flex-1 py-3 px-4 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                >
+                    <Check class="w-4 h-4" /> Sudah Terkirim
+                </button>
             </div>
         </div>
     </div>
