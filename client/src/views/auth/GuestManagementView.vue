@@ -394,10 +394,10 @@ function handleExport(format: 'csv' | 'excel') {
 
 function downloadImportFormat() {
     const headers = ['TIER', 'NAMA TAMU', 'NO WHATSAPP', 'ALAMAT', 'JUMLAH TAMU', 'MEJA/KURSI/RUANGAN'];
-    // Use example with leading 0 to show it's preserved
+    // Use clearly marked placeholder names so users know to delete before import
     const data = [
-        ['VIP', 'Joni Saputra', '081234567890', 'Bandung', 2, 'Meja A1'],
-        ['REGULER', 'Siti Aminah', '085678901234', 'di tempat', 1, 'Room 302']
+        ['VIP', '(HAPUS BARIS INI) Contoh Nama VIP', '081234567890', 'Jakarta', 2, 'Meja A1'],
+        ['REGULER', '(HAPUS BARIS INI) Contoh Nama Reguler', '085678901234', 'di tempat', 1, 'Room 302']
     ];
     
     const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
