@@ -403,7 +403,7 @@ function downloadImportFormat() {
     // Set cell format to Text (@) for phone column (C) to preserve leading zeros
     // and prevent Excel from formatting as numbers
     // Apply to header and data rows, plus extra rows for user input
-    for (let row = 1; row <= 100; row++) {
+    for (let row = 1; row <= 10000; row++) {
         const cellRef = 'C' + row;
         if (!worksheet[cellRef]) {
             worksheet[cellRef] = { t: 's', v: '' };
@@ -423,7 +423,7 @@ function downloadImportFormat() {
     ];
     
     // Update range to include the formatted cells
-    worksheet['!ref'] = 'A1:F100';
+    worksheet['!ref'] = 'A1:F10000';
     
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Format Import');
