@@ -133,9 +133,9 @@ const formatPrice = (price: number) => {
     <section class="relative pt-32 pb-20 overflow-hidden font-jakarta">
       <!-- Decor -->
       <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
-        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-teal-500/10 blur-[120px] rounded-full"></div>
-        <div class="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-purple-500/10 blur-[100px] rounded-full"></div>
+        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-rose-900/10 blur-[120px] rounded-full"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-rose-800/10 blur-[120px] rounded-full"></div>
+        <div class="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-red-900/10 blur-[100px] rounded-full"></div>
       </div>
 
       <div class="max-w-7xl mx-auto px-6 relative">
@@ -143,7 +143,7 @@ const formatPrice = (price: number) => {
           <div
             class="inline-flex items-center gap-2 px-5 py-2 bg-slate-100/50 backdrop-blur-sm border border-slate-200 rounded-full shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700"
           >
-            <Sparkles class="w-4 h-4 text-indigo-600" />
+            <Sparkles class="w-4 h-4 text-rose-800" />
             <span class="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
           </div>
 
@@ -159,7 +159,7 @@ const formatPrice = (price: number) => {
                   <span 
                     v-for="(event, i) in displayList" 
                     :key="i" 
-                    class="flex items-center justify-center bg-gradient-to-r from-indigo-600 via-indigo-500 to-teal-500 bg-clip-text text-transparent px-2"
+                    class="flex items-center justify-center bg-gradient-to-r from-rose-950 via-rose-900 to-rose-700 bg-clip-text text-transparent px-2"
                     :style="{ height: `${ITEM_HEIGHT_EM}em` }"
                   >
                     {{ event }}
