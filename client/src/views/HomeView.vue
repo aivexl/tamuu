@@ -130,7 +130,7 @@ const formatPrice = (price: number) => {
     <MainNavbar :transparent-white="true" />
 
     <!-- Hero Section -->
-    <section class="relative pt-24 pb-16 sm:pt-32 sm:pb-24 overflow-hidden font-jakarta" style="background-color: #0A1128">
+    <section class="relative pt-24 pb-0 sm:pt-32 overflow-hidden font-jakarta" style="background-color: #0A1128">
       <!-- Decor -->
       <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
         <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/20 blur-[120px] rounded-full animate-soft-float"></div>
@@ -139,9 +139,9 @@ const formatPrice = (price: number) => {
       </div>
 
       <div class="max-w-7xl mx-auto px-6 relative">
-        <div class="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center lg:items-end min-h-[500px] lg:min-h-[600px]">
+        <div class="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center lg:items-end min-h-[500px] lg:h-[600px]">
           <!-- Left Column: Content -->
-          <div class="text-center lg:text-left space-y-8 lg:pb-12 order-2 lg:order-1">
+          <div class="text-center lg:text-left space-y-8 pb-16 lg:pb-24 order-2 lg:order-1">
             <div
               class="inline-flex items-center gap-2 px-5 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700"
             >
@@ -149,7 +149,7 @@ const formatPrice = (price: number) => {
               <span class="text-[10px] font-bold text-white/80 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
             </div>
 
-            <h1 class="text-4xl sm:text-6xl md:text-7xl lg:text-7xl xl:text-8xl font-black text-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center lg:items-start gap-2 md:gap-4 w-full tracking-tight leading-[1.05]">
+            <h1 class="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center lg:items-start gap-2 md:gap-4 w-full tracking-tight leading-[1.05]">
               <span class="break-words max-w-full">Platform Undangan Digital Premium</span>
               <div class="flex items-center justify-center lg:justify-start overflow-visible" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
                 <span class="relative overflow-hidden inline-flex flex-col items-center lg:items-start min-w-[200px] sm:min-w-[400px]" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
@@ -195,16 +195,16 @@ const formatPrice = (price: number) => {
           </div>
 
           <!-- Right Column: Visual (Bride) -->
-          <div class="relative order-1 lg:order-2 flex justify-center lg:justify-end items-end h-[400px] sm:h-[500px] lg:h-full lg:min-h-[600px]">
+          <div class="relative order-1 lg:order-2 flex justify-center lg:justify-end items-end h-[350px] sm:h-[450px] lg:h-full">
             <!-- Backing Glow -->
             <div class="absolute bottom-0 right-0 w-[120%] h-[120%] bg-rose-500/10 blur-[120px] rounded-full -z-10 animate-pulse transition-all"></div>
             
             <!-- Bride Image (Shoulder-up positioning) -->
-            <div class="relative w-full max-w-[350px] sm:max-w-[450px] lg:max-w-[550px] xl:max-w-[650px] h-full flex items-end overflow-hidden group">
+            <div class="relative w-full max-w-[320px] sm:max-w-[420px] lg:max-w-[500px] xl:max-w-[550px] h-full flex items-end overflow-hidden">
               <img 
                 src="/images/hero-bride.png" 
                 alt="Tamuu Premium Guest" 
-                class="w-full h-auto object-contain object-bottom transition-all duration-1000 transform group-hover:scale-105 animate-soft-float-subtle"
+                class="w-full h-auto object-contain object-bottom"
               />
             </div>
           </div>
