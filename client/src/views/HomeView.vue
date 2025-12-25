@@ -239,10 +239,10 @@ const formatPrice = (price: number) => {
           </div>
           
           <h3 class="text-2xl font-black mb-2 tracking-tight">{{ plan.name }}</h3>
-          <div class="flex items-baseline gap-1 mb-8 overflow-hidden">
-            <span class="text-sm font-bold opacity-60">Rp</span>
-            <span class="text-4xl sm:text-5xl font-black tracking-tighter">{{ formatPrice(plan.price) }}</span>
-            <span class="text-sm font-medium opacity-60">/acara</span>
+          <div class="flex items-baseline flex-wrap gap-1 mb-8">
+            <span class="text-sm font-bold opacity-60 flex-shrink-0">Rp</span>
+            <span class="text-3xl sm:text-5xl font-black tracking-tighter leading-none">{{ formatPrice(plan.price) }}</span>
+            <span class="text-xs sm:text-sm font-medium opacity-60 flex-shrink-0">/acara</span>
           </div>
 
           <div class="h-[1px] w-full bg-current opacity-10 mb-8"></div>
