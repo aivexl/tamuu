@@ -127,7 +127,7 @@ export const invitationsApi = {
      */
     async getMasterTemplates(category?: InvitationCategory): Promise<TemplateResponse[]> {
         const params = category ? `?category=${category}` : '';
-        const res = await request<{ templates: TemplateResponse[] }>(`/api/my-invitations/masters${params}`);
+        const res = await request<{ templates: TemplateResponse[] }>(`/api/invitations/masters${params}`);
         return res.templates;
     }
 };

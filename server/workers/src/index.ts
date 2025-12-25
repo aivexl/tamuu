@@ -143,9 +143,9 @@ app.route('/api/auth', authRouter);
 // Protected routes (require login)
 import { authMiddleware, roleMiddleware } from './middleware/auth';
 
-// Protect all /api/invitations routes EXCEPT /api/invitations/public/*
+// Protect all /api/invitations routes EXCEPT /api/invitations/public/* and /api/invitations/masters
 app.use('/api/invitations/*', async (c, next) => {
-    if (c.req.path.startsWith('/api/invitations/public/')) {
+    if (c.req.path.startsWith('/api/invitations/public/') || c.req.path === '/api/invitations/masters') {
         return await next();
     }
     return (authMiddleware as any)(c, next);

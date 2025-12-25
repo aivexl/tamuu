@@ -143,20 +143,8 @@ invitationsRouter.post('/', async (c) => {
 });
 
 // ============================================
-// MASTER TEMPLATES (for template store)
+// PUBLIC INVITATION VIEW
 // ============================================
-
-// GET /api/invitations/masters - Get master templates for selection
-invitationsRouter.get('/masters', async (c) => {
-    const category = c.req.query('category');
-
-    const db = new DatabaseService(c.env.DB);
-    const templates = await db.getMasterTemplates(category);
-
-    return c.json({ templates }, 200, {
-        'Cache-Control': 'public, max-age=300'
-    });
-});
 
 // GET /api/invitations/public/:slug - Get public invitation by slug
 invitationsRouter.get('/public/:slug', async (c) => {
@@ -275,18 +263,3 @@ invitationsRouter.put('/:id', async (c) => {
     return c.json({ success: true });
 });
 
-// ============================================
-// MASTER TEMPLATES (for template store)
-// ============================================
-
-// GET /api/invitations/masters - Get master templates for selection
-invitationsRouter.get('/masters', async (c) => {
-    const category = c.req.query('category');
-
-    const db = new DatabaseService(c.env.DB);
-    const templates = await db.getMasterTemplates(category);
-
-    return c.json({ templates }, 200, {
-        'Cache-Control': 'public, max-age=300'
-    });
-});
