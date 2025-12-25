@@ -188,20 +188,32 @@ const navLinks = [
     <!-- Mobile Navigation -->
     <div 
       v-if="isMenuOpen"
-      class="lg:hidden absolute top-full left-0 right-0 backdrop-blur-3xl bg-white/20 border-b border-white/10 shadow-xl p-4 animate-in slide-in-from-top duration-300"
+      class="lg:hidden absolute top-full left-0 right-0 backdrop-blur-3xl border-b shadow-2xl p-6 animate-in slide-in-from-top duration-300 transition-colors"
+      :class="[
+        isDarkTheme
+          ? 'bg-white/98 border-slate-100 shadow-slate-200/50'
+          : 'bg-[#0A1128]/98 border-white/5 shadow-black/20'
+      ]"
     >
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-5">
         <RouterLink 
           v-for="link in navLinks" 
           :key="link.name"
           :to="link.path"
-          class="text-lg font-bold px-4 py-2 hover:bg-white/20 rounded-xl transition-colors"
-          :class="[isDarkTheme ? 'text-slate-900' : 'text-white']"
+          class="text-lg font-bold px-4 py-2 rounded-xl transition-all"
+          :class="[
+            isDarkTheme 
+              ? 'text-slate-900 hover:bg-slate-50' 
+              : 'text-white hover:bg-white/10'
+          ]"
           @click="isMenuOpen = false"
         >
           {{ link.name }}
         </RouterLink>
-        <div class="h-[1px] bg-slate-100 my-2"></div>
+        <div 
+          class="h-[1px] my-1"
+          :class="[isDarkTheme ? 'bg-slate-100' : 'bg-white/5']"
+        ></div>
         <div v-if="!authStore.isAuthenticated" class="flex flex-col gap-3">
           <RouterLink 
             :to="{ name: 'login' }"
