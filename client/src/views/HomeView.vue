@@ -126,7 +126,7 @@ const formatPrice = (price: number) => {
 </script>
 
 <template>
-  <div class="min-h-screen font-sans selection:bg-indigo-500/30 selection:text-white" style="background-color: #F0EAD6">
+  <div class="min-h-screen font-sans selection:bg-indigo-500/30 selection:text-white" style="background-color: #FFFFFF">
     <MainNavbar :transparent-white="true" :transparent-bg="'transparent'" />
 
     <!-- Hero Section -->
@@ -195,34 +195,34 @@ const formatPrice = (price: number) => {
     </section>
 
     <!-- Features Section -->
-    <section id="features" class="max-w-7xl mx-auto px-6 py-24" style="background-color: #F0EAD6">
+    <section id="features" class="max-w-7xl mx-auto px-6 py-24" style="background-color: #FFFFFF">
       <div class="text-center mb-20 space-y-4">
-        <h2 class="text-indigo-600 font-black uppercase tracking-widest text-sm">Fitur Masa Depan</h2>
-        <h2 class="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Eksklusif Untuk Anda</h2>
-        <div class="w-20 h-1.5 bg-indigo-600 mx-auto rounded-full"></div>
+        <h2 class="text-[#FFBF00] font-black uppercase tracking-widest text-sm">Fitur Masa Depan</h2>
+        <h2 class="text-4xl md:text-5xl font-black text-[#0A1128] tracking-tight">Eksklusif Untuk Anda</h2>
+        <div class="w-20 h-1.5 bg-[#FFBF00] mx-auto rounded-full"></div>
       </div>
 
       <div class="grid md:grid-cols-3 gap-10">
         <div
           v-for="(feature, index) in features"
           :key="index"
-          class="group p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/50 transition-all duration-500 hover:-translate-y-2"
+          class="group p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-[#0A1128]/10 transition-all duration-500 hover:-translate-y-2"
         >
-          <div class="w-16 h-16 bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-            <component :is="feature.icon" class="w-8 h-8 text-indigo-600" />
+          <div class="w-16 h-16 bg-[#0A1128]/5 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+            <component :is="feature.icon" class="w-8 h-8 text-[#0A1128]" />
           </div>
-          <h3 class="text-2xl font-bold text-slate-900 mb-4 tracking-tight">{{ feature.title }}</h3>
+          <h3 class="text-2xl font-bold text-[#0A1128] mb-4 tracking-tight">{{ feature.title }}</h3>
           <p class="text-slate-600 leading-relaxed font-medium">{{ feature.description }}</p>
         </div>
       </div>
     </section>
 
     <!-- Pricing Section -->
-    <section id="pricing" class="max-w-7xl mx-auto px-6 py-24 mb-20" style="background-color: #F0EAD6">
+    <section id="pricing" class="max-w-7xl mx-auto px-6 py-24 mb-20" style="background-color: #FFFFFF">
       <div class="text-center mb-16 space-y-4">
-        <h2 class="text-teal-600 font-black uppercase tracking-widest text-sm">Investasi Terbaik</h2>
-        <h2 class="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Pilih Paket Kebahagiaan</h2>
-        <div class="w-20 h-1.5 bg-teal-500 mx-auto rounded-full"></div>
+        <h2 class="text-[#FFBF00] font-black uppercase tracking-widest text-sm">Investasi Terbaik</h2>
+        <h2 class="text-4xl md:text-5xl font-black text-[#0A1128] tracking-tight">Pilih Paket Kebahagiaan</h2>
+        <div class="w-20 h-1.5 bg-[#FFBF00] mx-auto rounded-full"></div>
       </div>
 
       <div class="grid md:grid-cols-3 gap-8 items-center">
@@ -234,7 +234,7 @@ const formatPrice = (price: number) => {
             ? 'bg-slate-900 text-white shadow-[0_30px_60px_-15px_rgba(15,23,42,0.3)] scale-105 z-10' 
             : 'bg-white text-slate-900 border border-slate-100 shadow-sm hover:shadow-2xl'"
         >
-          <div v-if="plan.popular" class="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-teal-500 text-white text-[10px] font-black tracking-[0.2em] uppercase py-2 px-6 rounded-full shadow-lg">
+          <div v-if="plan.popular" class="absolute -top-5 left-1/2 -translate-x-1/2 bg-[#FFBF00] text-[#0A1128] text-[10px] font-black tracking-[0.2em] uppercase py-2 px-6 rounded-full shadow-lg">
             Rekomendasi Utama
           </div>
           
@@ -259,8 +259,8 @@ const formatPrice = (price: number) => {
           <button
             class="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all duration-300 transform active:scale-95"
             :class="plan.popular 
-              ? 'bg-white text-slate-900 hover:bg-slate-100' 
-              : 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700'"
+              ? 'bg-[#FFBF00] text-[#0A1128] hover:bg-[#FFD700]' 
+              : 'bg-[#0A1128] text-white shadow-lg shadow-[#0A1128]/20 hover:bg-slate-800'"
           >
             Pilih Sekarang
           </button>
