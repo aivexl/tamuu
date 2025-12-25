@@ -142,12 +142,6 @@ const formatPrice = (price: number) => {
         <div class="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center lg:items-end min-h-[500px] lg:h-[600px]">
           <!-- Left Column: Content -->
           <div class="text-center lg:text-left space-y-8 pb-24 sm:pb-28 lg:pb-44 order-1">
-            <div
-              class="inline-flex items-center gap-2 px-5 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700"
-            >
-              <Sparkles class="w-4 h-4 text-amber-400" />
-              <span class="text-[10px] font-bold text-white/80 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
-            </div>
 
             <h1 class="text-3xl sm:text-5xl md:text-6xl lg:text-6xl font-black text-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center lg:items-start gap-2 md:gap-4 w-full tracking-tight leading-[1.05]">
               <span class="break-words max-w-full">Platform Undangan Digital Premium</span>
