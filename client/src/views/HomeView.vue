@@ -126,8 +126,8 @@ const formatPrice = (price: number) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 font-sans selection:bg-indigo-100 selection:text-indigo-900">
-    <MainNavbar />
+  <div class="min-h-screen font-sans selection:bg-rose-100 selection:text-rose-900" style="background-color: #F9F5F0">
+    <MainNavbar :transparent-bg="'#F9F5F0'" />
 
     <!-- Hero Section -->
     <section class="relative pt-32 pb-20 overflow-hidden font-jakarta" style="background-color: #F9F5F0">

@@ -14,6 +14,7 @@ import {
 
 const props = defineProps<{
   transparentWhite?: boolean;
+  transparentBg?: string;
 }>();
 
 const authStore = useAuthStore();
@@ -52,8 +53,9 @@ const navLinks = [
     :class="[
       isScrolled 
         ? 'bg-white/70 backdrop-blur-xl border-b border-white/20 shadow-sm py-2' 
-        : 'bg-transparent py-4'
+        : 'py-4'
     ]"
+    :style="!isScrolled && props.transparentBg ? { backgroundColor: props.transparentBg } : {}"
   >
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <!-- Logo -->
