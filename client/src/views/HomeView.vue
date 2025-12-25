@@ -126,7 +126,7 @@ const formatPrice = (price: number) => {
 </script>
 
 <template>
-  <div class="min-h-screen font-sans selection:bg-indigo-500/30 selection:text-white" style="background-color: #FFFFFF">
+  <div class="min-h-screen font-sans selection:bg-indigo-500/30 selection:text-white overflow-x-hidden" style="background-color: #FFFFFF">
     <MainNavbar :transparent-white="true" />
 
     <!-- Hero Section -->
@@ -147,10 +147,10 @@ const formatPrice = (price: number) => {
             <span class="text-[10px] font-bold text-white/80 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
           </div>
 
-          <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-2 md:gap-4 w-full px-2 tracking-tight leading-[1.05]">
+          <h1 class="text-[2.6rem] sm:text-6xl md:text-7xl lg:text-8xl font-black text-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-2 md:gap-4 w-full px-2 tracking-tight leading-[1.05]">
             <span class="break-words max-w-full">Platform Undangan Digital Premium</span>
             <div class="flex items-center justify-center overflow-visible" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
-              <span class="relative overflow-hidden inline-flex flex-col items-center min-w-[280px] sm:min-w-[400px] md:min-w-[500px]" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
+              <span class="relative overflow-hidden inline-flex flex-col items-center min-w-[240px] sm:min-w-[400px] md:min-w-[500px]" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
                 <span 
                   class="flex flex-col w-full whitespace-nowrap" 
                   :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
@@ -178,14 +178,14 @@ const formatPrice = (price: number) => {
           <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-500">
             <RouterLink
               :to="{ name: 'register' }"
-              class="group relative inline-flex items-center gap-3 px-8 py-4 sm:px-10 sm:py-5 bg-white text-slate-900 font-black rounded-2xl shadow-2xl shadow-indigo-950/20 hover:bg-slate-50 hover:scale-105 transition-all duration-300 w-full sm:w-auto justify-center"
+              class="group relative inline-flex items-center gap-3 px-7 py-4 sm:px-10 sm:py-5 bg-white text-slate-900 font-black rounded-2xl shadow-2xl shadow-indigo-950/20 hover:bg-slate-50 hover:scale-105 transition-all duration-300 w-full sm:w-auto justify-center"
             >
               Mulai Sekarang
               <ArrowRight class="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </RouterLink>
             <RouterLink
               :to="{ name: 'template-store' }"
-              class="px-8 py-4 sm:px-10 sm:py-5 bg-white/10 text-white border border-white/20 font-bold rounded-2xl shadow-sm hover:bg-white/20 hover:border-white/30 hover:scale-105 transition-all duration-300 backdrop-blur-sm w-full sm:w-auto text-center"
+              class="px-7 py-4 sm:px-10 sm:py-5 bg-white/10 text-white border border-white/20 font-bold rounded-2xl shadow-sm hover:bg-white/20 hover:border-white/30 hover:scale-105 transition-all duration-300 backdrop-blur-sm w-full sm:w-auto text-center"
             >
               Lihat Template
             </RouterLink>
