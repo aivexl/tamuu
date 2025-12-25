@@ -159,7 +159,7 @@ const formatPrice = (price: number) => {
                   <span 
                     v-for="(event, i) in displayList" 
                     :key="i" 
-                    class="flex items-center justify-center text-[#F1E5AC] px-2"
+                    class="flex items-center justify-center text-[#FAF9F6] px-2"
                     :style="{ 
                       height: `${ITEM_HEIGHT_EM}em`
                     }"
