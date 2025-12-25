@@ -159,8 +159,11 @@ const formatPrice = (price: number) => {
                   <span 
                     v-for="(event, i) in displayList" 
                     :key="i" 
-                    class="flex items-center justify-center bg-gradient-to-r from-blue-300 via-indigo-200 to-blue-300 bg-clip-text text-transparent px-2"
-                    :style="{ height: `${ITEM_HEIGHT_EM}em` }"
+                    class="flex items-center justify-center text-[#800020] px-2"
+                    :style="{ 
+                      height: `${ITEM_HEIGHT_EM}em`,
+                      textShadow: '0 0 1px rgba(255,255,255,0.4), 0 0 10px rgba(255,255,255,0.2)'
+                    }"
                   >
                     {{ event }}
                   </span>
