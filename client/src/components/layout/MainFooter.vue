@@ -5,7 +5,7 @@ import { Sparkles, Instagram, Twitter, Facebook, Mail, Phone, MapPin } from 'luc
 <template>
   <footer class="bg-[#0A1128] pt-20 pb-10 px-6 border-t border-white/5">
     <div class="max-w-7xl mx-auto">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 xl:gap-12 mb-16">
         <!-- Brand -->
         <div class="space-y-6">
           <div class="flex items-center gap-3">
@@ -56,9 +56,9 @@ import { Sparkles, Instagram, Twitter, Facebook, Mail, Phone, MapPin } from 'luc
         <div>
           <h4 class="text-[#FFBF00] font-black uppercase tracking-widest text-xs mb-8">Hubungi Kami</h4>
           <ul class="space-y-4">
-            <li class="flex items-center gap-3 text-slate-400">
-              <Mail class="w-4 h-4 text-[#FFBF00]" />
-              <span class="text-xs font-bold uppercase tracking-tight">support@tamuu.pages.dev</span>
+            <li class="flex items-center gap-3 text-slate-400 group">
+              <Mail class="w-4 h-4 text-[#FFBF00] flex-shrink-0" />
+              <span class="text-xs font-bold uppercase tracking-tight break-all">support@tamuu.pages.dev</span>
             </li>
             <li class="flex items-center gap-3 text-slate-400">
               <Phone class="w-4 h-4 text-[#FFBF00]" />
@@ -74,8 +74,8 @@ import { Sparkles, Instagram, Twitter, Facebook, Mail, Phone, MapPin } from 'luc
 
       <div class="h-[1px] w-full bg-white/5 mb-10"></div>
 
-      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-        <p class="text-slate-500 text-xs font-bold uppercase tracking-widest">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-6">
+        <p class="text-slate-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-center sm:text-left">
           &copy; 2025 Tamuu.pages.dev. All rights reserved.
         </p>
         <div class="flex items-center gap-8">
