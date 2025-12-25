@@ -52,10 +52,12 @@ const navLinks = [
     class="fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ease-in-out px-4 py-3 md:px-8"
     :class="[
       isScrolled 
-        ? 'bg-white/70 backdrop-blur-xl border-b border-white/20 shadow-sm py-2' 
+        ? 'backdrop-blur-xl border-b border-black/5 shadow-sm py-2' 
         : 'py-4'
     ]"
-    :style="!isScrolled && props.transparentBg ? { backgroundColor: props.transparentBg } : {}"
+    :style="{ 
+      backgroundColor: isScrolled ? 'rgba(249, 245, 240, 0.8)' : (props.transparentBg || 'transparent') 
+    }"
   >
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <!-- Logo -->
@@ -140,7 +142,7 @@ const navLinks = [
             </button>
             
             <!-- Dropdown -->
-            <div class="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right translate-y-2 group-hover:translate-y-0">
+            <div class="absolute right-0 top-full mt-2 w-48 bg-[#F9F5F0] rounded-2xl shadow-2xl border border-slate-200/50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right translate-y-2 group-hover:translate-y-0">
               <div class="p-2 space-y-1">
                 <RouterLink :to="{ name: 'profile' }" class="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors">
                   <User class="w-4 h-4" />
@@ -177,7 +179,7 @@ const navLinks = [
     <!-- Mobile Navigation -->
     <div 
       v-if="isMenuOpen"
-      class="md:hidden absolute top-full left-0 right-0 bg-white border-b border-slate-100 shadow-xl p-4 animate-in slide-in-from-top duration-300"
+      class="md:hidden absolute top-full left-0 right-0 bg-[#F9F5F0] border-b border-slate-200 shadow-xl p-4 animate-in slide-in-from-top duration-300"
     >
       <div class="flex flex-col gap-4">
         <RouterLink 
