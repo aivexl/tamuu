@@ -141,7 +141,7 @@ const formatPrice = (price: number) => {
       <div class="max-w-7xl mx-auto px-6 relative">
         <div class="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center lg:items-end min-h-[500px] lg:h-[600px]">
           <!-- Left Column: Content -->
-          <div class="text-center lg:text-left space-y-8 pb-24 sm:pb-28 lg:pb-44 order-1">
+          <div class="text-center lg:text-left space-y-8 pb-32 sm:pb-40 lg:pb-60 order-1">
 
             <h1 class="text-3xl sm:text-5xl md:text-6xl lg:text-6xl font-black text-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center lg:items-start gap-2 md:gap-4 w-full tracking-tight leading-[1.05]">
               <span class="break-words max-w-full">Platform Undangan Digital Premium</span>
