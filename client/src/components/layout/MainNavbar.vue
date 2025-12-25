@@ -12,21 +12,34 @@ import {
   ChevronRight
 } from 'lucide-vue-next';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   transparentWhite?: boolean;
   transparentBg?: string;
-}>();
+}>(), {
+  transparentWhite: false,
+  transparentBg: 'transparent'
+});
 
 const authStore = useAuthStore();
 const router = useRouter();
+import { computed } from 'vue';
+
 const isMenuOpen = ref(false);
 const isScrolled = ref(false);
-const showDarkText = ref(false);
+const scrollPos = ref(0);
 
 const handleScroll = () => {
-  isScrolled.value = window.scrollY > 10;
-  showDarkText.value = window.scrollY > 600; // Flip text color only after hero section
+  scrollPos.value = window.scrollY || document.documentElement.scrollTop;
+  isScrolled.value = scrollPos.value > 10;
 };
+
+const isDarkTheme = computed(() => {
+  // We want DARK text/ui when:
+  // 1. We are NOT at the top OR the page doesn't request transparentWhite
+  // 2. AND we have scrolled past a large threshold (800px)
+  if (!props.transparentWhite) return true;
+  return scrollPos.value > 800;
+});
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll);
@@ -68,12 +81,8 @@ const navLinks = [
           <Sparkles class="w-6 h-6 text-white" />
         </div>
         <span 
-          class="text-2xl font-black bg-gradient-to-r bg-clip-text text-transparent tracking-tighter"
-          :class="[
-            showDarkText || !props.transparentWhite
-              ? 'from-slate-900 to-slate-700'
-              : 'from-white to-white'
-          ]"
+          class="text-2xl font-black transition-colors duration-500 tracking-tighter"
+          :class="[isDarkTheme ? 'text-slate-900' : 'text-white']"
         >
           Tamuu
         </span>
@@ -87,8 +96,9 @@ const navLinks = [
             :key="link.name"
             :to="link.path"
             class="text-sm font-semibold transition-colors duration-200"
+            :active-class="isDarkTheme ? 'nav-link-active-dark' : 'nav-link-active'"
             :class="[
-              showDarkText || !props.transparentWhite
+              isDarkTheme
                 ? 'text-slate-600 hover:text-rose-600'
                 : 'text-white/90 hover:text-white'
             ]"
@@ -97,7 +107,7 @@ const navLinks = [
           </RouterLink>
         </div>
 
-        <div class="h-6 w-[1px]" :class="[showDarkText || !props.transparentWhite ? 'bg-slate-200' : 'bg-white/20']"></div>
+        <div class="h-6 w-[1px]" :class="[isDarkTheme ? 'bg-slate-200' : 'bg-white/20']"></div>
 
         <!-- Auth Actions -->
         <div v-if="!authStore.isAuthenticated" class="flex items-center gap-4">
@@ -105,7 +115,7 @@ const navLinks = [
             :to="{ name: 'login', query: { redirect: $route.fullPath } }"
             class="text-sm font-bold transition-colors px-4 py-2"
             :class="[
-              showDarkText || !props.transparentWhite
+              isDarkTheme
                 ? 'text-slate-700 hover:text-rose-600'
                 : 'text-white hover:text-white'
             ]"
@@ -116,7 +126,7 @@ const navLinks = [
             :to="{ name: 'register', query: { redirect: $route.fullPath } }"
             class="group relative inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300"
             :class="[
-              showDarkText || !props.transparentWhite
+              isDarkTheme
                 ? 'bg-[#0A1128] text-white shadow-xl shadow-slate-200 hover:bg-rose-600 hover:shadow-rose-100'
                 : 'bg-white text-[#0A1128] shadow-xl shadow-rose-950/20 hover:bg-rose-50'
             ]"
@@ -164,7 +174,7 @@ const navLinks = [
       <button 
         class="md:hidden p-2 rounded-xl transition-colors"
         :class="[
-          showDarkText || !props.transparentWhite
+          isDarkTheme
             ? 'text-slate-600 hover:bg-slate-100'
             : 'text-white hover:bg-white/10'
         ]"
@@ -186,11 +196,7 @@ const navLinks = [
           :key="link.name"
           :to="link.path"
           class="text-lg font-bold px-4 py-2 hover:bg-white/20 rounded-xl transition-colors"
-          :class="[
-            showDarkText || !props.transparentWhite
-              ? 'text-slate-900'
-              : 'text-white'
-          ]"
+          :class="[isDarkTheme ? 'text-slate-900' : 'text-white']"
           @click="isMenuOpen = false"
         >
           {{ link.name }}
@@ -201,7 +207,7 @@ const navLinks = [
             :to="{ name: 'login' }"
             class="text-center py-3 font-extrabold rounded-xl border transition-all"
             :class="[
-              showDarkText || !props.transparentWhite
+              isDarkTheme
                 ? 'text-slate-900 border-slate-200 hover:bg-slate-50'
                 : 'text-white border-white/20 hover:bg-white/10'
             ]"
@@ -211,7 +217,12 @@ const navLinks = [
           </RouterLink>
           <RouterLink 
             :to="{ name: 'register' }"
-            class="text-center py-3 font-extrabold text-white bg-[#0A1128] rounded-xl shadow-lg shadow-[#0A1128]/20"
+            class="text-center py-3 font-extrabold text-white rounded-xl shadow-lg transition-all"
+            :class="[
+              isDarkTheme
+                ? 'bg-[#0A1128] shadow-[#0A1128]/20'
+                : 'bg-white text-[#0A1128] shadow-white/10'
+            ]"
             @click="isMenuOpen = false"
           >
             Buat Undangan
@@ -220,10 +231,15 @@ const navLinks = [
         <div v-else class="flex flex-col gap-3">
           <RouterLink 
             :to="{ name: 'customer-dashboard' }"
-            class="flex items-center gap-3 px-4 py-3 backdrop-blur-3xl bg-white/20 text-[#0A1128] rounded-xl font-bold"
+            class="flex items-center gap-3 px-4 py-3 backdrop-blur-3xl rounded-xl font-bold transition-all"
+            :class="[
+              isDarkTheme
+                ? 'bg-slate-100 text-[#0A1128]'
+                : 'bg-white/10 text-white'
+            ]"
             @click="isMenuOpen = false"
           >
-            <LayoutDashboard class="w-5 h-5 text-[#0A1128]" />
+            <LayoutDashboard class="w-5 h-5" />
             Dashboard
           </RouterLink>
           <button 
@@ -240,7 +256,11 @@ const navLinks = [
 </template>
 
 <style scoped>
-.router-link-active:not(.group) {
-  color: rgb(79 70 229); /* indigo-600 */
+.nav-link-active {
+  color: #FFBF00 !important; /* Amber for active link on Hero */
+}
+
+.nav-link-active-dark {
+  color: rgb(225 29 72) !important; /* rose-600 for active link on White */
 }
 </style>
