@@ -126,7 +126,7 @@ const formatPrice = (price: number) => {
 </script>
 
 <template>
-  <div class="min-h-screen font-sans selection:bg-rose-100 selection:text-rose-900" style="background-color: #E3DAC9">
+  <div class="min-h-screen font-sans selection:bg-rose-100 selection:text-rose-900" style="background-color: #FFFAF7">
     <MainNavbar :transparent-bg="'#F9F5F0'" />
 
     <!-- Hero Section -->
@@ -193,7 +193,7 @@ const formatPrice = (price: number) => {
     </section>
 
     <!-- Features Section -->
-    <section id="features" class="max-w-7xl mx-auto px-6 py-24" style="background-color: #E3DAC9">
+    <section id="features" class="max-w-7xl mx-auto px-6 py-24" style="background-color: #FFFAF7">
       <div class="text-center mb-20 space-y-4">
         <h2 class="text-indigo-600 font-black uppercase tracking-widest text-sm">Fitur Masa Depan</h2>
         <h2 class="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Eksklusif Untuk Anda</h2>
@@ -216,7 +216,7 @@ const formatPrice = (price: number) => {
     </section>
 
     <!-- Pricing Section -->
-    <section id="pricing" class="max-w-7xl mx-auto px-6 py-24 mb-20" style="background-color: #E3DAC9">
+    <section id="pricing" class="max-w-7xl mx-auto px-6 py-24 mb-20" style="background-color: #FFFAF7">
       <div class="text-center mb-16 space-y-4">
         <h2 class="text-teal-600 font-black uppercase tracking-widest text-sm">Investasi Terbaik</h2>
         <h2 class="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Pilih Paket Kebahagiaan</h2>
