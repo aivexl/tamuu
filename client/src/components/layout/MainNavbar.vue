@@ -73,15 +73,15 @@ const navLinks = [
 >
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <!-- Logo -->
-      <RouterLink to="/" class="flex items-center gap-2 group">
+      <RouterLink to="/" class="flex items-center gap-3 group">
         <div 
-          class="w-10 h-10 bg-gradient-to-tr from-rose-600 to-rose-400 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-105"
-          :class="[isScrolled ? 'shadow-rose-100' : 'shadow-rose-950/20']"
+          class="w-10 h-10 bg-gradient-to-tr from-rose-600 to-rose-400 rounded-xl flex items-center justify-center shadow-xl transition-all duration-300 group-hover:scale-105 group-hover:rotate-3"
+          :class="[isScrolled ? 'shadow-rose-500/20' : 'shadow-rose-500/40']"
         >
           <Sparkles class="w-6 h-6 text-white" />
         </div>
         <span 
-          class="text-2xl font-black transition-colors duration-500 tracking-tighter"
+          class="text-2xl font-black transition-all duration-500 tracking-tighter transform translate-y-[1px]"
           :class="[isDarkTheme ? 'text-slate-900' : 'text-white']"
         >
           Tamuu
