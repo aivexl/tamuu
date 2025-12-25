@@ -13,7 +13,7 @@ let interval: any = null;
 // Add first element to end for seamless looping
 const displayList = [...eventTypes, eventTypes[0]];
 
-const ITEM_HEIGHT_EM = 1.5; // Increased for descender safety (g, j, y)
+const ITEM_HEIGHT_EM = 1.7; // Enterprise Grade: Increased for descender safety (g, j, y, p, q)
 
 onMounted(() => {
   // CTO Standard: Reliable state machine for vertical sliding
@@ -149,7 +149,7 @@ const formatPrice = (price: number) => {
 
           <h1 class="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold text-slate-900 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-2 md:gap-4 w-full px-2 tracking-tight leading-[1.1]">
             <span class="break-words max-w-full">Platform Undangan Digital Premium</span>
-            <div class="flex items-center justify-center leading-none overflow-visible" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
+            <div class="flex items-center justify-center overflow-visible" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
               <span class="relative overflow-hidden inline-flex flex-col items-center min-w-[200px] sm:min-w-[300px] md:min-w-[400px]" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
                 <span 
                   class="flex flex-col w-full whitespace-nowrap" 
