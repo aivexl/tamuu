@@ -139,56 +139,74 @@ const formatPrice = (price: number) => {
       </div>
 
       <div class="max-w-7xl mx-auto px-6 relative">
-        <div class="text-center space-y-8 max-w-5xl mx-auto">
-          <div
-            class="inline-flex items-center gap-2 px-5 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700"
-          >
-            <Sparkles class="w-4 h-4 text-amber-400" />
-            <span class="text-[10px] font-bold text-white/80 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
-          </div>
+        <div class="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center lg:items-end min-h-[500px] lg:min-h-[600px]">
+          <!-- Left Column: Content -->
+          <div class="text-center lg:text-left space-y-8 lg:pb-12 order-2 lg:order-1">
+            <div
+              class="inline-flex items-center gap-2 px-5 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700"
+            >
+              <Sparkles class="w-4 h-4 text-amber-400" />
+              <span class="text-[10px] font-bold text-white/80 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
+            </div>
 
-          <h1 class="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-2 md:gap-4 w-full px-2 tracking-tight leading-[1.05]">
-            <span class="break-words max-w-full">Platform Undangan Digital Premium</span>
-            <div class="flex items-center justify-center overflow-visible" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
-              <span class="relative overflow-hidden inline-flex flex-col items-center min-w-[200px] sm:min-w-[400px] md:min-w-[500px]" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
-                <span 
-                  class="flex flex-col w-full whitespace-nowrap" 
-                  :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
-                  :style="{ transform: `translateY(-${currentIndex * ITEM_HEIGHT_EM}em)` }"
-                >
+            <h1 class="text-4xl sm:text-6xl md:text-7xl lg:text-7xl xl:text-8xl font-black text-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center lg:items-start gap-2 md:gap-4 w-full tracking-tight leading-[1.05]">
+              <span class="break-words max-w-full">Platform Undangan Digital Premium</span>
+              <div class="flex items-center justify-center lg:justify-start overflow-visible" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
+                <span class="relative overflow-hidden inline-flex flex-col items-center lg:items-start min-w-[200px] sm:min-w-[400px]" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
                   <span 
-                    v-for="(event, i) in displayList" 
-                    :key="i" 
-                    class="flex items-center justify-center text-[#FFBF00] px-2"
-                    :style="{ 
-                      height: `${ITEM_HEIGHT_EM}em`
-                    }"
+                    class="flex flex-col w-full whitespace-nowrap" 
+                    :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
+                    :style="{ transform: `translateY(-${currentIndex * ITEM_HEIGHT_EM}em)` }"
                   >
-                    {{ event }}
+                    <span 
+                      v-for="(event, i) in displayList" 
+                      :key="i" 
+                      class="flex items-center justify-center lg:justify-start text-[#FFBF00]"
+                      :style="{ 
+                        height: `${ITEM_HEIGHT_EM}em`
+                      }"
+                    >
+                      {{ event }}
+                    </span>
                   </span>
                 </span>
-              </span>
+              </div>
+            </h1>
+
+            <p class="text-lg md:text-xl text-white/70 max-w-xl mx-auto lg:mx-0 leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-700 delay-300 font-sans tracking-wide">
+              Ciptakan kesan pertama yang tak terlupakan dengan desain eksklusif, fitur tercanggih, dan kualitas premium.
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-500">
+              <RouterLink
+                :to="{ name: 'register' }"
+                class="group relative inline-flex items-center gap-3 px-7 py-4 sm:px-10 sm:py-5 bg-white text-slate-900 font-black rounded-2xl shadow-2xl shadow-indigo-950/20 hover:bg-slate-50 hover:scale-105 transition-all duration-300 w-full sm:w-auto justify-center"
+              >
+                Mulai Sekarang
+                <ArrowRight class="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </RouterLink>
+              <RouterLink
+                :to="{ name: 'template-store' }"
+                class="px-7 py-4 sm:px-10 sm:py-5 bg-white/10 text-white border border-white/20 font-bold rounded-2xl shadow-sm hover:bg-white/20 hover:border-white/30 hover:scale-105 transition-all duration-300 backdrop-blur-sm w-full sm:w-auto text-center"
+              >
+                Lihat Template
+              </RouterLink>
             </div>
-          </h1>
+          </div>
 
-          <p class="text-lg md:text-xl text-white/70 max-w-xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-700 delay-300 font-sans tracking-wide">
-            Ciptakan kesan pertama yang tak terlupakan dengan desain eksklusif.
-          </p>
-
-          <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-500">
-            <RouterLink
-              :to="{ name: 'register' }"
-              class="group relative inline-flex items-center gap-3 px-7 py-4 sm:px-10 sm:py-5 bg-white text-slate-900 font-black rounded-2xl shadow-2xl shadow-indigo-950/20 hover:bg-slate-50 hover:scale-105 transition-all duration-300 w-full sm:w-auto justify-center"
-            >
-              Mulai Sekarang
-              <ArrowRight class="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </RouterLink>
-            <RouterLink
-              :to="{ name: 'template-store' }"
-              class="px-7 py-4 sm:px-10 sm:py-5 bg-white/10 text-white border border-white/20 font-bold rounded-2xl shadow-sm hover:bg-white/20 hover:border-white/30 hover:scale-105 transition-all duration-300 backdrop-blur-sm w-full sm:w-auto text-center"
-            >
-              Lihat Template
-            </RouterLink>
+          <!-- Right Column: Visual (Bride) -->
+          <div class="relative order-1 lg:order-2 flex justify-center lg:justify-end items-end h-[400px] sm:h-[500px] lg:h-full lg:min-h-[600px]">
+            <!-- Backing Glow -->
+            <div class="absolute bottom-0 right-0 w-[120%] h-[120%] bg-rose-500/10 blur-[120px] rounded-full -z-10 animate-pulse transition-all"></div>
+            
+            <!-- Bride Image (Shoulder-up positioning) -->
+            <div class="relative w-full max-w-[350px] sm:max-w-[450px] lg:max-w-[550px] xl:max-w-[650px] h-full flex items-end overflow-hidden group">
+              <img 
+                src="/images/hero-bride.png" 
+                alt="Tamuu Premium Guest" 
+                class="w-full h-auto object-contain object-bottom transition-all duration-1000 transform group-hover:scale-105 animate-soft-float-subtle"
+              />
+            </div>
           </div>
         </div>
       </div>
