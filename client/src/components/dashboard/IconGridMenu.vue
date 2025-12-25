@@ -29,7 +29,7 @@ const menuItems = [
 const handleMenuClick = (id: string) => {
   // Navigate to dedicated pages for certain menus
   if (id === 'templates') {
-    router.push('/templates');
+    router.push('/invitations');
     return;
   }
   

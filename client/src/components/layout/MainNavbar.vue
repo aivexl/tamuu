@@ -56,7 +56,7 @@ const handleLogout = async () => {
 
 const navLinks = [
   { name: 'Home', path: '/' },
-  { name: 'Templates', path: '/templates' },
+  { name: 'Invitations', path: '/invitations' },
   { name: 'Fitur', path: '/#features' },
   { name: 'Harga', path: '/#pricing' },
 ];

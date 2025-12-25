@@ -35,7 +35,7 @@ import { Sparkles, Instagram, Twitter, Facebook, Mail, Phone, MapPin } from 'luc
           <h4 class="text-[#FFBF00] font-black uppercase tracking-widest text-xs mb-8">Platform</h4>
           <ul class="space-y-4">
             <li><a href="/" class="text-slate-400 hover:text-white transition-colors text-sm font-bold">Beranda</a></li>
-            <li><a href="/templates" class="text-slate-400 hover:text-white transition-colors text-sm font-bold">Template</a></li>
+            <li><a href="/invitations" class="text-slate-400 hover:text-white transition-colors text-sm font-bold">Undangan</a></li>
             <li><a href="#features" class="text-slate-400 hover:text-white transition-colors text-sm font-bold">Fitur</a></li>
             <li><a href="#pricing" class="text-slate-400 hover:text-white transition-colors text-sm font-bold">Harga</a></li>
           </ul>

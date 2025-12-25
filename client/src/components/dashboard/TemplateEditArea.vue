@@ -271,7 +271,7 @@ const getEditableElements = (sectionKey: string) => {
             <h3 class="text-xl font-bold text-gray-800 mb-2">Pilih Template Terlebih Dahulu</h3>
             <p class="text-gray-500 mb-8 max-w-xs mx-auto">Klik menu "Template" di atas untuk memilih desain dasar undangan Anda.</p>
             <RouterLink 
-                to="/templates"
+                to="/invitations"
                 class="inline-flex items-center gap-2 px-8 py-3.5 bg-teal-500 text-white rounded-2xl font-bold hover:bg-teal-600 shadow-lg shadow-teal-500/25 transition-all hover:-translate-y-0.5"
             >
                 <LayoutTemplate class="w-5 h-5" />

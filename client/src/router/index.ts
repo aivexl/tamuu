@@ -26,7 +26,7 @@ const router = createRouter({
             component: HomeView,
         },
         {
-            path: "/templates",
+            path: "/invitations",
             name: "template-store",
             component: TemplateStoreView,
         },
@@ -96,7 +96,7 @@ const router = createRouter({
             meta: { requiresAuth: true, roles: ['admin'] },
             children: [
                 {
-                    path: "templates",
+                    path: "invitations",
                     name: "admin",
                     component: AdminView,
                 },

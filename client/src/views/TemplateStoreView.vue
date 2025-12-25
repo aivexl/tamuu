@@ -71,7 +71,7 @@ const goToAuth = (type: 'login' | 'register') => {
     showAuthModal.value = false;
     const redirect = pendingTemplateId.value 
         ? `/app/editor/${pendingTemplateId.value}` // Future enhancement: auto-select after login
-        : '/templates';
+        : '/invitations';
         
     router.push({ 
         name: type, 
