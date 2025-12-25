@@ -183,7 +183,7 @@ const formatPrice = (price: number) => {
                 :to="{ name: 'template-store' }"
                 class="px-7 py-4 sm:px-10 sm:py-5 bg-white/10 text-white border border-white/20 font-bold rounded-2xl shadow-sm hover:bg-white/20 hover:border-white/30 hover:scale-105 transition-all duration-300 backdrop-blur-sm w-full sm:w-auto text-center"
               >
-                Lihat Template
+                Lihat Undangan
               </RouterLink>
             </div>
           </div>
