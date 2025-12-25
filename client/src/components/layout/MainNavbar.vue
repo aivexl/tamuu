@@ -12,6 +12,10 @@ import {
   ChevronRight
 } from 'lucide-vue-next';
 
+const props = defineProps<{
+  transparentWhite?: boolean;
+}>();
+
 const authStore = useAuthStore();
 const router = useRouter();
 const isMenuOpen = ref(false);
@@ -54,10 +58,20 @@ const navLinks = [
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <!-- Logo -->
       <RouterLink to="/" class="flex items-center gap-2 group">
-        <div class="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-teal-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 group-hover:scale-105 transition-transform duration-300">
+        <div 
+          class="w-10 h-10 bg-gradient-to-tr from-rose-600 to-rose-400 rounded-xl flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-105"
+          :class="[isScrolled ? 'shadow-rose-100' : 'shadow-rose-950/20']"
+        >
           <Sparkles class="w-6 h-6 text-white" />
         </div>
-        <span class="text-2xl font-black bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent tracking-tighter">
+        <span 
+          class="text-2xl font-black bg-gradient-to-r bg-clip-text text-transparent tracking-tighter"
+          :class="[
+            isScrolled || !props.transparentWhite
+              ? 'from-slate-900 to-slate-700'
+              : 'from-white to-rose-100'
+          ]"
+        >
           Tamuu
         </span>
       </RouterLink>
@@ -69,25 +83,40 @@ const navLinks = [
             v-for="link in navLinks" 
             :key="link.name"
             :to="link.path"
-            class="text-sm font-semibold text-slate-600 hover:text-indigo-600 transition-colors duration-200"
+            class="text-sm font-semibold transition-colors duration-200"
+            :class="[
+              isScrolled || !props.transparentWhite
+                ? 'text-slate-600 hover:text-rose-600'
+                : 'text-white/80 hover:text-white'
+            ]"
           >
             {{ link.name }}
           </RouterLink>
         </div>
 
-        <div class="h-6 w-[1px] bg-slate-200"></div>
+        <div class="h-6 w-[1px]" :class="[isScrolled || !props.transparentWhite ? 'bg-slate-200' : 'bg-white/20']"></div>
 
         <!-- Auth Actions -->
         <div v-if="!authStore.isAuthenticated" class="flex items-center gap-4">
           <RouterLink 
             :to="{ name: 'login', query: { redirect: $route.fullPath } }"
-            class="text-sm font-bold text-slate-700 hover:text-indigo-600 transition-colors px-4 py-2"
+            class="text-sm font-bold transition-colors px-4 py-2"
+            :class="[
+              isScrolled || !props.transparentWhite
+                ? 'text-slate-700 hover:text-rose-600'
+                : 'text-white hover:text-rose-200'
+            ]"
           >
             Masuk
           </RouterLink>
           <RouterLink 
             :to="{ name: 'register', query: { redirect: $route.fullPath } }"
-            class="group relative inline-flex items-center gap-2 bg-slate-900 px-6 py-2.5 rounded-xl text-sm font-bold text-white shadow-xl shadow-slate-200 hover:bg-indigo-600 hover:shadow-indigo-100 transition-all duration-300"
+            class="group relative inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300"
+            :class="[
+              isScrolled || !props.transparentWhite
+                ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 hover:bg-rose-600 hover:shadow-rose-100'
+                : 'bg-white text-rose-950 shadow-xl shadow-rose-950/20 hover:bg-rose-50'
+            ]"
           >
             Buat Undangan
             <ChevronRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -130,7 +159,12 @@ const navLinks = [
 
       <!-- Mobile Menu Button -->
       <button 
-        class="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-xl"
+        class="md:hidden p-2 rounded-xl transition-colors"
+        :class="[
+          isScrolled || !props.transparentWhite
+            ? 'text-slate-600 hover:bg-slate-100'
+            : 'text-white hover:bg-white/10'
+        ]"
         @click="isMenuOpen = !isMenuOpen"
       >
         <Menu v-if="!isMenuOpen" class="w-6 h-6" />
