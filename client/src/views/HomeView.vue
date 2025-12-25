@@ -13,7 +13,7 @@ let interval: any = null;
 // Add first element to end for seamless looping
 const displayList = [...eventTypes, eventTypes[0]];
 
-const ITEM_HEIGHT_EM = 1.7; // Enterprise Grade: Increased for descender safety (g, j, y, p, q)
+const ITEM_HEIGHT_EM = 1.7; // Enterprise Grade: Increased for descender safety (g, j, y, q)
 
 onMounted(() => {
   // CTO Standard: Reliable state machine for vertical sliding
@@ -149,7 +149,7 @@ const formatPrice = (price: number) => {
               <span class="text-[10px] font-bold text-white/80 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
             </div>
 
-            <h1 class="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center lg:items-start gap-2 md:gap-4 w-full tracking-tight leading-[1.05]">
+            <h1 class="text-3xl sm:text-5xl md:text-6xl lg:text-6xl font-black text-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center lg:items-start gap-2 md:gap-4 w-full tracking-tight leading-[1.05]">
               <span class="break-words max-w-full">Platform Undangan Digital Premium</span>
               <div class="flex items-center justify-center lg:justify-start overflow-visible" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
                 <span class="relative overflow-hidden inline-flex flex-col items-center lg:items-start min-w-[200px] sm:min-w-[400px]" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
@@ -200,7 +200,7 @@ const formatPrice = (price: number) => {
             <div class="absolute bottom-0 right-0 w-[120%] h-[120%] bg-rose-500/10 blur-[120px] rounded-full -z-10 animate-pulse transition-all"></div>
             
             <!-- Bride Image (Shoulder-up positioning) -->
-            <div class="relative w-full max-w-[320px] sm:max-w-[420px] lg:max-w-[500px] xl:max-w-[550px] h-full flex items-end overflow-hidden">
+            <div class="relative w-full max-w-[280px] sm:max-w-[380px] lg:max-w-[420px] xl:max-w-[450px] h-full flex items-end overflow-hidden">
               <img 
                 src="/images/hero-bride.png" 
                 alt="Tamuu Premium Guest" 
