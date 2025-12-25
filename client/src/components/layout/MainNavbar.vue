@@ -89,7 +89,7 @@ const navLinks = [
       </RouterLink>
 
       <!-- Desktop Navigation -->
-      <div class="hidden md:flex items-center gap-8">
+      <div class="hidden lg:flex items-center gap-8">
         <div class="flex items-center gap-6">
           <RouterLink 
             v-for="link in navLinks" 
@@ -139,7 +139,7 @@ const navLinks = [
         <div v-else class="flex items-center gap-3">
           <RouterLink 
             :to="{ name: 'customer-dashboard' }"
-            class="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-colors"
+            class="flex items-center gap-2 px-4 py-2 bg-slate-100 text-[#0A1128] rounded-xl text-sm font-bold hover:bg-slate-200 transition-colors"
           >
             <LayoutDashboard class="w-4 h-4" />
             Dashboard
@@ -172,7 +172,7 @@ const navLinks = [
 
       <!-- Mobile Menu Button -->
       <button 
-        class="md:hidden p-2 rounded-xl transition-colors"
+        class="lg:hidden p-2 rounded-xl transition-colors"
         :class="[
           isDarkTheme
             ? 'text-slate-600 hover:bg-slate-100'
@@ -188,7 +188,7 @@ const navLinks = [
     <!-- Mobile Navigation -->
     <div 
       v-if="isMenuOpen"
-      class="md:hidden absolute top-full left-0 right-0 backdrop-blur-3xl bg-white/20 border-b border-white/10 shadow-xl p-4 animate-in slide-in-from-top duration-300"
+      class="lg:hidden absolute top-full left-0 right-0 backdrop-blur-3xl bg-white/20 border-b border-white/10 shadow-xl p-4 animate-in slide-in-from-top duration-300"
     >
       <div class="flex flex-col gap-4">
         <RouterLink 
