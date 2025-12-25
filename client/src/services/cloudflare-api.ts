@@ -73,12 +73,12 @@ async function request<T>(
 // ============================================
 
 export async function getTemplates(): Promise<Template[]> {
-    return request<Template[]>("/api/templates");
+    return request<Template[]>("/api/invitations");
 }
 
 export async function getTemplate(id: string, fresh: boolean = false): Promise<Template | null> {
     try {
-        const url = fresh ? `/api/templates/${id}?fresh=true` : `/api/templates/${id}`;
+        const url = fresh ? `/api/invitations/${id}?fresh=true` : `/api/invitations/${id}`;
         return await request<Template>(url);
     } catch (error) {
         console.error("Failed to fetch template:", error);
@@ -88,7 +88,7 @@ export async function getTemplate(id: string, fresh: boolean = false): Promise<T
 
 export async function getPublicTemplate(id: string): Promise<Template | null> {
     try {
-        return await request<Template>(`/api/templates/public/${id}`);
+        return await request<Template>(`/api/invitations/public/${id}`);
     } catch (error) {
         console.error("Failed to fetch public template:", error);
         return null;
@@ -97,7 +97,7 @@ export async function getPublicTemplate(id: string): Promise<Template | null> {
 
 export async function getPublicTemplateBySlug(slug: string): Promise<Template | null> {
     try {
-        return await request<Template>(`/api/templates/public/slug/${encodeURIComponent(slug)}`);
+        return await request<Template>(`/api/invitations/public/slug/${encodeURIComponent(slug)}`);
     } catch (error) {
         console.error("Failed to fetch public template by slug:", error);
         return null;
@@ -109,7 +109,7 @@ export async function createTemplate(
 ): Promise<Template | null> {
     if (!template.name) throw new Error("Template name is required");
 
-    return request<Template>("/api/templates", {
+    return request<Template>("/api/invitations", {
         method: "POST",
         body: JSON.stringify(template),
     });
@@ -119,14 +119,14 @@ export async function updateTemplate(
     id: string,
     updates: Partial<Template>
 ): Promise<void> {
-    await request(`/api/templates/${id}`, {
+    await request(`/api/invitations/${id}`, {
         method: "PUT",
         body: JSON.stringify(updates),
     });
 }
 
 export async function deleteTemplate(id: string): Promise<void> {
-    await request(`/api/templates/${id}`, {
+    await request(`/api/invitations/${id}`, {
         method: "DELETE",
     });
 }

@@ -143,25 +143,26 @@ app.route('/api/auth', authRouter);
 // Protected routes (require login)
 import { authMiddleware, roleMiddleware } from './middleware/auth';
 
-// Protect all /api/templates routes EXCEPT /api/templates/public/*
-app.use('/api/templates/*', async (c, next) => {
-    if (c.req.path.startsWith('/api/templates/public/')) {
+// Protect all /api/invitations routes EXCEPT /api/invitations/public/*
+app.use('/api/invitations/*', async (c, next) => {
+    if (c.req.path.startsWith('/api/invitations/public/')) {
         return await next();
     }
     return (authMiddleware as any)(c, next);
 });
 
+app.use('/api/my-invitations/*', authMiddleware);
 app.use('/api/sections/*', authMiddleware);
 app.use('/api/elements/*', authMiddleware);
 app.use('/api/batch-update/*', authMiddleware);
 
 // Strict RBAC: Admin only for modifications
-app.on(['POST', 'PUT', 'DELETE', 'PATCH'], '/api/templates/*', roleMiddleware(['admin']));
+app.on(['POST', 'PUT', 'DELETE', 'PATCH'], '/api/invitations/*', roleMiddleware(['admin']));
 app.on(['POST', 'PUT', 'DELETE', 'PATCH'], '/api/sections/*', roleMiddleware(['admin']));
 app.on(['POST', 'PUT', 'DELETE', 'PATCH'], '/api/elements/*', roleMiddleware(['admin']));
 app.use('/api/batch-update/*', roleMiddleware(['admin']));
 
-app.route('/api/templates', templatesRouter);
+app.route('/api/invitations', templatesRouter);
 app.route('/api/sections', sectionsRouter);
 app.route('/api/elements', elementsRouter);
 app.route('/api/batch-update', batchRouter);
@@ -170,8 +171,8 @@ app.route('/api/batch-update', batchRouter);
 app.route('/api/rsvp', rsvpRouter);
 app.route('/api/upload', uploadRouter);
 
-// Invitations (user onboarding) - some endpoints are public, some are protected
-app.route('/api/invitations', invitationsRouter);
+// My Invitations (user onboarding) - some endpoints are public, some are protected
+app.route('/api/my-invitations', invitationsRouter);
 app.route('/api/guests', guestsRouter);
 
 // Webhook routes (public, called by payment gateways)

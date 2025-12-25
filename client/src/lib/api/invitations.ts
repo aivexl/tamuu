@@ -67,14 +67,14 @@ export const invitationsApi = {
      * Check if a slug is available
      */
     async checkSlug(slug: string): Promise<SlugCheckResult> {
-        return request<SlugCheckResult>(`/api/invitations/check-slug/${encodeURIComponent(slug)}`);
+        return request<SlugCheckResult>(`/api/my-invitations/check-slug/${encodeURIComponent(slug)}`);
     },
 
     /**
      * Get current user's invitations
      */
     async getMyInvitations(): Promise<TemplateResponse[]> {
-        const res = await request<{ invitations: TemplateResponse[] }>('/api/invitations/my');
+        const res = await request<{ invitations: TemplateResponse[] }>('/api/my-invitations/my');
         return res.invitations;
     },
 
@@ -82,7 +82,7 @@ export const invitationsApi = {
      * Create a new invitation (clone template for user)
      */
     async createInvitation(payload: CreateInvitationPayload): Promise<TemplateResponse> {
-        const res = await request<{ invitation: TemplateResponse }>('/api/invitations', {
+        const res = await request<{ invitation: TemplateResponse }>('/api/my-invitations', {
             method: 'POST',
             body: JSON.stringify(payload),
         });
@@ -93,14 +93,14 @@ export const invitationsApi = {
      * Get public invitation by slug
      */
     async getPublicInvitation(slug: string): Promise<TemplateResponse> {
-        return request<TemplateResponse>(`/api/invitations/public/${encodeURIComponent(slug)}`);
+        return request<TemplateResponse>(`/api/my-invitations/public/${encodeURIComponent(slug)}`);
     },
 
     /**
      * Update user's invitation
      */
     async updateInvitation(id: string, updates: Partial<TemplateResponse>): Promise<void> {
-        await request(`/api/invitations/${id}`, {
+        await request(`/api/my-invitations/${id}`, {
             method: 'PUT',
             body: JSON.stringify(updates),
         });
@@ -110,7 +110,7 @@ export const invitationsApi = {
      * Get a specific invitation by ID (protected)
      */
     async getInvitation(id: string): Promise<TemplateResponse> {
-        const res = await request<{ invitation: TemplateResponse }>(`/api/invitations/${id}`);
+        const res = await request<{ invitation: TemplateResponse }>(`/api/my-invitations/${id}`);
         return res.invitation;
     },
 
@@ -118,7 +118,7 @@ export const invitationsApi = {
      * Get a specific invitation by slug (protected)
      */
     async getInvitationBySlug(slug: string): Promise<TemplateResponse> {
-        const res = await request<{ invitation: TemplateResponse }>(`/api/invitations/by-slug/${encodeURIComponent(slug)}`);
+        const res = await request<{ invitation: TemplateResponse }>(`/api/my-invitations/by-slug/${encodeURIComponent(slug)}`);
         return res.invitation;
     },
 
@@ -127,7 +127,7 @@ export const invitationsApi = {
      */
     async getMasterTemplates(category?: InvitationCategory): Promise<TemplateResponse[]> {
         const params = category ? `?category=${category}` : '';
-        const res = await request<{ templates: TemplateResponse[] }>(`/api/invitations/masters${params}`);
+        const res = await request<{ templates: TemplateResponse[] }>(`/api/my-invitations/masters${params}`);
         return res.templates;
     }
 };

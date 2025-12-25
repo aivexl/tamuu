@@ -47,7 +47,8 @@ invitationsRouter.get('/check-slug/:slug', async (c) => {
     // Reserved slugs
     const RESERVED_SLUGS = [
         'admin', 'api', 'dashboard', 'login', 'register', 'profile',
-        'templates', 'preview', 'editor', 'onboarding', 'settings',
+        'templates', 'invitations', 'my-invitations', 'preview',
+        'editor', 'onboarding', 'settings',
         'help', 'support', 'about', 'contact', 'terms', 'privacy'
     ];
 
