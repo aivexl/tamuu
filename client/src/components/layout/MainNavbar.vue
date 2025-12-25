@@ -21,9 +21,11 @@ const authStore = useAuthStore();
 const router = useRouter();
 const isMenuOpen = ref(false);
 const isScrolled = ref(false);
+const showDarkText = ref(false);
 
 const handleScroll = () => {
-  isScrolled.value = window.scrollY > 20;
+  isScrolled.value = window.scrollY > 10;
+  showDarkText.value = window.scrollY > 400; // Flip text color only after hero
 };
 
 onMounted(() => {
@@ -49,10 +51,10 @@ const navLinks = [
 
 <template>
   <nav 
-    class="fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ease-in-out px-4 md:px-8"
+    class="fixed top-0 left-0 right-0 z-[100] transition-all duration-700 ease-in-out px-4 md:px-8"
     :class="[
       isScrolled 
-        ? 'backdrop-blur-2xl bg-white/5 border-b border-white/10 shadow-lg py-2' 
+        ? 'backdrop-blur-2xl bg-white/5 border-b border-white/5 shadow-2xl py-2' 
         : 'py-4'
     ]"
 >
@@ -68,9 +70,9 @@ const navLinks = [
         <span 
           class="text-2xl font-black bg-gradient-to-r bg-clip-text text-transparent tracking-tighter"
           :class="[
-            isScrolled || !props.transparentWhite
+            showDarkText || !props.transparentWhite
               ? 'from-slate-900 to-slate-700'
-              : 'from-white to-rose-100'
+              : 'from-white to-white'
           ]"
         >
           Tamuu
@@ -86,16 +88,16 @@ const navLinks = [
             :to="link.path"
             class="text-sm font-semibold transition-colors duration-200"
             :class="[
-              isScrolled || !props.transparentWhite
+              showDarkText || !props.transparentWhite
                 ? 'text-slate-600 hover:text-rose-600'
-                : 'text-white/80 hover:text-white'
+                : 'text-white/90 hover:text-white'
             ]"
           >
             {{ link.name }}
           </RouterLink>
         </div>
 
-        <div class="h-6 w-[1px]" :class="[isScrolled || !props.transparentWhite ? 'bg-slate-200' : 'bg-white/20']"></div>
+        <div class="h-6 w-[1px]" :class="[showDarkText || !props.transparentWhite ? 'bg-slate-200' : 'bg-white/20']"></div>
 
         <!-- Auth Actions -->
         <div v-if="!authStore.isAuthenticated" class="flex items-center gap-4">
@@ -103,9 +105,9 @@ const navLinks = [
             :to="{ name: 'login', query: { redirect: $route.fullPath } }"
             class="text-sm font-bold transition-colors px-4 py-2"
             :class="[
-              isScrolled || !props.transparentWhite
+              showDarkText || !props.transparentWhite
                 ? 'text-slate-700 hover:text-rose-600'
-                : 'text-white hover:text-rose-200'
+                : 'text-white hover:text-white'
             ]"
           >
             Masuk
@@ -114,9 +116,9 @@ const navLinks = [
             :to="{ name: 'register', query: { redirect: $route.fullPath } }"
             class="group relative inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300"
             :class="[
-              isScrolled || !props.transparentWhite
-                ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 hover:bg-rose-600 hover:shadow-rose-100'
-                : 'bg-white text-rose-950 shadow-xl shadow-rose-950/20 hover:bg-rose-50'
+              showDarkText || !props.transparentWhite
+                ? 'bg-[#0A1128] text-white shadow-xl shadow-slate-200 hover:bg-rose-600 hover:shadow-rose-100'
+                : 'bg-white text-[#0A1128] shadow-xl shadow-rose-950/20 hover:bg-rose-50'
             ]"
           >
             Buat Undangan
@@ -139,15 +141,15 @@ const navLinks = [
             </button>
             
             <!-- Dropdown -->
-            <div class="absolute right-0 top-full mt-2 w-48 bg-[#F9F5F0] rounded-2xl shadow-2xl border border-slate-200/50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right translate-y-2 group-hover:translate-y-0">
+            <div class="absolute right-0 top-full mt-2 w-48 backdrop-blur-3xl bg-white/20 rounded-2xl shadow-2xl border border-white/10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right translate-y-2 group-hover:translate-y-0">
               <div class="p-2 space-y-1">
-                <RouterLink :to="{ name: 'profile' }" class="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg transition-colors">
+                <RouterLink :to="{ name: 'profile' }" class="flex items-center gap-3 px-3 py-2 text-sm text-slate-900 hover:bg-white/20 rounded-lg transition-colors">
                   <User class="w-4 h-4" />
                   Profil
                 </RouterLink>
                 <button 
                   @click="handleLogout"
-                  class="w-full flex items-center gap-3 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                  class="w-full flex items-center gap-3 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50/50 rounded-lg transition-colors"
                 >
                   <LogOut class="w-4 h-4" />
                   Keluar
@@ -162,7 +164,7 @@ const navLinks = [
       <button 
         class="md:hidden p-2 rounded-xl transition-colors"
         :class="[
-          isScrolled || !props.transparentWhite
+          showDarkText || !props.transparentWhite
             ? 'text-slate-600 hover:bg-slate-100'
             : 'text-white hover:bg-white/10'
         ]"
@@ -176,14 +178,19 @@ const navLinks = [
     <!-- Mobile Navigation -->
     <div 
       v-if="isMenuOpen"
-      class="md:hidden absolute top-full left-0 right-0 bg-[#F9F5F0] border-b border-slate-200 shadow-xl p-4 animate-in slide-in-from-top duration-300"
+      class="md:hidden absolute top-full left-0 right-0 backdrop-blur-3xl bg-white/20 border-b border-white/10 shadow-xl p-4 animate-in slide-in-from-top duration-300"
     >
       <div class="flex flex-col gap-4">
         <RouterLink 
           v-for="link in navLinks" 
           :key="link.name"
           :to="link.path"
-          class="text-lg font-bold text-slate-900 px-4 py-2 hover:bg-slate-50 rounded-xl"
+          class="text-lg font-bold px-4 py-2 hover:bg-white/20 rounded-xl transition-colors"
+          :class="[
+            showDarkText || !props.transparentWhite
+              ? 'text-slate-900'
+              : 'text-white'
+          ]"
           @click="isMenuOpen = false"
         >
           {{ link.name }}
@@ -192,14 +199,19 @@ const navLinks = [
         <div v-if="!authStore.isAuthenticated" class="flex flex-col gap-3">
           <RouterLink 
             :to="{ name: 'login' }"
-            class="text-center py-3 font-bold text-slate-900 border border-slate-200 rounded-xl"
+            class="text-center py-3 font-extrabold rounded-xl border transition-all"
+            :class="[
+              showDarkText || !props.transparentWhite
+                ? 'text-slate-900 border-slate-200 hover:bg-slate-50'
+                : 'text-white border-white/20 hover:bg-white/10'
+            ]"
             @click="isMenuOpen = false"
           >
             Masuk
           </RouterLink>
           <RouterLink 
             :to="{ name: 'register' }"
-            class="text-center py-3 font-bold text-white bg-indigo-600 rounded-xl"
+            class="text-center py-3 font-extrabold text-white bg-[#0A1128] rounded-xl shadow-lg shadow-[#0A1128]/20"
             @click="isMenuOpen = false"
           >
             Buat Undangan
@@ -208,10 +220,10 @@ const navLinks = [
         <div v-else class="flex flex-col gap-3">
           <RouterLink 
             :to="{ name: 'customer-dashboard' }"
-            class="flex items-center gap-3 px-4 py-3 bg-indigo-50 text-indigo-700 rounded-xl font-bold"
+            class="flex items-center gap-3 px-4 py-3 backdrop-blur-3xl bg-white/20 text-[#0A1128] rounded-xl font-bold"
             @click="isMenuOpen = false"
           >
-            <LayoutDashboard class="w-5 h-5" />
+            <LayoutDashboard class="w-5 h-5 text-[#0A1128]" />
             Dashboard
           </RouterLink>
           <button 
