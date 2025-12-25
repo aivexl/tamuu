@@ -195,12 +195,12 @@ const formatPrice = (price: number) => {
           </div>
 
           <!-- Right Column: Visual (Bride) -->
-          <div class="relative flex justify-center lg:justify-end items-end h-[350px] sm:h-[450px] lg:h-full order-2">
+          <div class="relative flex justify-center lg:justify-end items-end order-2 mt-8 lg:mt-0">
             <!-- Backing Glow -->
             <div class="absolute bottom-0 right-0 w-[120%] h-[120%] bg-rose-500/10 blur-[120px] rounded-full -z-10 animate-pulse transition-all"></div>
             
             <!-- Bride Image (Shoulder-up positioning) -->
-            <div class="relative w-full max-w-[280px] sm:max-w-[380px] lg:max-w-[420px] xl:max-w-[450px] h-full flex items-end overflow-hidden">
+            <div class="relative w-full max-w-[280px] sm:max-w-[380px] lg:max-w-[420px] xl:max-w-[450px] flex items-end">
               <img 
                 src="/images/hero-bride.png" 
                 alt="Tamuu Premium Guest" 
