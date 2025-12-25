@@ -25,7 +25,7 @@ const showDarkText = ref(false);
 
 const handleScroll = () => {
   isScrolled.value = window.scrollY > 10;
-  showDarkText.value = window.scrollY > 400; // Flip text color only after hero
+  showDarkText.value = window.scrollY > 600; // Flip text color only after hero section
 };
 
 onMounted(() => {
