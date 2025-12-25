@@ -127,27 +127,27 @@ const formatPrice = (price: number) => {
 
 <template>
   <div class="min-h-screen bg-slate-50 font-sans selection:bg-indigo-100 selection:text-indigo-900">
-    <MainNavbar transparent-white />
+    <MainNavbar />
 
     <!-- Hero Section -->
-    <section class="relative pt-32 pb-20 overflow-hidden font-jakarta bg-rose-950">
+    <section class="relative pt-32 pb-20 overflow-hidden font-jakarta" style="background-color: #FFD166">
       <!-- Decor -->
       <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
-        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-rose-600/20 blur-[120px] rounded-full"></div>
-        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-rose-500/20 blur-[120px] rounded-full"></div>
-        <div class="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-red-600/20 blur-[100px] rounded-full"></div>
+        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-orange-400/20 blur-[120px] rounded-full"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-amber-400/20 blur-[120px] rounded-full"></div>
+        <div class="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-yellow-400/20 blur-[100px] rounded-full"></div>
       </div>
 
       <div class="max-w-7xl mx-auto px-6 relative">
         <div class="text-center space-y-8 max-w-5xl mx-auto">
           <div
-            class="inline-flex items-center gap-2 px-5 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700"
+            class="inline-flex items-center gap-2 px-5 py-2 bg-white/50 backdrop-blur-md border border-white/30 rounded-full shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700"
           >
-            <Sparkles class="w-4 h-4 text-rose-800" />
-            <span class="text-[10px] font-bold text-rose-100 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
+            <Sparkles class="w-4 h-4 text-orange-600" />
+            <span class="text-[10px] font-bold text-slate-700 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
           </div>
 
-          <h1 class="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold text-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-2 md:gap-4 w-full px-2 tracking-tight leading-[1.1]">
+          <h1 class="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-extrabold text-slate-900 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-2 md:gap-4 w-full px-2 tracking-tight leading-[1.1]">
             <span class="break-words max-w-full">Platform Undangan Digital Premium</span>
             <div class="flex items-center justify-center overflow-visible" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
               <span class="relative overflow-hidden inline-flex flex-col items-center min-w-[200px] sm:min-w-[300px] md:min-w-[400px]" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
@@ -159,7 +159,7 @@ const formatPrice = (price: number) => {
                   <span 
                     v-for="(event, i) in displayList" 
                     :key="i" 
-                    class="flex items-center justify-center bg-gradient-to-r from-rose-400 via-rose-200 to-rose-400 bg-clip-text text-transparent px-2"
+                    class="flex items-center justify-center bg-gradient-to-r from-orange-700 via-amber-800 to-orange-700 bg-clip-text text-transparent px-2"
                     :style="{ height: `${ITEM_HEIGHT_EM}em` }"
                   >
                     {{ event }}
@@ -169,14 +169,14 @@ const formatPrice = (price: number) => {
             </div>
           </h1>
 
-          <p class="text-lg md:text-xl text-rose-100/70 max-w-xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-700 delay-300 font-sans tracking-wide">
+          <p class="text-lg md:text-xl text-slate-700/80 max-w-xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-700 delay-300 font-sans tracking-wide">
             Ciptakan kesan pertama yang tak terlupakan dengan desain eksklusif.
           </p>
 
           <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-500">
             <RouterLink
               :to="{ name: 'register' }"
-              class="group relative inline-flex items-center gap-3 px-10 py-5 bg-rose-600 text-white font-black rounded-2xl shadow-2xl shadow-rose-950/50 hover:bg-rose-700 hover:scale-105 transition-all duration-300"
+              class="group relative inline-flex items-center gap-3 px-10 py-5 bg-slate-900 text-white font-black rounded-2xl shadow-2xl shadow-amber-950/20 hover:bg-slate-800 hover:scale-105 transition-all duration-300"
             >
               Mulai Sekarang
               <ArrowRight class="w-5 h-5 group-hover:translate-x-1 transition-transform" />
