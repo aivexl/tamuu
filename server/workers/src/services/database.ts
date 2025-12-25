@@ -1244,6 +1244,12 @@ export class DatabaseService {
             .prepare(`
                 INSERT INTO guests (id, invitation_id, name, phone, address, tier, guest_count, check_in_code, table_number, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(invitation_id, name, phone) DO UPDATE SET
+                    address = excluded.address,
+                    tier = excluded.tier,
+                    guest_count = excluded.guest_count,
+                    table_number = excluded.table_number,
+                    updated_at = ?
             `)
             .bind(
                 id,
@@ -1255,6 +1261,7 @@ export class DatabaseService {
                 data.guestCount || 1,
                 checkInCode,
                 data.tableNumber || null,
+                now,
                 now,
                 now
             )
@@ -1342,9 +1349,18 @@ export class DatabaseService {
         const statements = guests.map(g => {
             const id = generateUUID();
             const checkInCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+            // Enterprise Grade: Idempotent Insert using ON CONFLICT 
+            // We use (invitation_id, name, phone) as the unique identity of a guest entry
             return this.db.prepare(`
                 INSERT INTO guests (id, invitation_id, name, phone, address, tier, guest_count, check_in_code, table_number, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(invitation_id, name, phone) DO UPDATE SET
+                    address = excluded.address,
+                    tier = excluded.tier,
+                    guest_count = excluded.guest_count,
+                    table_number = excluded.table_number,
+                    updated_at = ?
             `).bind(
                 id,
                 invitationId,
@@ -1356,7 +1372,8 @@ export class DatabaseService {
                 checkInCode,
                 g.tableNumber || null,
                 now,
-                now
+                now,
+                now // for the UPDATE SET updated_at
             );
         });
 

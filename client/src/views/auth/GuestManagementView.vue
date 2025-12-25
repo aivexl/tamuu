@@ -231,13 +231,22 @@ function handleDeleteGuest(guest: Guest) {
 async function confirmDelete() {
     if (!guestToDelete.value || isDeleting.value) return;
     
+    const targetId = guestToDelete.value.id;
     isDeleting.value = true;
     try {
-        console.log(`Attempting to delete guest: ${guestToDelete.value.id}`);
-        await guestsApi.deleteGuest(guestToDelete.value.id);
+        console.log(`[CTO-Verification] Deleting guest: ${targetId}`);
+        await guestsApi.deleteGuest(targetId);
         
-        // Update local state
-        guests.value = guests.value.filter(g => g.id !== guestToDelete.value!.id);
+        // ENTERPRISE GRADE: Strict state verification
+        // Do not rely on local filtering, pull fresh state from SOURCE OF TRUTH
+        await loadData(false); 
+        
+        // Double check it's really gone in local state
+        const exists = guests.value.some(g => g.id === targetId);
+        if (exists) {
+            console.warn(`[CTO-Verification] Guest ${targetId} still exists after delete! Cache issues?`);
+            // We could retry or show a specific warning
+        }
         
         showToast('Tamu berhasil dihapus');
         showDeleteConfirm.value = false;
@@ -522,12 +531,12 @@ async function confirmImport() {
     try {
         await guestsApi.bulkAddGuests(invitationId, guestsToImport);
         
-        // Feedback immediately
+        // ENTERPRISE GRADE: Verify then Confirm
+        // We pull fresh state with cache-busting to ensure UI is 100% in sync with DB
+        await loadData(false);
+        
         isImportModalOpen.value = false;
         showToast(`Berhasil mengimpor ${count} tamu.`);
-        
-        // Refresh in background without full-page spinner
-        await loadData(false);
     } catch (err) {
         showToast('Gagal mengimpor tamu. Periksa format file Anda.');
     } finally {

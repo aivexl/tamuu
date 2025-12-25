@@ -58,7 +58,9 @@ export const guestsApi = {
      */
     async getGuests(invitationId: string): Promise<Guest[]> {
         const headers = await getAuthHeaders();
-        const response = await axios.get(`${API_URL}/guests/${invitationId}`, {
+        // Enterprise Grade: Network-level cache busting using timestamp
+        const cacheBust = Date.now();
+        const response = await axios.get(`${API_URL}/guests/${invitationId}?v=${cacheBust}`, {
             headers,
             withCredentials: true
         });
