@@ -49,16 +49,13 @@ const navLinks = [
 
 <template>
   <nav 
-    class="fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ease-in-out px-4 py-3 md:px-8"
+    class="fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ease-in-out px-4 md:px-8"
     :class="[
       isScrolled 
-        ? 'backdrop-blur-xl border-b border-black/5 shadow-sm py-2' 
+        ? 'backdrop-blur-2xl bg-white/5 border-b border-white/10 shadow-lg py-2' 
         : 'py-4'
     ]"
-    :style="{ 
-      backgroundColor: isScrolled ? 'rgba(249, 245, 240, 0.8)' : (props.transparentBg || 'transparent') 
-    }"
-  >
+>
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <!-- Logo -->
       <RouterLink to="/" class="flex items-center gap-2 group">
