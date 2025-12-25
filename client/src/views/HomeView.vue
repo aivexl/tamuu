@@ -141,7 +141,7 @@ const formatPrice = (price: number) => {
       <div class="max-w-7xl mx-auto px-6 relative">
         <div class="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center lg:items-end min-h-[500px] lg:h-[600px]">
           <!-- Left Column: Content -->
-          <div class="text-center lg:text-left space-y-8 pb-20 lg:pb-32 order-2 lg:order-1">
+          <div class="text-center lg:text-left space-y-8 pb-12 sm:pb-16 lg:pb-32 order-1">
             <div
               class="inline-flex items-center gap-2 px-5 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700"
             >
@@ -195,7 +195,7 @@ const formatPrice = (price: number) => {
           </div>
 
           <!-- Right Column: Visual (Bride) -->
-          <div class="relative order-1 lg:order-2 flex justify-center lg:justify-end items-end h-[350px] sm:h-[450px] lg:h-full">
+          <div class="relative flex justify-center lg:justify-end items-end h-[350px] sm:h-[450px] lg:h-full order-2">
             <!-- Backing Glow -->
             <div class="absolute bottom-0 right-0 w-[120%] h-[120%] bg-rose-500/10 blur-[120px] rounded-full -z-10 animate-pulse transition-all"></div>
             
