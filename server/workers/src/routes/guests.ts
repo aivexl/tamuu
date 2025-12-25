@@ -42,6 +42,10 @@ guests.get('/:invitationId', async (c) => {
 
     try {
         const result = await db.getGuests(invitationId);
+
+        // Disable caching for guest list to ensure real-time accuracy after deletions/imports
+        c.res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+
         return c.json({ guests: result });
     } catch (err: any) {
         return c.json({ error: err.message }, 500);
@@ -132,12 +136,15 @@ guests.put('/:guestId', async (c) => {
  */
 guests.delete('/:guestId', async (c) => {
     const guestId = c.req.param('guestId');
+    console.log(`[GUESTS] Deleting guest: ${guestId}`);
     const db = new DatabaseService(c.env.DB);
 
     try {
         await db.deleteGuest(guestId);
+        console.log(`[GUESTS] Successfully deleted guest: ${guestId}`);
         return c.json({ success: true });
     } catch (err: any) {
+        console.error(`[GUESTS] Delete failed for ${guestId}:`, err);
         return c.json({ error: err.message }, 500);
     }
 });

@@ -28,6 +28,7 @@ const searchQuery = ref('');
 const isImportModalOpen = ref(false);
 const pendingImportGuests = ref<any[]>([]); // Guests parsed from file, waiting for user to confirm
 const isImporting = ref(false); // Loading state for import save
+const isDeleting = ref(false); // Loading state for guest deletion
 const showExportDropdown = ref(false);
 const invitationMessage = ref('');
 
@@ -224,16 +225,24 @@ function handleDeleteGuest(guest: Guest) {
 }
 
 async function confirmDelete() {
-    if (!guestToDelete.value) return;
+    if (!guestToDelete.value || isDeleting.value) return;
+    
+    isDeleting.value = true;
     try {
+        console.log(`Attempting to delete guest: ${guestToDelete.value.id}`);
         await guestsApi.deleteGuest(guestToDelete.value.id);
+        
+        // Update local state
         guests.value = guests.value.filter(g => g.id !== guestToDelete.value!.id);
+        
+        showToast('Tamu berhasil dihapus');
         showDeleteConfirm.value = false;
         guestToDelete.value = null;
-        showToast('Tamu berhasil dihapus');
     } catch (e) {
         console.error('Delete failed:', e);
-        showToast('Gagal menghapus tamu');
+        showToast('Gagal menghapus tamu. Silakan coba lagi.');
+    } finally {
+        isDeleting.value = false;
     }
 }
 
@@ -1103,13 +1112,16 @@ onMounted(loadData);
             <div class="flex flex-col gap-3">
                 <button 
                     @click="confirmDelete"
-                    class="w-full py-4 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl transition-all shadow-lg shadow-red-200"
+                    :disabled="isDeleting"
+                    class="w-full py-4 bg-red-500 hover:bg-red-600 text-white font-black rounded-2xl transition-all shadow-lg shadow-red-200 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                    Hapus Sekarang
+                    <Loader2 v-if="isDeleting" class="w-5 h-5 animate-spin" />
+                    <span v-else>Hapus Sekarang</span>
                 </button>
                 <button 
                     @click="showDeleteConfirm = false"
-                    class="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all"
+                    :disabled="isDeleting"
+                    class="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all disabled:opacity-50"
                 >
                     Batal
                 </button>
