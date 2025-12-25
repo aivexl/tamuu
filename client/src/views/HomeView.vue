@@ -206,7 +206,7 @@ const formatPrice = (price: number) => {
         <div
           v-for="(feature, index) in features"
           :key="index"
-          class="group p-10 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-[#0A1128]/10 transition-all duration-500 hover:-translate-y-2"
+          class="group p-10 bg-[#F8FAFC] rounded-[2.5rem] border border-slate-200/50 shadow-md hover:shadow-2xl hover:shadow-[#0A1128]/10 transition-all duration-500 hover:-translate-y-2"
         >
           <div class="w-16 h-16 bg-[#0A1128]/5 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
             <component :is="feature.icon" class="w-8 h-8 text-[#0A1128]" />
@@ -232,7 +232,7 @@ const formatPrice = (price: number) => {
           class="relative p-10 rounded-[2.5rem] transition-all duration-500 hover:-translate-y-2 group"
           :class="plan.popular 
             ? 'bg-slate-900 text-white shadow-[0_30px_60px_-15px_rgba(15,23,42,0.3)] scale-105 z-10' 
-            : 'bg-white text-slate-900 border border-slate-100 shadow-sm hover:shadow-2xl'"
+            : 'bg-[#F8FAFC] text-slate-900 border border-slate-200 shadow-md hover:shadow-2xl'"
         >
           <div v-if="plan.popular" class="absolute -top-5 left-1/2 -translate-x-1/2 bg-[#FFBF00] text-[#0A1128] text-[10px] font-black tracking-[0.2em] uppercase py-2 px-6 rounded-full shadow-lg">
             Rekomendasi Utama
