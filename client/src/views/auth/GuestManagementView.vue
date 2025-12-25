@@ -29,6 +29,7 @@ const isImportModalOpen = ref(false);
 const pendingImportGuests = ref<any[]>([]); // Guests parsed from file, waiting for user to confirm
 const isImporting = ref(false); // Loading state for import save
 const isDeleting = ref(false); // Loading state for guest deletion
+const isRefreshing = ref(false); // Background refresh state
 const showExportDropdown = ref(false);
 const invitationMessage = ref('');
 
@@ -149,8 +150,10 @@ const stats = computed(() => {
 });
 
 // Methods
-async function loadData() {
-    loading.value = true;
+async function loadData(showLoader = true) {
+    if (showLoader) loading.value = true;
+    else isRefreshing.value = true;
+    
     try {
         const [guestList, invite] = await Promise.all([
             guestsApi.getGuests(invitationId),
@@ -164,7 +167,8 @@ async function loadData() {
     } catch (e) {
         console.error('Failed to load data:', e);
     } finally {
-        loading.value = false;
+        if (showLoader) loading.value = false;
+        else isRefreshing.value = false;
     }
 }
 
@@ -517,9 +521,13 @@ async function confirmImport() {
     
     try {
         await guestsApi.bulkAddGuests(invitationId, guestsToImport);
-        await loadData();
-        showToast(`Berhasil mengimpor ${count} tamu.`);
+        
+        // Feedback immediately
         isImportModalOpen.value = false;
+        showToast(`Berhasil mengimpor ${count} tamu.`);
+        
+        // Refresh in background without full-page spinner
+        await loadData(false);
     } catch (err) {
         showToast('Gagal mengimpor tamu. Periksa format file Anda.');
     } finally {
@@ -622,8 +630,12 @@ onMounted(loadData);
                     v-model="searchQuery"
                     type="text"
                     placeholder="Cari nama, nomor, atau alamat..."
-                    class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-teal-500 transition-all outline-none"
+                    class="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-transparent rounded-xl focus:bg-white focus:border-teal-500 transition-all outline-none"
                 />
+                <div v-if="isRefreshing" class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    <Loader2 class="w-4 h-4 animate-spin text-teal-500" />
+                    <span class="text-[10px] font-bold text-teal-600 uppercase tracking-tighter hidden sm:inline">Syncing...</span>
+                </div>
             </div>
             <div class="flex items-center gap-2">
                 <button @click="isImportModalOpen = true" class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all font-medium">
