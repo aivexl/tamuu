@@ -147,10 +147,10 @@ const formatPrice = (price: number) => {
             <span class="text-[10px] font-bold text-white/80 uppercase tracking-[0.3em]">The Premium Digital Invitation</span>
           </div>
 
-          <h1 class="text-[2.6rem] sm:text-6xl md:text-7xl lg:text-8xl font-black text-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-2 md:gap-4 w-full px-2 tracking-tight leading-[1.05]">
+          <h1 class="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150 flex flex-col items-center gap-2 md:gap-4 w-full px-2 tracking-tight leading-[1.05]">
             <span class="break-words max-w-full">Platform Undangan Digital Premium</span>
             <div class="flex items-center justify-center overflow-visible" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
-              <span class="relative overflow-hidden inline-flex flex-col items-center min-w-[240px] sm:min-w-[400px] md:min-w-[500px]" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
+              <span class="relative overflow-hidden inline-flex flex-col items-center min-w-[200px] sm:min-w-[400px] md:min-w-[500px]" :style="{ height: `${ITEM_HEIGHT_EM}em` }">
                 <span 
                   class="flex flex-col w-full whitespace-nowrap" 
                   :class="{ 'transition-transform duration-700 ease-in-out': transitionEnabled }"
@@ -239,9 +239,9 @@ const formatPrice = (price: number) => {
           </div>
           
           <h3 class="text-2xl font-black mb-2 tracking-tight">{{ plan.name }}</h3>
-          <div class="flex items-baseline gap-1 mb-8">
+          <div class="flex items-baseline gap-1 mb-8 overflow-hidden">
             <span class="text-sm font-bold opacity-60">Rp</span>
-            <span class="text-5xl font-black tracking-tighter">{{ formatPrice(plan.price) }}</span>
+            <span class="text-4xl sm:text-5xl font-black tracking-tighter">{{ formatPrice(plan.price) }}</span>
             <span class="text-sm font-medium opacity-60">/acara</span>
           </div>
 
