@@ -217,10 +217,10 @@ const navLinks = [
           </RouterLink>
           <RouterLink 
             :to="{ name: 'register' }"
-            class="text-center py-3 font-extrabold text-white rounded-xl shadow-lg transition-all"
+            class="text-center py-3 font-extrabold rounded-xl shadow-lg transition-all"
             :class="[
               isDarkTheme
-                ? 'bg-[#0A1128] shadow-[#0A1128]/20'
+                ? 'bg-[#0A1128] text-white shadow-[#0A1128]/20'
                 : 'bg-white text-[#0A1128] shadow-white/10'
             ]"
             @click="isMenuOpen = false"
