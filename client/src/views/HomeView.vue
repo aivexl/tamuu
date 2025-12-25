@@ -225,13 +225,13 @@ const formatPrice = (price: number) => {
         <div class="w-20 h-1.5 bg-[#FFBF00] mx-auto rounded-full"></div>
       </div>
 
-      <div class="grid md:grid-cols-3 gap-8 items-center">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-6 xl:gap-8 items-center max-w-lg lg:max-w-none mx-auto">
         <div
           v-for="(plan, index) in pricingPlans"
           :key="index"
-          class="relative p-10 rounded-[2.5rem] transition-all duration-500 hover:-translate-y-2 group"
+          class="relative p-8 sm:p-10 rounded-[2.5rem] transition-all duration-500 hover:-translate-y-2 group"
           :class="plan.popular 
-            ? 'bg-slate-900 text-white shadow-[0_30px_60px_-15px_rgba(15,23,42,0.3)] scale-105 z-10' 
+            ? 'bg-slate-900 text-white shadow-[0_30px_60px_-15px_rgba(15,23,42,0.3)] lg:scale-105 z-10' 
             : 'bg-[#F8FAFC] text-slate-900 border border-slate-200 shadow-md hover:shadow-2xl'"
         >
           <div v-if="plan.popular" class="absolute -top-5 left-1/2 -translate-x-1/2 bg-[#FFBF00] text-[#0A1128] text-[10px] font-black tracking-[0.2em] uppercase py-2 px-6 rounded-full shadow-lg">
@@ -249,7 +249,7 @@ const formatPrice = (price: number) => {
 
           <ul class="space-y-4 mb-10">
             <li v-for="(feature, i) in plan.features" :key="i" class="flex items-center gap-3 text-sm font-semibold">
-              <div class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" :class="plan.popular ? 'bg-indigo-500/20 text-indigo-400' : 'bg-teal-50 text-teal-600'">
+              <div class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" :class="plan.popular ? 'bg-amber-400/20 text-amber-400' : 'bg-[#0A1128]/5 text-[#0A1128]/60'">
                 <CheckCircle class="w-3.5 h-3.5" />
               </div>
               <span class="opacity-90">{{ feature }}</span>
